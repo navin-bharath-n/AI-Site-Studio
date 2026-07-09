@@ -1592,7 +1592,9 @@ function Dashboard() {
                                   <span key={tech} className="tech-chip">✓ {tech}</span>
                                 ))}
                               </div>
-                                                 ) : (
+                            </div>
+                          </div>
+                        ) : (
                           <div className="db-upload-dropzone p-8 flex flex-col space-y-6">
                             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto text-primary">
                               <Globe className="w-6 h-6 animate-pulse" />
