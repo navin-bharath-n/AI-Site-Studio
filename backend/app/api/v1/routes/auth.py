@@ -67,7 +67,13 @@ if settings.GITHUB_CLIENT_ID:
 
 
 @router.get("/{provider}/login")
-async def login(provider: str, request: Request, role: str = "buyer", redirect: Optional[str] = None):
+async def login(
+    provider: str,
+    request: Request,
+    role: str = "buyer",
+    redirect: Optional[str] = None,
+    token: Optional[str] = None
+):
     """Redirects to the OAuth provider."""
     if provider not in ["google", "facebook", "github"]:
         raise HTTPException(status_code=404, detail="Provider not supported")
@@ -82,6 +88,16 @@ async def login(provider: str, request: Request, role: str = "buyer", redirect: 
     request.session['auth_role'] = role
     if redirect:
         request.session['auth_redirect'] = redirect
+        
+    if token:
+        try:
+            from app.core.security import decode_token
+            payload = decode_token(token)
+            user_id = payload.get("sub")
+            if user_id:
+                request.session['auth_current_user_id'] = user_id
+        except Exception:
+            pass
     
     return await client.authorize_redirect(request, redirect_uri)
 
@@ -148,27 +164,47 @@ async def auth_callback(provider: str, request: Request, db: AsyncSession = Depe
     if not email or not provider_id:
         raise HTTPException(status_code=400, detail="Could not retrieve email or ID from provider")
 
-    role = request.session.get('auth_role', 'buyer')
-    if role.lower() == "seller" and not is_company_email(email):
-        from urllib.parse import quote_plus
-        error_msg = quote_plus("Sellers must use a company email address (not public domains like Gmail).")
-        redirect_url = f"{settings.FRONTEND_URL}/sign-in?error={error_msg}&role=seller"
-        return RedirectResponse(url=redirect_url)
-
-    repo = UserRepository(db)
-    user = await repo.upsert_oauth_user(
-        provider=provider,
-        provider_id=provider_id,
-        email=email,
-        full_name=full_name,
-        avatar_url=avatar_url,
-        role=role
-    )
+    current_user_id = request.session.pop('auth_current_user_id', None)
     
-    if provider == "github" and access_token_val:
-        user.github_access_token = access_token_val
+    repo = UserRepository(db)
+    if current_user_id:
+        from uuid import UUID
+        user = await repo.get_by_id(UUID(current_user_id))
+        if not user:
+            raise HTTPException(status_code=404, detail="Logged in user not found")
+        
+        # Link GitHub details
+        if provider == "github":
+            user.github_id = provider_id
+            user.github_access_token = access_token_val
+        elif provider == "google":
+            user.google_id = provider_id
+        elif provider == "facebook":
+            user.facebook_id = provider_id
+            
         await db.flush()
         await db.refresh(user)
+    else:
+        role = request.session.get('auth_role', 'buyer')
+        if role.lower() == "seller" and not is_company_email(email):
+            from urllib.parse import quote_plus
+            error_msg = quote_plus("Sellers must use a company email address (not public domains like Gmail).")
+            redirect_url = f"{settings.FRONTEND_URL}/sign-in?error={error_msg}&role=seller"
+            return RedirectResponse(url=redirect_url)
+
+        user = await repo.upsert_oauth_user(
+            provider=provider,
+            provider_id=provider_id,
+            email=email,
+            full_name=full_name,
+            avatar_url=avatar_url,
+            role=role
+        )
+        
+        if provider == "github" and access_token_val:
+            user.github_access_token = access_token_val
+            await db.flush()
+            await db.refresh(user)
 
     access_token = create_access_token(subject=str(user.id))
     

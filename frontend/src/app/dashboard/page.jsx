@@ -285,14 +285,18 @@ function Dashboard() {
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [zipFile, setZipFile] = useState(null);
   const [folderFiles, setFolderFiles] = useState(null);
-  // If arriving from GitHub OAuth redirect, auto-select git tab
-  const [uploadType, setUploadType] = useState(() => {
-    if (typeof window !== "undefined") {
+  const [uploadType, setUploadType] = useState("zip"); // "zip" or "git"
+  const [hasInitializedUploadType, setHasInitializedUploadType] = useState(false);
+
+  useEffect(() => {
+    if (user && !hasInitializedUploadType) {
       const tab = new URLSearchParams(window.location.search).get("tab");
-      if (tab === "seller-upload") return "git";
+      if (tab === "seller-upload" || user?.has_github_token) {
+        setUploadType("git");
+      }
+      setHasInitializedUploadType(true);
     }
-    return "zip";
-  });
+  }, [user, hasInitializedUploadType]);
   const [gitUrl, setGitUrl] = useState("");
   const [storedZipUrl, setStoredZipUrl] = useState("");
   const [githubUsername, setGithubUsername] = useState("");
@@ -1680,7 +1684,7 @@ function Dashboard() {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  window.location.href = `http://localhost:8000/api/v1/auth/github/login?role=seller&redirect=${encodeURIComponent("/dashboard?tab=seller-upload")}`;
+                                  window.location.href = `http://localhost:8000/api/v1/auth/github/login?role=seller&token=${encodeURIComponent(authToken)}&redirect=${encodeURIComponent("/dashboard?tab=seller-upload")}`;
                                 }}
                                 className="w-full py-2.5 bg-foreground text-background hover:bg-foreground/95 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm"
                               >
@@ -1980,7 +1984,14 @@ function Dashboard() {
                               </div>
                             </div>
                             
-                            <div className="flex justify-end pt-4 border-t border-border/40">
+                            <div className="flex justify-between items-center pt-4 border-t border-border/40">
+                              <button 
+                                type="button" 
+                                onClick={() => setWizardStep(1)}
+                                className="px-4 py-2 border border-border hover:border-slate-500 rounded-xl text-xs font-semibold transition-all"
+                              >
+                                Back to Source Selection
+                              </button>
                               <button 
                                 type="button" 
                                 onClick={() => setWizardStep(3)}
