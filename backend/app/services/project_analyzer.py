@@ -23,6 +23,22 @@ class ProjectAnalyzer:
     and runs Gemini API for content generation, scores, and tag extraction.
     """
 
+    def _safe_cleanup(self, path: Path):
+        """Safely removes a directory tree, handling Windows read-only file issues (common with .git)."""
+        import stat
+        def remove_readonly(func, p, excinfo):
+            try:
+                os.chmod(p, stat.S_IWRITE)
+                func(p)
+            except Exception:
+                pass
+        
+        if path.exists():
+            try:
+                shutil.rmtree(path, onerror=remove_readonly)
+            except Exception as e:
+                logger.warning(f"Failed to delete directory {path}: {e}")
+
     async def analyze_zip(self, file_content: bytes, original_filename: str) -> Dict[str, Any]:
         temp_id = uuid.uuid4().hex
         temp_dir = Path(tempfile.gettempdir()) / "ai_site_studio" / "temp_zips" / temp_id
@@ -127,10 +143,7 @@ class ProjectAnalyzer:
             }
         finally:
             # Clean up temporary directory
-            try:
-                shutil.rmtree(temp_dir)
-            except Exception as e:
-                logger.warning(f"Failed to clean up temp zip folder: {e}")
+            self._safe_cleanup(temp_dir)
 
     async def analyze_git_repo(self, git_url: str) -> Dict[str, Any]:
         """
@@ -146,15 +159,19 @@ class ProjectAnalyzer:
 
         try:
             # 1. Run git clone depth 1
+            import subprocess
             cmd = ["git", "clone", "--depth", "1", git_url, str(clone_dir)]
-            process = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-            stdout, stderr = await process.communicate()
-            if process.returncode != 0:
-                raise Exception(f"Git clone failed: {stderr.decode(errors='ignore')}")
+            
+            def run_clone():
+                return subprocess.run(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE
+                )
+            
+            res = await asyncio.to_thread(run_clone)
+            if res.returncode != 0:
+                raise Exception(f"Git clone failed: {res.stderr.decode(errors='ignore')}")
 
             # 2. Locate root folder (find package.json or index.html recursively inside clone_dir)
             root_path = clone_dir
@@ -249,10 +266,7 @@ class ProjectAnalyzer:
             }
 
         finally:
-            try:
-                shutil.rmtree(temp_dir)
-            except Exception as e:
-                logger.warning(f"Failed to clean up temp git folder: {e}")
+            self._safe_cleanup(temp_dir)
 
     def _scan_project_files(self, root_path: Path) -> Dict[str, Any]:
         """Runs rule-based scanning over the directory code structures."""
@@ -301,14 +315,37 @@ class ProjectAnalyzer:
         color_regex = re.compile(r"#(?:[a-fA-F0-9]{3}){1,2}\b")
         font_regex = re.compile(r"font-family:\s*['\"]?([a-zA-Z0-9\s\-_]+)['\"]?")
 
+        # Tracking for fallback framework/language/CSS detection
+        extension_counts = {
+            ".jsx": 0,
+            ".tsx": 0,
+            ".vue": 0,
+            ".svelte": 0,
+            ".astro": 0,
+            ".html": 0,
+            ".js": 0,
+            ".ts": 0,
+        }
+        has_react_import = False
+        has_next_import = False
+        has_vue_import = False
+        has_svelte_import = False
+        has_astro_import = False
+
         # 1. Inspect package.json
         package_json_path = root_path / "package.json"
         if package_json_path.exists():
             try:
                 with open(package_json_path, "r", encoding="utf-8") as f:
                     pkg_data = json.load(f)
-                    all_deps = {**pkg_data.get("dependencies", {}), **pkg_data.get("devDependencies", {})}
-                    dependencies = pkg_data.get("dependencies", {})
+                    deps = pkg_data.get("dependencies") or {}
+                    dev_deps = pkg_data.get("devDependencies") or {}
+                    if not isinstance(deps, dict):
+                        deps = {}
+                    if not isinstance(dev_deps, dict):
+                        dev_deps = {}
+                    all_deps = {**deps, **dev_deps}
+                    dependencies = deps
 
                     # Framework
                     if "next" in all_deps:
@@ -365,12 +402,15 @@ class ProjectAnalyzer:
         for dirpath, dirnames, filenames in os.walk(root_path):
             dp = Path(dirpath)
             # Skip node_modules and .git
-            if "node_modules" in dp.parts or ".git" in dp.parts or ".next" in dp.parts or "dist" in dp.parts:
+            if "node_modules" in dp.parts or ".git" in dp.parts or ".next" in dp.parts or "dist" in dp.parts or "build" in dp.parts:
                 continue
 
             for filename in filenames:
                 file_ext = Path(filename).suffix.lower()
                 full_file_path = dp / filename
+
+                if file_ext in extension_counts:
+                    extension_counts[file_ext] += 1
 
                 # Check assets
                 if file_ext in [".png", ".jpg", ".jpeg", ".webp", ".gif", ".ico"]:
@@ -396,6 +436,23 @@ class ProjectAnalyzer:
                     try:
                         with open(full_file_path, "r", encoding="utf-8", errors="ignore") as code_file:
                             content = code_file.read()
+
+                            # Detect imports for fallback framework detection
+                            if "from 'react'" in content or 'from "react"' in content or "import React" in content:
+                                has_react_import = True
+                            if "from 'next'" in content or 'from "next"' in content or "next/link" in content or "next/router" in content:
+                                has_next_import = True
+                            if "from 'vue'" in content or 'from "vue"' in content or "<template>" in content:
+                                has_vue_import = True
+                            if "from 'svelte'" in content or 'from "svelte"' in content:
+                                has_svelte_import = True
+                            if "from 'astro'" in content or 'from "astro"' in content:
+                                has_astro_import = True
+
+                            # Detect Tailwind directives
+                            if "@tailwind" in content or "tailwind" in content:
+                                if css_system == "Vanilla CSS":
+                                    css_system = "Tailwind CSS"
 
                             # Detect colors
                             for match in color_regex.findall(content):
@@ -482,6 +539,27 @@ class ProjectAnalyzer:
                     comp_name = Path(filename).stem
                     if comp_name and comp_name[0].isupper() and comp_name not in components:
                         components.append(comp_name)
+
+        # Fallback framework detection based on files, extensions, and imports if not set via package.json
+        if framework == "HTML":
+            if has_next_import or (extension_counts.get(".tsx", 0) > 0 and has_next_import):
+                framework = "nextjs"
+            elif has_react_import or extension_counts.get(".tsx", 0) > 0 or extension_counts.get(".jsx", 0) > 0:
+                framework = "react"
+            elif has_vue_import or extension_counts.get(".vue", 0) > 0:
+                framework = "vue"
+            elif has_svelte_import or extension_counts.get(".svelte", 0) > 0:
+                framework = "svelte"
+            elif has_astro_import or extension_counts.get(".astro", 0) > 0:
+                framework = "astro"
+            
+            if framework != "HTML":
+                version = "1.0.0"
+
+        # Language fallback
+        if language == "JavaScript":
+            if extension_counts.get(".ts", 0) > 0 or extension_counts.get(".tsx", 0) > 0:
+                language = "TypeScript"
 
         # 3. Process colors (select top 5 hex codes, skipping pure white/black if others exist)
         sorted_colors = sorted(color_freq.items(), key=lambda x: x[1], reverse=True)

@@ -217,11 +217,27 @@ async def serve_live_preview(
                         f.write(zip_ref.read(member.filename))
 
     # Detect package.json to see if this is a Node.js project requiring compilation
+    import json
     package_json_path = None
+    # 1. Prioritize package.json that contains a "build" script
     for root, dirs, files in os.walk(preview_dir):
         if "package.json" in files:
-            package_json_path = os.path.join(root, "package.json")
-            break
+            candidate_path = os.path.join(root, "package.json")
+            try:
+                with open(candidate_path, "r", encoding="utf-8") as f:
+                    pkg_data = json.load(f)
+                    if "scripts" in pkg_data and "build" in pkg_data["scripts"]:
+                        package_json_path = candidate_path
+                        break
+            except Exception:
+                pass
+                
+    # 2. Fallback to the first package.json if none have a build script
+    if not package_json_path:
+        for root, dirs, files in os.walk(preview_dir):
+            if "package.json" in files:
+                package_json_path = os.path.join(root, "package.json")
+                break
 
     serve_root = preview_dir
     build_dir = None
@@ -275,14 +291,74 @@ async def serve_live_preview(
                     if install_res.returncode != 0:
                         print(f"npm install failed for {template_id}: {install_res.stderr.decode('utf-8', errors='ignore')}")
                     
-                    # 2. npm run build
+                    # Detect framework characteristics
+                    is_next = False
+                    is_nuxt = False
+                    has_generate_script = False
+                    has_export_script = False
+                    
+                    try:
+                        with open(package_json_path, "r", encoding="utf-8") as f:
+                            pkg_data = json.load(f)
+                            all_deps = {**pkg_data.get("dependencies", {}), **pkg_data.get("devDependencies", {})}
+                            is_next = "next" in all_deps
+                            is_nuxt = "nuxt" in all_deps
+                            has_generate_script = "generate" in pkg_data.get("scripts", {})
+                            has_export_script = "export" in pkg_data.get("scripts", {})
+                    except Exception:
+                        pass
+
+                    # Framework-specific configuration tuning (e.g., forcing static export for Next.js)
+                    if is_next:
+                        next_cfg_js = os.path.join(project_root, "next.config.js")
+                        next_cfg_mjs = os.path.join(project_root, "next.config.mjs")
+                        
+                        if not os.path.exists(next_cfg_js) and not os.path.exists(next_cfg_mjs):
+                            try:
+                                with open(next_cfg_js, "w", encoding="utf-8") as f:
+                                    f.write("module.exports = { output: 'export', images: { unoptimized: true } };\n")
+                            except Exception:
+                                pass
+                        else:
+                            cfg_path = next_cfg_js if os.path.exists(next_cfg_js) else next_cfg_mjs
+                            try:
+                                with open(cfg_path, "r", encoding="utf-8", errors="ignore") as f:
+                                    cfg_content = f.read()
+                                if "output:" not in cfg_content and "output :" not in cfg_content:
+                                    for pattern in ["const nextConfig = {", "module.exports = {", "export default {", "nextConfig = {"]:
+                                        if pattern in cfg_content:
+                                            cfg_content = cfg_content.replace(pattern, f"{pattern}\n  output: 'export',\n  images: {{ unoptimized: true }},", 1)
+                                            break
+                                    with open(cfg_path, "w", encoding="utf-8") as f:
+                                        f.write(cfg_content)
+                            except Exception:
+                                pass
+
+                    # Determine optimal build/generate command
+                    build_cmd = [npm_cmd, "run", "build"]
+                    if is_nuxt:
+                        if has_generate_script:
+                            build_cmd = [npm_cmd, "run", "generate"]
+                        else:
+                            npx_cmd = "npx.cmd" if platform.system() == "Windows" else "npx"
+                            build_cmd = [npx_cmd, "nuxt", "generate"]
+
+                    # 2. Compile/build template project
                     def run_npm_build():
-                        return subprocess.run(
-                            [npm_cmd, "run", "build"],
+                        res = subprocess.run(
+                            build_cmd,
                             cwd=project_root,
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE
                         )
+                        if res.returncode == 0 and is_next and has_export_script:
+                            subprocess.run(
+                                [npm_cmd, "run", "export"],
+                                cwd=project_root,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE
+                            )
+                        return res
                         
                     build_res = await loop.run_in_executor(None, run_npm_build)
                     if build_res.returncode != 0:
@@ -348,12 +424,56 @@ async def serve_live_preview(
     if mime_type == "text/html" and filepath in [None, "", "/"]:
         try:
             html_content = content.decode("utf-8", errors="ignore")
-            # Replace absolute links /assets/, /css/, /js/, /img/ with relative versions
-            for folder in ["assets", "css", "js", "img", "fonts", "static"]:
-                html_content = html_content.replace(f'src="/{folder}/', f'src="./{folder}/')
-                html_content = html_content.replace(f'href="/{folder}/', f'href="./{folder}/')
-                html_content = html_content.replace(f'src=\'/{folder}/', f'src=\'./{folder}/')
-                html_content = html_content.replace(f'href=\'/{folder}/', f'href=\'./{folder}/')
+            
+            # 1. Rewrite absolute resources (e.g. /vite.svg, /assets/index.js) to relative FIRST
+            import re
+            html_content = re.sub(r'src="/(?![/])', 'src="./', html_content)
+            html_content = re.sub(r'href="/(?![/])', 'href="./', html_content)
+            
+            # 2. Inject client-side routing and location sandboxing script (including absolute <base> tag)
+            sandbox_script = f"""<base href="/api/v1/preview/live/{template_id}/" />
+<script>
+  (function() {{
+    const basePrefix = "/api/v1/preview/live/{template_id}";
+    
+    // 1. Instantly rewrite history state to relative path so client-side routers match the root route
+    try {{
+      if (window.location.pathname.startsWith(basePrefix)) {{
+        let targetPath = window.location.pathname.slice(basePrefix.length);
+        if (!targetPath.startsWith('/')) {{
+          targetPath = '/' + targetPath;
+        }}
+        window.history.replaceState(null, '', targetPath);
+      }}
+    }} catch (e) {{
+      console.error("[Live Preview Sandbox] Failed to replace initial state:", e);
+    }}
+
+    // 2. Intercept click events on absolute links to keep them inside the sandbox
+    document.addEventListener('click', function(e) {{
+      const link = e.target.closest('a');
+      if (link && link.href) {{
+        try {{
+          const url = new URL(link.href);
+          if (url.origin === window.location.origin) {{
+            let path = url.pathname;
+            if (path.startsWith('/') && !path.startsWith(basePrefix)) {{
+              link.href = url.origin + basePrefix + path + url.search + url.hash;
+            }}
+          }}
+        }} catch (err) {{}}
+      }}
+    }}, true);
+  }})();
+</script>"""
+            
+            if "<head>" in html_content:
+                html_content = html_content.replace("<head>", f"<head>\n  {sandbox_script}", 1)
+            elif "<html>" in html_content:
+                html_content = html_content.replace("<html>", f"<html>\n  {sandbox_script}", 1)
+            else:
+                html_content = sandbox_script + "\n" + html_content
+            
             content = html_content.encode("utf-8")
         except Exception:
             pass
