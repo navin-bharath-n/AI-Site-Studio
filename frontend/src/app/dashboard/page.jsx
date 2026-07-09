@@ -1592,145 +1592,19 @@ function Dashboard() {
                                   <span key={tech} className="tech-chip">✓ {tech}</span>
                                 ))}
                               </div>
-                            </div>
-                          </div>
-                        ) : user?.has_github_token ? (
-                          <div className="db-upload-dropzone p-6 flex flex-col space-y-4 text-left">
-                            <div className="flex items-center justify-between border-b border-border/50 pb-3">
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                                  {user?.fullName?.charAt(0) || "G"}
-                                </div>
-                                <div>
-                                  <h4 className="font-bold text-sm text-foreground">GitHub Account Connected</h4>
-                                  <p className="text-[10px] text-muted-foreground">Select a repository to import</p>
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={disconnectGithub}
-                                className="px-2.5 py-1 text-[10px] font-semibold text-red-500 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-all"
-                              >
-                                Disconnect Account
-                              </button>
-                            </div>
-
-                            {/* Search bar */}
-                            <div className="relative">
-                              <input
-                                type="text"
-                                placeholder="Search repositories..."
-                                value={githubUsername}
-                                onChange={(e) => setGithubUsername(e.target.value)}
-                                className="w-full pl-9 pr-4 py-2 rounded-lg border border-border bg-background/50 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                              />
-                              <Globe className="w-4 h-4 text-muted-foreground absolute left-3 top-2.5" />
-                            </div>
-
-                            {/* Repos List */}
-                            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-                              {fetchingRepos ? (
-                                <div className="p-8 text-center text-muted-foreground flex flex-col items-center gap-2">
-                                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                                  <span className="text-xs">Fetching repositories from GitHub...</span>
-                                </div>
-                              ) : fetchedRepos.length === 0 ? (
-                                <div className="p-8 text-center text-muted-foreground text-xs">
-                                  No repositories found. Try checking your PAT scopes.
-                                </div>
-                              ) : (
-                                fetchedRepos
-                                  .filter(repo => !githubUsername || repo.name.toLowerCase().includes(githubUsername.toLowerCase()))
-                                  .map((repo) => (
-                                    <div key={repo.clone_url} className="flex items-center justify-between p-3 rounded-xl border border-border/60 bg-muted/5 hover:bg-muted/10 hover:border-border transition-all">
-                                      <div className="flex items-center gap-3">
-                                        <Folder className="w-4 h-4 text-slate-400" />
-                                        <div>
-                                          <span className="text-xs font-bold text-foreground block">{repo.name}</span>
-                                          <span className="text-[10px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                                            {repo.private ? (
-                                              <span className="inline-flex items-center gap-0.5 text-yellow-500 bg-yellow-500/5 px-1 rounded text-[9px] font-semibold border border-yellow-500/10">🔒 Private</span>
-                                            ) : (
-                                              <span className="inline-flex items-center gap-0.5 text-blue-500 bg-blue-500/5 px-1 rounded text-[9px] font-semibold border border-blue-500/10">🌐 Public</span>
-                                            )}
-                                            {repo.description && <span className="truncate max-w-[180px]">• {repo.description}</span>}
-                                          </span>
-                                        </div>
-                                      </div>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleGitAnalysis(repo.clone_url)}
-                                        className="px-3.5 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/95 transition-all shadow-sm"
-                                      >
-                                        Import
-                                      </button>
-                                    </div>
-                                  ))
-                              )}
-                            </div>
-                          </div>
-                        ) : (
+                                                 ) : (
                           <div className="db-upload-dropzone p-8 flex flex-col space-y-6">
                             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto text-primary">
                               <Globe className="w-6 h-6 animate-pulse" />
                             </div>
                             <div>
                               <h4 className="font-bold text-base text-foreground mb-1">Import from Git Repository</h4>
-                              <p className="text-xs text-muted-foreground">Connect your GitHub to import your templates directly like Vercel.</p>
+                              <p className="text-xs text-muted-foreground text-center max-w-sm mx-auto">
+                                Paste the URL of your public Git repository (GitHub, GitLab, Bitbucket, etc.) to clone and analyze the template.
+                              </p>
                             </div>
 
-                            {/* Option A: OAuth Sign In */}
-                            <div className="max-w-md mx-auto w-full">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  window.location.href = `http://localhost:8000/api/v1/auth/github/login?role=seller&token=${encodeURIComponent(authToken)}&redirect=${encodeURIComponent("/dashboard?tab=seller-upload")}`;
-                                }}
-                                className="w-full py-2.5 bg-foreground text-background hover:bg-foreground/95 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm"
-                              >
-                                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-                                Connect GitHub Account
-                              </button>
-                            </div>
-
-                            <div className="flex items-center justify-center max-w-md mx-auto w-full text-center">
-                              <span className="w-full border-t border-border/50"></span>
-                              <span className="px-3 text-[10px] uppercase text-muted-foreground shrink-0 font-semibold">Or connect via Token</span>
-                              <span className="w-full border-t border-border/50"></span>
-                            </div>
-
-                            {/* Option B: Connect via PAT */}
-                            <div className="w-full max-w-md mx-auto bg-muted/5 border border-border/40 rounded-2xl p-6 space-y-3 text-left">
-                              <label className="text-[10px] uppercase font-semibold text-muted-foreground block">GitHub Personal Access Token (PAT)</label>
-                              <input 
-                                type="password"
-                                placeholder="ghp_..."
-                                value={githubToken}
-                                onChange={(e) => setGithubToken(e.target.value)}
-                                className="w-full px-3 py-2 rounded-lg border border-border bg-background/30 text-xs focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
-                              />
-                              <button
-                                type="button"
-                                onClick={connectGithub}
-                                disabled={connectingGithub}
-                                className="w-full py-2 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/95 transition-all flex items-center justify-center gap-1.5"
-                              >
-                                {connectingGithub ? (
-                                  <>
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Connecting...
-                                  </>
-                                ) : "Connect Token"}
-                              </button>
-                            </div>
-
-                            {/* Paste Direct Link Option */}
-                            <div className="flex items-center justify-center max-w-md mx-auto w-full text-center">
-                              <span className="w-full border-t border-border/50"></span>
-                              <span className="px-3 text-[10px] uppercase text-muted-foreground shrink-0 font-semibold">Or paste repo link directly</span>
-                              <span className="w-full border-t border-border/50"></span>
-                            </div>
-
-                            <div className="w-full max-w-md mx-auto flex flex-col gap-2">
+                            <div className="w-full max-w-md mx-auto flex flex-col gap-3">
                               <input 
                                 type="text"
                                 placeholder="https://github.com/username/repository-name.git"
@@ -1741,9 +1615,9 @@ function Dashboard() {
                               <button
                                 type="button"
                                 onClick={() => handleGitAnalysis()}
-                                className="px-6 py-2.5 bg-primary/10 text-primary border border-primary/20 text-xs font-bold rounded-xl hover:bg-primary/20 transition-all inline-block font-semibold"
+                                className="w-full py-2.5 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/95 transition-all flex items-center justify-center gap-1.5 shadow-sm font-semibold"
                               >
-                                Import Direct URL
+                                Import & Analyze Repository
                               </button>
                             </div>
                           </div>
