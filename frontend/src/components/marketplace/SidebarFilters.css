@@ -1,0 +1,232 @@
+/* Sidebar Filter custom modular styles */
+
+.filter-section {
+  border-bottom: 1px solid hsla(var(--border) / 0.5);
+  padding-bottom: 1rem;
+}
+
+.filter-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.5rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: hsl(var(--foreground));
+  transition: color 0.15s;
+}
+
+.filter-toggle-btn:hover {
+  color: hsl(var(--primary));
+}
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-indicator {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.25rem;
+  border: 2px solid hsl(var(--border));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.checkbox-option:hover .checkbox-indicator {
+  border-color: hsla(var(--primary) / 0.5);
+}
+
+.checkbox-indicator.checked {
+  background-color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+}
+
+.checkbox-label {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  transition: color 0.15s ease;
+}
+
+.checkbox-option:hover .checkbox-label {
+  color: hsl(var(--foreground));
+}
+
+/* Extracted custom styling rules replacing Tailwind utility tags */
+.filter-toggle-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.filter-collapsible-wrapper {
+  overflow: hidden;
+}
+
+.filter-collapsible-content {
+  padding-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.checkbox-content-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.check-svg {
+  width: 0.625rem;
+  height: 0.625rem;
+  color: #ffffff;
+}
+
+.sidebar-filters-aside {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.filters-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.filters-header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filters-sliders-icon {
+  width: 1rem;
+  height: 1rem;
+  color: hsl(var(--primary));
+}
+
+.filters-header-text {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.filters-active-badge {
+  width: 1.25rem;
+  height: 1.25rem;
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font-size: 0.75rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.filters-clear-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.filters-clear-btn:hover {
+  color: hsl(var(--destructive));
+}
+
+.filters-clear-icon {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.filters-sections-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.filters-options-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* ── Price Input Fields ── */
+.price-range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.price-input-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.price-currency-symbol {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+}
+
+.price-num-input {
+  width: 100%;
+  padding: 0.5rem 0.5rem 0.5rem 1.5rem;
+  font-size: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid hsla(var(--border) / 0.5);
+  background: hsla(var(--card) / 0.2);
+  color: hsl(var(--foreground));
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.price-num-input:focus {
+  border-color: hsl(var(--primary));
+  background: hsla(var(--card) / 0.4);
+}
+
+.price-range-separator {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  font-weight: 500;
+}
+
+/* ── Separators & Subsection Headings ── */
+.sales-separator-line {
+  height: 1px;
+  background: hsla(var(--border) / 0.3);
+  margin: 0.5rem 0;
+}
+
+.subsection-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: hsl(var(--muted-foreground));
+  margin: 0.25rem 0;
+}
+

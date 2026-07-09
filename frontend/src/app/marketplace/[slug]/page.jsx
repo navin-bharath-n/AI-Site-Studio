@@ -1,0 +1,1568 @@
+"use client";
+
+/**
+ * Template Details Page — full template info with gallery, preview CTA, purchase box (React JSX).
+ * Redesigned to support all 26 layouts/sections with rich interactive simulations.
+ */
+
+import { useState, useEffect, useRef } from "react";
+import { useParams } from "react-router-dom";
+import Image from "@/components/Image";
+import Link from "@/components/Link";
+import { useAppAuth, useAppUser } from "@/lib/auth";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Star, Download, Eye, Heart, Bookmark, ShoppingCart,
+  Check, ArrowLeft, Globe, Code, Moon, Zap, Shield,
+  Copy, ChevronRight, Share2, Scale, RefreshCw, FileText,
+  Terminal, Sliders, Cpu, Smartphone, Tablet, Laptop,
+  Monitor, HelpCircle, UserCheck, ChevronDown, ChevronUp,
+  Play, Flame, Award, Activity, Sparkles, Clock, Plus,
+  ExternalLink,
+} from "lucide-react";
+import Navbar from "@/components/layout/Navbar";
+import TemplateCard from "@/components/marketplace/TemplateCard";
+import { useTemplate, useTemplates, useToggleFavorite, useToggleWishlist } from "@/hooks/useTemplates";
+import { cn, formatPrice, formatNumber } from "@/lib/utils";
+import { useCartStore } from "@/store";
+import "./Page.css";
+
+export default function TemplateDetailsPage({ slug: propSlug }) {
+  const { slug: routeSlug } = useParams();
+  const slug = propSlug || routeSlug;
+
+  const { getToken, isSignedIn } = useAppAuth();
+  const { user } = useAppUser();
+  const [activeImage, setActiveImage] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const [selectedLicense, setSelectedLicense] = useState("regular"); // regular, commercial, extended
+  const [heroTab, setHeroTab] = useState("screenshot"); // screenshot, gallery, video, mobile, tablet, desktop
+
+  // Live Preview Device section
+  const [deviceTab, setDeviceTab] = useState("desktop"); // desktop, laptop, tablet, mobile
+
+  // AI Preview generation simulation states
+  const [aiForm, setAiForm] = useState({
+    businessName: "",
+    industry: "Agency",
+    location: "",
+    primaryColor: "#2563eb",
+    logoText: "",
+  });
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGenerated, setIsGenerated] = useState(false);
+  const [generationStep, setGenerationStep] = useState(0);
+  const [editableTitle, setEditableTitle] = useState("");
+  const [editableSubtitle, setEditableSubtitle] = useState("");
+  const [editableCta, setEditableCta] = useState("");
+  const [aiPrimaryColor, setAiPrimaryColor] = useState("#2563eb");
+  const aiFormRef = useRef(null);
+
+  // Documentation Preview section active tab
+  const [docTab, setDocTab] = useState("installation"); // installation, structure, customization, deployment
+
+  // Accordion active keys
+  const [openFaq, setOpenFaq] = useState(null);
+  const [openChangelog, setOpenChangelog] = useState(0); // first item open by default
+
+  // Lightbox Modal
+  const [lightboxImg, setLightboxImg] = useState(null);
+
+  // Compare modal or banner toggle
+  const [compareActive, setCompareActive] = useState(false);
+
+  // Interactive Reviews
+  const [reviewsList, setReviewsList] = useState([
+    {
+      id: 1,
+      user: "Sarah Jenkins",
+      avatar: "https://picsum.photos/seed/user1/100/100",
+      verified: true,
+      rating: 5,
+      comment: "Stunning animations and very easy to customize. Saved me weeks of development time. The folder structure in the Next.js version is clean and logical. Performance scores are absolutely real - I got a 98 on my production build instantly.",
+      date: "May 2026",
+      helpful: 14,
+      liked: false,
+      reply: "Thank you Sarah! Great to hear it helped speed up your development. Our team worked hard on the Next.js optimization."
+    },
+    {
+      id: 2,
+      user: "Robert Patel",
+      avatar: "https://picsum.photos/seed/user2/100/100",
+      verified: true,
+      rating: 4,
+      comment: "Great responsive template, clean CSS. Had a small discrepancy with the mobile navigation layout in v2.2, but the author pushed an update in v2.3 within a day. Outstanding support and code quality.",
+      date: "June 2026",
+      helpful: 8,
+      liked: false,
+      reply: "Thanks Robert! The mobile menu layout issue has been solved. We always aim to provide responses and fixes in under 24 hours."
+    },
+    {
+      id: 3,
+      user: "DevMinds",
+      avatar: "https://picsum.photos/seed/user3/100/100",
+      verified: true,
+      rating: 5,
+      comment: "Fully semantic HTML and SEO-ready schemas. Extended license allows us to spin up multiple marketing pages for our clients effortlessly. High value for money.",
+      date: "June 2026",
+      helpful: 5,
+      liked: false,
+    }
+  ]);
+
+  // Interactive Questions & Answers
+  const [qnas, setQnas] = useState([
+    {
+      id: 1,
+      question: "Does this template work with React and TypeScript?",
+      answer: "Yes! The download archive includes a complete React / Next.js project scaffold written in TypeScript, along with a static HTML5/CSS3 build for standard deployments.",
+      author: "Alex G.",
+      date: "Feb 2026",
+    },
+    {
+      id: 2,
+      question: "Can I use the regular license for a commercial client website?",
+      answer: "No. The Regular License is for personal or non-commercial single projects only. To build a site for a client or charge money, please select the Commercial License or Extended License.",
+      author: "Marcus S.",
+      date: "Mar 2026",
+    },
+    {
+      id: 3,
+      question: "Can the AI generator rewrite the content for a specific healthcare sub-niche?",
+      answer: "Yes, our integrated AI Preview generator automatically synthesizes sub-niche content based on the location and industry inputs you supply.",
+      author: "Elena R.",
+      date: "Jun 2026",
+    }
+  ]);
+  const [newQuestion, setNewQuestion] = useState("");
+
+  // Seller Profile Card States
+  const [isFollowing, setIsFollowing] = useState(false);
+
+  // Recently Viewed Templates
+  const [recentlyViewed, setRecentlyViewed] = useState([]);
+
+  const [token, setToken] = useState(null);
+  useEffect(() => {
+    getToken().then(setToken);
+  }, [getToken]);
+
+  const { data: template, isLoading, error } = useTemplate(slug, token);
+  const favoriteMutation = useToggleFavorite(token ?? "");
+  const wishlistMutation = useToggleWishlist(token ?? "");
+  const addToCart = useCartStore((s) => s.addItem);
+  const isInCart = useCartStore((s) => s.isInCart(template?.id ?? ""));
+
+  const isSeller = isSignedIn && (user?.role === "seller" || user?.role === "SELLER");
+
+  // Fetch related templates of the same category
+  const categorySlug = template?.category?.slug || template?.category_id || "";
+  const { data: relatedTemplates } = useTemplates(
+    { category: categorySlug, page_size: 4 },
+    token
+  );
+
+  // Manage Recently Viewed Templates in LocalStorage
+  useEffect(() => {
+    if (!template) return;
+
+    try {
+      const stored = localStorage.getItem("recently_viewed_templates");
+      let list = stored ? JSON.parse(stored) : [];
+
+      // Filter out current template to avoid duplicates
+      list = list.filter((item) => item.id !== template.id);
+
+      // Add to front of array
+      const currentMeta = {
+        id: template.id,
+        title: template.title,
+        slug: template.slug,
+        price: template.price,
+        thumbnail_url: template.thumbnail_url,
+        rating_avg: template.rating_avg,
+        rating_count: template.rating_count,
+        framework: template.framework,
+      };
+      list.unshift(currentMeta);
+
+      // Keep only last 4 items
+      const truncated = list.slice(0, 5);
+      localStorage.setItem("recently_viewed_templates", JSON.stringify(truncated));
+
+      // Update state, filtering out current template from display
+      setRecentlyViewed(truncated.filter((item) => item.id !== template.id));
+    } catch (e) {
+      console.error("Failed to update recently viewed templates", e);
+    }
+  }, [template]);
+
+  // Load recently viewed templates on mount/view change
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("recently_viewed_templates");
+      if (stored && template) {
+        const list = JSON.parse(stored);
+        setRecentlyViewed(list.filter((item) => item.id !== template.id));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [template]);
+  // AI Form presets
+  useEffect(() => {
+    if (template) {
+      const primaryCol = template.color_scheme ? template.color_scheme.split(",")[0].trim() : "#2563eb";
+      setAiForm((prev) => ({
+        ...prev,
+        industry: template.industry || "Agency",
+        logoText: template.title?.split(" ")[0] || "Logo",
+        primaryColor: primaryCol,
+      }));
+      setAiPrimaryColor(primaryCol);
+    }
+  }, [template]);
+  const handleAddToCart = () => {
+    if (!template) return;
+    let finalPrice = template.price;
+    if (selectedLicense === "commercial") finalPrice = template.price * 2.5;
+    if (selectedLicense === "extended") finalPrice = template.price * 5;
+
+    addToCart({
+      templateId: template.id,
+      title: template.title,
+      price: Number(finalPrice),
+      thumbnail: template.thumbnail_url,
+      licenseType: selectedLicense,
+    });
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleAskQuestion = (e) => {
+    e.preventDefault();
+    if (!newQuestion.trim()) return;
+    const item = {
+      id: qnas.length + 1,
+      question: newQuestion,
+      answer: "Our team will review your question and respond shortly! Usually under 2 hours.",
+      author: user?.name || "Anonymous",
+      date: "Just now",
+    };
+    setQnas([item, ...qnas]);
+    setNewQuestion("");
+  };
+
+  const handleLikeReview = (id) => {
+    setReviewsList(
+      reviewsList.map((rev) => {
+        if (rev.id === id) {
+          return {
+            ...rev,
+            helpful: rev.liked ? rev.helpful - 1 : rev.helpful + 1,
+            liked: !rev.liked,
+          };
+        }
+        return rev;
+      })
+    );
+  };
+
+  // Simulated AI Generation Terminal steps
+  const generatorSteps = [
+    "Analyzing template framework structure & design style...",
+    "Scanning industry-specific landing pages and branding rules...",
+    "Synthesizing customized HSL color palette based on primary color preference...",
+    "Drafting tailored copywriting headlines (AI Content Generator)...",
+    "Selecting business-specific visual mockups (AI Image Generator)...",
+    "Injecting schema metadata and tag frameworks (AI SEO Optimization)...",
+    "Provisioning custom editor preview sandbox..."
+  ];
+
+  const handleGeneratePreview = (e) => {
+    e.preventDefault();
+    if (!aiForm.businessName) {
+      alert("Please enter your business name.");
+      return;
+    }
+    setIsGenerating(true);
+    setGenerationStep(0);
+
+    // Dynamic text defaults based on inputs
+    setEditableTitle(`Customized ${template.title} for ${aiForm.businessName}`);
+    setEditableSubtitle(`Optimized for the ${aiForm.industry} sector in ${aiForm.location || "your region"}. This is an interactive watermarked AI mockup draft.`);
+    setEditableCta(`Partner with ${aiForm.businessName}`);
+    setAiPrimaryColor(aiForm.primaryColor);
+
+    const interval = setInterval(() => {
+      setGenerationStep((prev) => {
+        if (prev >= generatorSteps.length - 1) {
+          clearInterval(interval);
+          setIsGenerating(false);
+          setIsGenerated(true);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 600);
+  };
+
+  if (isLoading) {
+    return (
+      <>
+        <Navbar />
+        <div className="min-h-screen pt-20">
+          <div className="container-xl py-12">
+            <div className="grid lg:grid-cols-3 gap-10">
+              <div className="lg:col-span-2 space-y-4">
+                <div className="aspect-video skeleton rounded-2xl animate-pulse bg-muted" />
+                <div className="h-8 skeleton rounded w-1/2 animate-pulse bg-muted" />
+                <div className="h-4 skeleton rounded w-full animate-pulse bg-muted" />
+                <div className="h-4 skeleton rounded w-3/4 animate-pulse bg-muted" />
+              </div>
+              <div className="h-96 skeleton rounded-2xl animate-pulse bg-muted" />
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (error || !template) {
+    return (
+      <>
+        <Navbar />
+        <div className="min-h-screen pt-20 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-6xl mb-4">😕</div>
+            <h1 className="text-2xl font-bold mb-2">Template Not Found</h1>
+            <p className="text-muted-foreground mb-6">This template doesn&apos;t exist or has been removed.</p>
+            <Link href="/marketplace" className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold">
+              Browse Marketplace
+            </Link>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  const allImages = [template.thumbnail_url, ...(template.gallery_images ?? [])];
+
+  // Helper arrays for features and specifications mapping
+  const featuresList = [
+    { name: "Responsive Layout", desc: "Looks stunning on Desktop, Tablet, and Mobile devices out-of-the-box.", icon: Globe },
+    { name: "SEO Optimization Ready", desc: "Includes semantic structure, pre-mapped metatags, and JSON-LD markup schema.", icon: Shield },
+    { name: "Ultra Fast Loading", desc: "Highly optimized code with Google Lighthouse scores close to 100.", icon: Flame },
+    { name: "Accessibility Focused", desc: "Complies with WCAG accessibility patterns for screen readers.", icon: UserCheck },
+    { name: "Modern Dark Mode", desc: "Smooth toggles with native system preference detection.", icon: Moon },
+    { name: "Premium Micro-Animations", desc: "Configured using Framer Motion and modern CSS keyframes.", icon: Sparkles },
+    { name: "Sticky Header Layout", desc: "Fully responsive, glassmorphic headers that follow screen scrolling.", icon: Clock },
+    { name: "CMS Ready Framework", desc: "Easily plug into Sanity, Strapi, or headless WordPress backends.", icon: Cpu },
+  ];
+
+  const customizationOptions = [
+    { title: "Colors & Schemes", desc: "Tailor the appearance using a single master CSS variable.", icon: Sliders },
+    { title: "Typography & Fonts", desc: "Pre-linked with Google Fonts. Easily customize in index.css.", icon: FileText },
+    { title: "Image Assets", desc: "SVG mockups and placeholders are easily replacable in assets directory.", icon: Image },
+    { title: "Interactive Layouts", desc: "Re-arrange sections or components safely without layout breaks.", icon: Code },
+  ];
+
+  const docsInstallCode = `# Install dependencies
+npm install
+
+# Run the local development server
+npm run dev
+
+# Build the optimized production bundle
+npm run build`;
+
+  const docsFolders = `├── public/          # Static assets & public icons
+├── src/
+│   ├── app/         # Page components & routing setup
+│   ├── components/  # Reusable UI component modules
+│   ├── hooks/       # Custom React query hooks
+│   ├── store/       # State management stores (Zustand)
+│   └── index.css    # Global stylesheets & design tokens
+├── package.json
+└── vite.config.js`;
+
+  return (
+    <>
+      <Navbar />
+
+
+      <div className="details-main-container">
+        <div className="details-grid">
+          {/* ── Left Column: Media & Info ────────────────────────────────── */}
+          <div className="details-left-panel">
+
+            {/* 3. Template Hero Section */}
+            <div className="details-hero-block card-container">
+
+              {/* ── Tab Switcher Row (ABOVE the viewport) ── */}
+              <div className="details-hero-tabs-row">
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                  <button
+                    onClick={() => { setHeroTab("screenshot"); setActiveImage(0); }}
+                    className={cn("hero-tab-btn", heroTab === "screenshot" && "active")}
+                  >
+                    Hero Screenshot
+                  </button>
+                  <button
+                    onClick={() => setHeroTab("video")}
+                    className={cn("hero-tab-btn", heroTab === "video" && "active")}
+                  >
+                    <Play className="w-3.5 h-3.5 mr-1 inline" /> Video Preview
+                  </button>
+                  <button
+                    onClick={() => setHeroTab("desktop")}
+                    className={cn("hero-tab-btn", heroTab === "desktop" && "active")}
+                  >
+                    <Monitor className="w-3.5 h-3.5 mr-1 inline" /> Desktop
+                  </button>
+                  <button
+                    onClick={() => setHeroTab("tablet")}
+                    className={cn("hero-tab-btn", heroTab === "tablet" && "active")}
+                  >
+                    <Tablet className="w-3.5 h-3.5 mr-1 inline" /> Tablet
+                  </button>
+                  <button
+                    onClick={() => setHeroTab("mobile")}
+                    className={cn("hero-tab-btn", heroTab === "mobile" && "active")}
+                  >
+                    <Smartphone className="w-3.5 h-3.5 mr-1 inline" /> Mobile
+                  </button>
+                </div>
+
+                <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
+                  <a
+                    href={template.preview_url || `http://localhost:8000/api/v1/preview/live/${template.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hero-action-btn live"
+                  >
+                    <Globe className="w-4 h-4" /> Live Demo
+                  </a>
+                  <button
+                    onClick={() => {
+                      const aiSec = document.getElementById("ai-preview-section");
+                      if (aiSec) aiSec.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className="hero-action-btn ai"
+                  >
+                    <Zap className="w-4 h-4" /> AI Preview
+                  </button>
+                  <button
+                    onClick={() => token && wishlistMutation.mutate(template.id)}
+                    className={cn("hero-action-icon", template.is_wishlisted && "active")}
+                    title="Add to Wishlist"
+                  >
+                    <Bookmark className="w-4 h-4" />
+                  </button>
+                  <button onClick={handleCopyLink} className="hero-action-icon" title="Share Link">
+                    <Share2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setCompareActive(!compareActive)}
+                    className={cn("hero-action-icon", compareActive && "active")}
+                    title="Compare Template"
+                  >
+                    <Scale className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* ── Media Display Viewport ── */}
+              <div className={cn("details-media-viewport glass-card", heroTab === "mobile" && "is-mobile-tab")}>
+                {heroTab === "screenshot" || heroTab === "gallery" ? (
+                  /* Screenshot / Gallery view */
+                  <div
+                    style={{ position: "absolute", inset: 0, cursor: "zoom-in" }}
+                    onClick={() => setLightboxImg(allImages[activeImage])}
+                  >
+                    <Image
+                      src={allImages[activeImage]}
+                      alt={template.title}
+                      fill
+                      className="object-cover"
+                      style={{ transition: "transform 0.4s ease" }}
+                    />
+                  </div>
+                ) : heroTab === "video" ? (
+                  template.video_url ? (
+                    /* Real uploaded video player */
+                    <div style={{ position: "absolute", inset: 0, background: "#000" }}>
+                      {template.video_url.includes("youtube.com") || template.video_url.includes("youtu.be") || template.video_url.includes("vimeo.com") ? (
+                        <iframe
+                          src={template.video_url.replace("watch?v=", "embed/")}
+                          title={`${template.title} Video Walkthrough`}
+                          style={{ width: "100%", height: "100%", border: "none" }}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <video
+                          src={template.video_url}
+                          controls
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          poster={allImages[0]}
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    /* Premium AI Auto-Scrolling Video Walkthrough Simulation */
+                    <div className="video-walkthrough-player">
+                      {/* Top HUD: REC indicator */}
+                      <div className="video-player-hud-top">
+                        <div className="rec-indicator">
+                          <span className="rec-dot" />
+                          <span>REC</span>
+                        </div>
+                        <div className="video-title-hud">
+                          {template.title} — Live Walkthrough
+                        </div>
+                      </div>
+
+                      {/* Auto-scrolling screen content */}
+                      <div className="video-player-screen">
+                        <iframe
+                          src={template.preview_url || `http://localhost:8000/api/v1/preview/live/${template.id}`}
+                          title={`AI Live Video Walkthrough — ${template.title}`}
+                          sandbox="allow-scripts allow-same-origin allow-forms"
+                          className="autoscroll-iframe"
+                        />
+                      </div>
+
+                      {/* Bottom HUD: Player UI Controls */}
+                      <div className="video-player-hud-bottom">
+                        <div className="hud-play-btn">
+                          <Play className="w-3.5 h-3.5 fill-current text-primary" />
+                        </div>
+                        <div className="hud-progress-container">
+                          <div className="hud-progress-bar" />
+                        </div>
+                        <div className="hud-time-display">
+                          Auto-Walkthrough
+                        </div>
+                      </div>
+                    </div>
+                  )
+                ) : heroTab === "mobile" ? (
+                  /* Premium iPhone Simulator Mockup */
+                  <div className="iphone-mockup" style={{ position: "absolute", inset: 0 }}>
+                    <div className="iphone-bezel">
+                      {/* Top Status Bar */}
+                      <div className="iphone-status-bar">
+                        <span className="iphone-time">
+                          {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <div className="iphone-dynamic-island" />
+                        <div className="iphone-status-icons">
+                          <span className="iphone-signal">📶</span>
+                          <span className="iphone-wifi">📶</span>
+                          <div className="iphone-battery">
+                            <div className="iphone-battery-level" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Screen Content */}
+                      <div className="iphone-screen">
+                        <iframe
+                          src={template.preview_url || `http://localhost:8000/api/v1/preview/live/${template.id}`}
+                          title={`Mobile Preview — ${template.title}`}
+                          sandbox="allow-scripts allow-same-origin allow-forms"
+                        />
+                      </div>
+
+                      {/* Safari Bottom Navigation Bar */}
+                      <div className="iphone-safari-bar">
+                        <div className="iphone-safari-address-bar">
+                          <span className="iphone-safari-text-format">aA</span>
+                          <div className="iphone-safari-url">
+                            <span className="iphone-safari-lock">🔒</span>
+                            <span className="iphone-safari-host">{template.slug}.preview.dev</span>
+                          </div>
+                          <span className="iphone-safari-refresh">🔄</span>
+                        </div>
+                        <div className="iphone-safari-nav-icons">
+                          <span className="iphone-safari-icon">⟨</span>
+                          <span className="iphone-safari-icon">⟩</span>
+                          <span className="iphone-safari-icon">📤</span>
+                          <span className="iphone-safari-icon">📖</span>
+                          <span className="iphone-safari-icon">🔳</span>
+                        </div>
+                      </div>
+
+                      {/* Home Indicator Bar */}
+                      <div className="iphone-home-indicator" />
+                    </div>
+                  </div>
+                ) : (
+                  /* Desktop / Tablet device simulator */
+                  <div style={{
+                    position: "absolute", inset: 0,
+                    background: "linear-gradient(135deg, #0d0d1a 0%, #0a0a12 100%)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    padding: heroTab === "desktop" ? "0.5rem" : "1rem",
+                  }}>
+                    <div
+                      className={cn(
+                        "device-preview-inner",
+                        heroTab === "desktop" && "device-desktop",
+                        heroTab === "tablet" && "device-tablet"
+                      )}
+                    >
+                      {/* Browser chrome */}
+                      <div className="device-preview-header">
+                        <div style={{ display: "flex", gap: "0.35rem", alignItems: "center" }}>
+                          <span style={{ width: "0.55rem", height: "0.55rem", borderRadius: "9999px", background: "#ef4444", display: "block" }} />
+                          <span style={{ width: "0.55rem", height: "0.55rem", borderRadius: "9999px", background: "#f59e0b", display: "block" }} />
+                          <span style={{ width: "0.55rem", height: "0.55rem", borderRadius: "9999px", background: "#22c55e", display: "block" }} />
+                        </div>
+                        <span style={{
+                          fontSize: "0.575rem", fontFamily: "monospace",
+                          background: "rgba(0,0,0,0.2)", padding: "0.15rem 0.6rem",
+                          borderRadius: "0.3rem", border: "1px solid rgba(255,255,255,0.1)",
+                          color: "rgba(255,255,255,0.5)", maxWidth: "14rem",
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
+                        }}>
+                          {template.slug}.preview.dev
+                        </span>
+                        <span style={{ width: "1.25rem" }} />
+                      </div>
+                      {/* Full-cover body */}
+                      <div className="device-preview-body">
+                        <Image
+                          src={allImages[0]}
+                          alt={`${heroTab} preview`}
+                          fill
+                          className="object-cover object-top"
+                        />
+                        <iframe
+                          src={template.preview_url || `http://localhost:8000/api/v1/preview/live/${template.id}`}
+                          title={`${heroTab} Preview — ${template.title}`}
+                          sandbox="allow-scripts allow-same-origin allow-forms"
+                          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none", zIndex: 1 }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Compare Tray Notification */}
+              <AnimatePresence>
+                {compareActive && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    className="compare-info-tray"
+                  >
+                    <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <Scale className="w-4 h-4 text-primary" />
+                      <strong>Comparison Mode Active:</strong> You have selected {template.title} to compare.
+                    </span>
+                    <button style={{ fontSize: "0.75rem", color: "hsl(var(--primary))", textDecoration: "underline", background: "none", border: "none", cursor: "pointer" }} onClick={() => setCompareActive(false)}>Dismiss</button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* 4. Template Information */}
+            <div className="details-info-block card-container">
+              <div className="details-info-header">
+                <div>
+                  <h1 className="details-title-heading">{template.title}</h1>
+                  <p className="details-subtitle-text">{template.short_description}</p>
+                </div>
+                <div className="details-info-price">
+                  <div className="text-2xl font-bold text-foreground">
+                    {template.is_free ? "Free" : formatPrice(template.price)}
+                  </div>
+                  <span className="text-xs text-muted-foreground">Single site regular license</span>
+                </div>
+              </div>
+
+              {/* Information Card Grid */}
+              <div className="details-specs-grid">
+                <div className="spec-info-card">
+                  <span className="spec-label">Category</span>
+                  <span className="spec-val capitalize">{template.category?.name || "Business"}</span>
+                </div>
+                <div className="spec-info-card">
+                  <span className="spec-label">Industry Match</span>
+                  <span className="spec-val">{template.industry || "General Agency"}</span>
+                </div>
+                <div className="spec-info-card">
+                  <span className="spec-label">Customer Rating</span>
+                  <span className="spec-val flex items-center gap-1">
+                    <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                    {template.rating_avg} ({template.rating_count} reviews)
+                  </span>
+                </div>
+                <div className="spec-info-card">
+                  <span className="spec-label">Downloads</span>
+                  <span className="spec-val">{formatNumber(template.downloads_count)} installs</span>
+                </div>
+                <div className="spec-info-card">
+                  <span className="spec-label">Framework v{template.version}</span>
+                  <span className="spec-val uppercase font-mono">{template.framework}</span>
+                </div>
+                <div className="spec-info-card">
+                  <span className="spec-label">Last Updated</span>
+                  <span className="spec-val">June 2026</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Description Details */}
+            <div className="details-desc-card card-container">
+              <h3 className="section-title">About this template</h3>
+              <div className="details-markdown-content text-muted-foreground text-sm leading-relaxed space-y-4">
+                <p>
+                  {template.description || `Build a highly customized homepage for your business in seconds. Designed specifically for modern consulting, agency structures, and startups looking to represent a bold, premium aesthetic.`}
+                </p>
+                <p>
+                  Built with professional developers in mind, this package delivers multiple variations for grid setups, flexible CTA items, responsive menus, and clean CSS code scopes that can easily be compiled or extended.
+                </p>
+              </div>
+            </div>
+
+
+
+            {/* 7. Screenshots Gallery */}
+            <div className="details-gallery-block card-container">
+              <h3 className="section-title">Screenshots Gallery</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {allImages.map((img, i) => (
+                  <div key={i} className="screenshot-card group cursor-zoom-in" onClick={() => setLightboxImg(img)}>
+                    <div className="relative aspect-video rounded-lg overflow-hidden border border-border/30 bg-muted">
+                      <Image src={img} alt={`Screenshot ${i + 1}`} fill className="object-cover transition-all duration-300 group-hover:scale-105" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <Eye className="w-5 h-5 text-white" />
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-medium text-muted-foreground mt-1.5 block text-center capitalize">
+                      {["Home Dashboard", "Services Grid", "Portfolio Details", "Contact Panel"][i % 4] || `Screenshot ${i + 1}`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 8. Pages Included */}
+            <div className="details-pages-included-block card-container">
+              <h3 className="section-title">Pages & Layouts Included</h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                This bundle features {template.pages_count} highly responsive pages pre-linked and configured for the client routing system.
+              </p>
+              <div className="details-pages-grid">
+                {(template.included_pages && template.included_pages.length > 0
+                  ? template.included_pages
+                  : ["Home", "About", "Services", "Portfolio Showcase", "Pricing Table", "Testimonials Panel", "Accordion FAQ", "Contact Form", "Blog Listing", "Privacy Policy", "404 Error page"]
+                ).map((page, index) => (
+                  <div key={page} className="details-page-item">
+                    <Check className="w-4 h-4 text-green-500 shrink-0" />
+                    <span>{page}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 9. Features Section */}
+            <div className="details-features-block card-container">
+              <h3 className="section-title">Utility & Design Features</h3>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {featuresList.map((f, i) => {
+                  const IconComp = f.icon;
+                  return (
+                    <div key={i} className="flex gap-3 p-3 rounded-lg border border-border/30 hover:border-primary/20 transition-all bg-card/40">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                        <IconComp className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm text-foreground">{f.name}</h4>
+                        <p className="text-xs text-muted-foreground mt-0.5">{f.desc}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 10. Technology Stack & Browser Support */}
+            <div className="details-tech-stack-block card-container">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="section-title">Technology Stack</h3>
+                  <div className="flex flex-wrap gap-2.5">
+                    {(template.changelog?.ai_report
+                      ? [
+                        template.changelog.ai_report.framework_detected,
+                        template.changelog.ai_report.language,
+                        template.changelog.ai_report.css_system,
+                        template.changelog.ai_report.ui_library && template.changelog.ai_report.ui_library !== "None" ? template.changelog.ai_report.ui_library : null,
+                        template.changelog.ai_report.animation_library && template.changelog.ai_report.animation_library !== "None" ? template.changelog.ai_report.animation_library : null
+                      ].filter(Boolean)
+                      : ["HTML5", "CSS3", "JavaScript", "React", "Next.js", "TailwindCSS", "Zustand", "Vite", "Framer Motion"]
+                    ).map((t) => (
+                      <span key={t} className="tech-badge font-mono uppercase text-xs font-bold px-3 py-1.5 rounded-lg border border-border/40 bg-card/60 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 bg-primary rounded-full" />
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="section-title">Browser Support</h3>
+                  <div className="space-y-3">
+                    {[
+                      { name: "Google Chrome", score: "99% (Stable)" },
+                      { name: "Mozilla Firefox", score: "98% (Stable)" },
+                      { name: "Apple Safari", score: "96% (Stable)" },
+                      { name: "Microsoft Edge", score: "99% (Stable)" },
+                    ].map((b) => (
+                      <div key={b.name} className="flex items-center justify-between text-xs border-b border-border/30 pb-2">
+                        <span className="font-medium text-foreground flex items-center gap-1.5">
+                          <Globe className="w-3.5 h-3.5 text-muted-foreground" />
+                          {b.name}
+                        </span>
+                        <span className="text-muted-foreground font-mono font-semibold">{b.score}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 11. Performance Scores */}
+            <div className="details-performance-block card-container">
+              <h3 className="section-title">Google Lighthouse Audits</h3>
+              <p className="text-xs text-muted-foreground mb-6">
+                Scores gathered on production builds hosted on serverless edges. Audited on simulated 4G throttling.
+              </p>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                {(() => {
+                  const scores = template.changelog?.ai_report?.performance_scores || {
+                    performance: 98,
+                    accessibility: 100,
+                    seo: 99,
+                    best_practices: 100
+                  };
+                  return [
+                    { name: "Performance", score: scores.performance, color: scores.performance >= 90 ? "#22c55e" : "#eab308" },
+                    { name: "Accessibility", score: scores.accessibility, color: scores.accessibility >= 90 ? "#22c55e" : "#eab308" },
+                    { name: "SEO Optimization", score: scores.seo, color: scores.seo >= 90 ? "#22c55e" : "#eab308" },
+                    { name: "Best Practices", score: scores.best_practices, color: scores.best_practices >= 90 ? "#22c55e" : "#eab308" },
+                  ];
+                })().map((s) => (
+                  <div key={s.name} className="flex flex-col items-center text-center space-y-2">
+                    {/* SVG Circular Progress Chart */}
+                    <div className="relative w-20 h-20">
+                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                        <path className="text-border" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <motion.path
+                          initial={{ strokeDasharray: "0, 100" }}
+                          animate={{ strokeDasharray: `${s.score}, 100` }}
+                          transition={{ duration: 1.2, ease: "easeOut" }}
+                          strokeWidth="3.2"
+                          strokeDasharray={`${s.score}, 100`}
+                          strokeLinecap="round"
+                          stroke={s.color}
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-base text-foreground">
+                        {s.score}
+                      </div>
+                    </div>
+                    <span className="text-xs font-bold text-foreground">{s.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 12. Customization Options */}
+            <div className="details-customization-options-block card-container">
+              <h3 className="section-title">Design Customization Options</h3>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {customizationOptions.map((c, i) => {
+                  const IconComp = c.icon;
+                  return (
+                    <div key={i} className="flex gap-3 items-start p-3 bg-muted/10 rounded-lg">
+                      <div className="p-2 rounded bg-card border border-border/50 text-primary shrink-0">
+                        <IconComp className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-xs text-foreground">{c.title}</h4>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{c.desc}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 13. AI Features */}
+            <div className="details-ai-features-block card-container border border-yellow-500/10 bg-yellow-500/[0.02]">
+              <h3 className="section-title text-yellow-500 flex items-center gap-1.5">
+                <Sparkles className="w-5 h-5" />
+                Integrated AI Capabilities
+              </h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                Automatically generate business-specific copy, localized meta settings, and customized images.
+              </p>
+
+              <div className="flex flex-wrap gap-2 mb-4">
+                {(template.changelog?.ai_report?.features_detected || [
+                  "AI Content Generation", "AI Custom Images", "AI SEO Metadata", "AI Support Chat Agent", "AI Blog Autopopulate"
+                ]).map((b) => (
+                  <span key={b} className="text-[10px] font-bold text-yellow-500 bg-yellow-500/10 border border-yellow-500/20 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                    {b}
+                  </span>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                * To enable full AI integrations, make sure you configure your OpenAI or Anthropic API Keys in the environment variables after cloning down the source repositories.
+              </p>
+            </div>
+
+            {/* 14. Template Specifications */}
+            <div className="details-specs-block card-container">
+              <h3 className="section-title">Technical Specifications</h3>
+              <div className="overflow-x-auto">
+                <table className="specs-table w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-border/50 text-muted-foreground font-semibold">
+                      <th className="py-2.5 px-3">Specification</th>
+                      <th className="py-2.5 px-3">Detail Value</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/30">
+                    <tr>
+                      <td className="py-2.5 px-3 font-medium text-foreground">Bundle File Size</td>
+                      <td className="py-2.5 px-3 font-mono text-muted-foreground">
+                        {template.changelog?.ai_report?.assets_count?.zip_size || "1.8 MB"} (ZIP Archive)
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 px-3 font-medium text-foreground">Interactive Components</td>
+                      <td className="py-2.5 px-3 font-mono text-muted-foreground">
+                        {template.changelog?.ai_report?.components?.length
+                          ? `${template.changelog.ai_report.components.length} UI Modules`
+                          : "24+ UI Blocks"}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 px-3 font-medium text-foreground">Stock Images Included</td>
+                      <td className="py-2.5 px-3 font-mono text-muted-foreground">
+                        {template.changelog?.ai_report?.assets_count?.images
+                          ? `Yes (${template.changelog.ai_report.assets_count.images} Images, licensed)`
+                          : "Yes (Unsplash licensed, clean usage)"}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 px-3 font-medium text-foreground">Google Web Fonts</td>
+                      <td className="py-2.5 px-3 font-mono text-muted-foreground">
+                        {template.changelog?.ai_report?.typography?.length
+                          ? template.changelog.ai_report.typography.join(", ")
+                          : "Inter, Outfit (CSS linked)"}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 px-3 font-medium text-foreground">Documentation Guide</td>
+                      <td className="py-2.5 px-3 font-mono text-muted-foreground">Comprehensive Markdown (SKILL.md layout)</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 px-3 font-medium text-foreground">Support Period</td>
+                      <td className="py-2.5 px-3 font-mono text-muted-foreground">6 Months Developer SLA (Extendable)</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* 15. What's Included */}
+            <div className="details-whats-included-block card-container">
+              <h3 className="section-title">What&apos;s Included in the Archive</h3>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {(template.changelog?.ai_report?.ai_selling_points || [
+                  "React / Next.js Source Files (TypeScript configuration)",
+                  "Static HTML5 & CSS3 layout files",
+                  "Configured CSS design system with HSL colors",
+                  "All visual mockup SVGs & Picsum vector links",
+                  "Comprehensive folder deployment configurations",
+                  "Single-Domain regular developer license key",
+                ]).map((item, idx) => (
+                  <div key={idx} className="flex gap-2.5 items-center text-xs text-muted-foreground">
+                    <div className="w-5 h-5 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center text-green-500 shrink-0">
+                      <Check className="w-3 h-3" />
+                    </div>
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 17. Reviews */}
+            <div className="details-reviews-block card-container">
+              <h3 className="section-title">Verified Buyer Reviews</h3>
+
+              {/* Summary Stats */}
+              <div className="flex flex-col sm:flex-row gap-6 p-4 rounded-xl border border-border/30 bg-muted/10 mb-6">
+                <div className="flex flex-col items-center justify-center text-center p-4 border-r border-border/30 shrink-0">
+                  <span className="text-4xl font-extrabold text-foreground">{template.rating_avg}</span>
+                  <div className="flex gap-0.5 my-1.5">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star key={s} className={cn("w-4 h-4", s <= Math.round(template.rating_avg) ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30")} />
+                    ))}
+                  </div>
+                  <span className="text-xs text-muted-foreground font-medium">({template.rating_count} ratings)</span>
+                </div>
+
+                <div className="flex-1 space-y-2">
+                  <span className="font-bold text-xs uppercase text-muted-foreground">Rating Distribution</span>
+                  {[
+                    { stars: 5, pct: "88%" },
+                    { stars: 4, pct: "9%" },
+                    { stars: 3, pct: "3%" },
+                    { stars: 2, pct: "0%" },
+                    { stars: 1, pct: "0%" },
+                  ].map((d) => (
+                    <div key={d.stars} className="flex items-center gap-3 text-xs">
+                      <span className="w-3 text-right">{d.stars}</span>
+                      <div className="flex-1 bg-border/40 h-2 rounded-full overflow-hidden">
+                        <div className="bg-yellow-400 h-full" style={{ width: d.pct }} />
+                      </div>
+                      <span className="w-8 text-muted-foreground text-right">{d.pct}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Review Comments list */}
+              <div className="divide-y divide-border/30 space-y-6">
+                {reviewsList.map((rev) => (
+                  <div key={rev.id} className="pt-4 first:pt-0 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full overflow-hidden bg-muted">
+                          <Image src={rev.avatar} alt={rev.user} width={32} height={32} />
+                        </div>
+                        <div>
+                          <span className="font-bold text-xs block text-foreground">{rev.user}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="flex">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30")} />
+                              ))}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">• {rev.date}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {rev.verified && (
+                        <span className="text-[9px] font-bold text-green-500 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded flex items-center gap-1">
+                          <Shield className="w-2.5 h-2.5" /> Verified Purchase
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-muted-foreground leading-relaxed">{rev.comment}</p>
+
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => handleLikeReview(rev.id)}
+                        className={cn(
+                          "px-2.5 py-1 rounded border border-border/50 text-[10px] font-semibold flex items-center gap-1 hover:border-primary/30 transition-all",
+                          rev.liked && "bg-primary/5 text-primary border-primary/20"
+                        )}
+                      >
+                        Helpful ({rev.helpful})
+                      </button>
+                      <button className="text-[10px] text-muted-foreground hover:text-foreground font-semibold">Reply</button>
+                    </div>
+
+                    {rev.reply && (
+                      <div className="p-3 bg-muted/20 border-l-2 border-primary/40 rounded-r-lg space-y-1.5 ml-4">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-[10px] text-foreground">John Studio</span>
+                          <span className="text-[8px] bg-primary/10 text-primary border border-primary/20 px-1 rounded uppercase">Seller</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{rev.reply}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 18. Questions & Answers */}
+            <div className="details-qna-block card-container">
+              <h3 className="section-title">Questions & Answers</h3>
+
+              {/* Question list */}
+              <div className="space-y-4 mb-6">
+                {qnas.map((q) => (
+                  <div key={q.id} className="p-3.5 bg-muted/15 rounded-lg border border-border/20 space-y-2">
+                    <div className="flex justify-between items-start gap-3">
+                      <h4 className="font-bold text-xs text-foreground flex gap-1.5 items-start">
+                        <span className="text-primary font-mono text-sm">Q:</span>
+                        {q.question}
+                      </h4>
+                      <span className="text-[9px] text-muted-foreground whitespace-nowrap">Asked by {q.author}</span>
+                    </div>
+                    <div className="flex gap-1.5 items-start pl-4 text-xs text-muted-foreground border-l border-border/50">
+                      <span className="text-green-500 font-mono font-bold">A:</span>
+                      <p className="leading-relaxed">{q.answer}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Submit Question form */}
+              <form onSubmit={handleAskQuestion} className="space-y-2.5">
+                <span className="text-xs font-bold text-foreground">Have a question before buying?</span>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    className="form-input text-xs"
+                    placeholder="Ask a question about this template layout or compatibility..."
+                    value={newQuestion}
+                    onChange={(e) => setNewQuestion(e.target.value)}
+                    required
+                  />
+                  <button type="submit" className="py-2.5 px-5 bg-card border border-border/60 text-xs font-bold rounded-lg hover:border-primary/30 transition-all shrink-0">
+                    Ask Question
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* 20. Changelog */}
+            <div className="details-changelog-block card-container">
+              <h3 className="section-title">Template Release Changelog</h3>
+
+              <div className="space-y-2.5">
+                {[
+                  {
+                    ver: "v2.3",
+                    date: "June 15, 2026",
+                    bullets: ["Upgraded dynamic animations with smoother layout shifts", "Added full blog listing module layout", "Optimized mobile toggle header dropdowns"]
+                  },
+                  {
+                    ver: "v2.2",
+                    date: "April 10, 2026",
+                    bullets: ["Migrated template bundles to latest stable config", "Fixed visual padding discrepancies in service columns", "Updated metatags parsing framework"]
+                  },
+                  {
+                    ver: "v2.1",
+                    date: "Jan 12, 2026",
+                    bullets: ["Initial template release with core configurations"]
+                  }
+                ].map((c, i) => (
+                  <div key={c.ver} className="border border-border/30 rounded-lg overflow-hidden bg-card/40">
+                    <button
+                      onClick={() => setOpenChangelog(openChangelog === i ? null : i)}
+                      className="w-full flex items-center justify-between p-3 text-left font-bold text-xs text-foreground bg-muted/10 hover:bg-muted/30"
+                    >
+                      <span className="flex items-center gap-2">
+                        <code className="bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded text-[10px]">{c.ver}</code>
+                        <span>Released on {c.date}</span>
+                      </span>
+                      {openChangelog === i ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                    </button>
+
+                    <AnimatePresence>
+                      {openChangelog === i && (
+                        <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
+                          <ul className="p-3 border-t border-border/20 list-disc pl-5 text-xs text-muted-foreground space-y-1">
+                            {c.bullets.map((b, idx) => (
+                              <li key={idx}>{b}</li>
+                            ))}
+                          </ul>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 21. Documentation Preview */}
+            <div className="details-docs-preview-block card-container">
+              <h3 className="section-title">Documentation Preview</h3>
+
+              {/* Doc Tabs */}
+              <div className="flex gap-2 border-b border-border/40 pb-2 mb-4">
+                {[
+                  { id: "installation", label: "Installation" },
+                  { id: "structure", label: "Folder Structure" },
+                  { id: "customization", label: "Customization" },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setDocTab(tab.id)}
+                    className={cn(
+                      "doc-tab-btn px-2.5 py-1 text-xs font-semibold rounded hover:bg-muted",
+                      docTab === tab.id && "bg-primary/10 text-primary border border-primary/25 hover:bg-primary/15"
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Doc Body */}
+              <div className="p-4 bg-neutral-950 rounded-lg border border-border/40 text-xs font-mono text-muted-foreground">
+                {docTab === "installation" ? (
+                  <pre className="whitespace-pre overflow-x-auto leading-relaxed">{docsInstallCode}</pre>
+                ) : docTab === "structure" ? (
+                  <pre className="whitespace-pre overflow-x-auto leading-relaxed">{docsFolders}</pre>
+                ) : (
+                  <div className="font-sans text-xs space-y-2.5 leading-relaxed text-muted-foreground">
+                    <p><strong>Branding Colors:</strong> Open <code>src/index.css</code> and update the <code>--primary</code> HSL variable. All components reflect this change immediately.</p>
+                    <p><strong>Headlines & Subtexts:</strong> Find component sections in <code>src/components/landing/*</code>. Static JSON files are located in <code>src/public/data/*</code> for easy text configuration.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 22. License Comparison */}
+            <div className="details-license-comparison-block card-container">
+              <h3 className="section-title">License Types Comparison</h3>
+              <div className="overflow-x-auto">
+                <table className="specs-table license-table w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-border/50 text-muted-foreground font-semibold">
+                      <th className="py-2.5 px-3">Usage Criteria</th>
+                      <th className="py-2.5 px-3 text-center">Regular</th>
+                      <th className="py-2.5 px-3 text-center">Commercial</th>
+                      <th className="py-2.5 px-3 text-center">Extended</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/30">
+                    <tr>
+                      <td className="py-2.5 px-3 font-medium text-foreground">Personal Use</td>
+                      <td className="py-2.5 px-3 text-center text-green-500 font-bold">✓</td>
+                      <td className="py-2.5 px-3 text-center text-green-500 font-bold">✓</td>
+                      <td className="py-2.5 px-3 text-center text-green-500 font-bold">✓</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 px-3 font-medium text-foreground">Commercial Project Use</td>
+                      <td className="py-2.5 px-3 text-center text-red-500 font-bold">✗</td>
+                      <td className="py-2.5 px-3 text-center text-green-500 font-bold">✓</td>
+                      <td className="py-2.5 px-3 text-center text-green-500 font-bold">✓</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 px-3 font-medium text-foreground">Client Deliverables</td>
+                      <td className="py-2.5 px-3 text-center text-red-500 font-bold">✗</td>
+                      <td className="py-2.5 px-3 text-center text-green-500 font-bold">✓</td>
+                      <td className="py-2.5 px-3 text-center text-green-500 font-bold">✓</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 px-3 font-medium text-foreground">Multiple Domain Installs</td>
+                      <td className="py-2.5 px-3 text-center text-red-500 font-bold">✗</td>
+                      <td className="py-2.5 px-3 text-center text-red-500 font-bold">✗</td>
+                      <td className="py-2.5 px-3 text-center text-green-500 font-bold">✓</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+          {/* ── Right Column: Purchase Sidebar (Sticky) ────────────────── */}
+          <div className="details-right-panel">
+            <div className="details-sidebar">
+
+              {/* 5. Purchase Card */}
+              <div className="details-price-card glass-card">
+                {/* Dynamic Price Calculation based on License Tab */}
+                <div>
+                  <div className="details-price-row flex items-baseline justify-between mb-1">
+                    <span className="details-price-value text-3xl font-extrabold text-foreground">
+                      {selectedLicense === "regular"
+                        ? formatPrice(template.price)
+                        : selectedLicense === "commercial"
+                          ? formatPrice(template.price * 2.5)
+                          : formatPrice(template.price * 5)}
+                    </span>
+                    {template.original_price && selectedLicense === "regular" && (
+                      <span className="details-price-original text-sm line-through text-muted-foreground">
+                        {formatPrice(template.original_price)}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-muted-foreground block font-medium mt-1">Pricing calculated for selected license framework</span>
+                </div>
+
+                {/* License Selectors */}
+                <div>
+                  <span className="license-select-label">Select License Type</span>
+                  <div className="license-options">
+                    {[
+                      { id: "regular", label: "Regular License", multiplier: 1, desc: "Personal use, single domain layout." },
+                      { id: "commercial", label: "Commercial License", multiplier: 2.5, desc: "Client work, single domain layout." },
+                      { id: "extended", label: "Extended License", multiplier: 5, desc: "Resell rights, multiple active domains." },
+                    ].map((lic) => (
+                      <label
+                        key={lic.id}
+                        className={cn(
+                          "license-select-box",
+                          selectedLicense === lic.id ? "selected" : ""
+                        )}
+                        onClick={() => setSelectedLicense(lic.id)}
+                      >
+                        <div className="license-row">
+                          <span>{lic.label}</span>
+                          <span>{formatPrice(template.price * lic.multiplier)}</span>
+                        </div>
+                        <span className="license-desc">{lic.desc}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="details-action-stack space-y-2">
+                  {isSeller ? (
+                    <button disabled className="w-full py-3 bg-muted text-muted-foreground text-xs font-bold rounded-xl cursor-not-allowed">
+                      Sellers cannot purchase templates
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={handleAddToCart}
+                        className={cn("details-purchase-btn w-full py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md text-sm", isInCart ? "bg-green-500 hover:bg-green-600 text-white shadow-green-500/10" : "bg-primary hover:bg-primary/95 text-white shadow-primary/20")}
+                      >
+                        {isInCart ? (
+                          <>
+                            <Check className="w-4 h-4" /> Added to Cart
+                          </>
+                        ) : (
+                          <>
+                            <ShoppingCart className="w-4 h-4" /> Add to Cart
+                          </>
+                        )}
+                      </button>
+                      <Link
+                        href={`/checkout?template=${template.id}&license=${selectedLicense}`}
+                        className="details-preview-link w-full py-3 rounded-xl text-center font-bold text-sm bg-card hover:bg-muted border border-border/80 block text-foreground"
+                      >
+                        Buy Now
+                      </Link>
+                    </>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      const aiSec = document.getElementById("ai-preview-section");
+                      if (aiSec) aiSec.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className="w-full py-2.5 text-xs text-center border border-dashed border-primary/40 text-primary hover:bg-primary/[0.02] transition-colors rounded-xl font-semibold flex items-center justify-center gap-1.5"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Try AI Preview Editor
+                  </button>
+                </div>
+
+                {/* Trust Badges */}
+                <div className="trust-badges-section">
+                  <span className="trust-badges-title">Developer Guarantees</span>
+                  <div className="trust-badges-grid">
+                    <div className="trust-badge-item">
+                      <Check className="w-3 h-3 text-green-500" style={{ flexShrink: 0 }} />
+                      <span>Lifetime Updates</span>
+                    </div>
+                    <div className="trust-badge-item">
+                      <Shield className="w-3 h-3 text-green-500" style={{ flexShrink: 0 }} />
+                      <span>Secure Payment</span>
+                    </div>
+                    <div className="trust-badge-item">
+                      <Download className="w-3 h-3 text-green-500" />
+                      <span>Instant Download</span>
+                    </div>
+                    <div className="trust-badge-item">
+                      <FileText className="w-3 h-3 text-green-500" />
+                      <span>Docs Included</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* 19. Seller Information Card */}
+              <div className="details-developer-card">
+                <div className="seller-top">
+                  <div className="seller-avatar">
+                    <Image src={template.developer_avatar || "https://picsum.photos/seed/avatar/100/100"} alt={template.developer_name || "John Studio"} width={40} height={40} />
+                  </div>
+                  <div>
+                    <div className="seller-info-name">
+                      {template.developer_name || "John Studio"}
+                      <Award className="w-4 h-4 text-primary" />
+                    </div>
+                    <span className="seller-verified-label">Verified Author</span>
+                  </div>
+                </div>
+
+                {/* Seller stats */}
+                <div className="seller-stats">
+                  <div className="seller-stat">
+                    <span className="seller-stat-label">Published</span>
+                    <span className="seller-stat-val">42 Templates</span>
+                  </div>
+                  <div className="seller-stat">
+                    <span className="seller-stat-label">Total Sales</span>
+                    <span className="seller-stat-val">3,428 orders</span>
+                  </div>
+                </div>
+
+                <div className="seller-actions">
+                  <button
+                    onClick={() => setIsFollowing(!isFollowing)}
+                    className={cn("seller-follow-btn", isFollowing ? "following" : "")}
+                  >
+                    {isFollowing ? "Following" : "Follow"}
+                  </button>
+                  <Link href={`/marketplace?developer=${template.developer_name}`} className="seller-more-link">More Items</Link>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+        {/* 24. Recently Viewed */}
+        {recentlyViewed.length > 0 && (
+          <div className="details-recently-viewed-block pt-12 border-t border-border/40 mt-12">
+            <h3 className="section-title text-base flex items-center gap-1.5 mb-6 text-muted-foreground">
+              <Clock className="w-4 h-4" />
+              Recently Viewed Templates
+            </h3>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+              {recentlyViewed.map((t) => (
+                <Link key={t.id} href={`/marketplace/${t.slug}`} className="group block space-y-2 border border-border/30 rounded-lg p-2 hover:border-primary/20 transition-all bg-card/25">
+                  <div className="relative aspect-video rounded overflow-hidden bg-muted">
+                    <Image src={t.thumbnail_url} alt={t.title} fill className="object-cover group-hover:scale-105 transition-transform" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-xs text-foreground truncate group-hover:text-primary transition-colors">{t.title}</h4>
+                    <span className="text-[10px] text-muted-foreground font-medium">{formatPrice(t.price)}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 25. FAQ Section */}
+        <div className="details-faq-block pt-12 border-t border-border/40 mt-12 max-w-3xl mx-auto">
+          <h3 className="section-title text-center text-lg mb-8">Frequently Asked Questions</h3>
+
+          <div className="space-y-3">
+            {[
+              {
+                q: "Can I customize the files myself?",
+                a: "Absolutely! The template comes with complete development files, documentation, and asset instructions. You can customize standard CSS classes or swap components easily."
+              },
+              {
+                q: "Do I get future bundle updates for free?",
+                a: "Yes. All template licenses include lifetime minor updates and 1 year of major version updates free of charge."
+              },
+              {
+                q: "Can the AI rewrite my copy automatically?",
+                a: "Yes, our preview generator uses optimized OpenAI frameworks to compose marketing copy suited for your industry, location, and metadata."
+              },
+              {
+                q: "How does the download delivery work?",
+                a: "Immediately after your payment is processed, we trigger a ZIP download containing the package and register a license key in your buyer dashboard."
+              }
+            ].map((faq, idx) => (
+              <div key={idx} className="border border-border/40 rounded-lg overflow-hidden bg-card/20">
+                <button
+                  onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
+                  className="w-full flex items-center justify-between p-3.5 text-left font-bold text-xs text-foreground hover:bg-muted/30"
+                >
+                  <span>{faq.q}</span>
+                  {openFaq === idx ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                </button>
+                <AnimatePresence>
+                  {openFaq === idx && (
+                    <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
+                      <p className="p-3.5 border-t border-border/20 text-xs text-muted-foreground leading-relaxed">
+                        {faq.a}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 26. Footer CTA Banner */}
+        <div className="details-footer-cta-block">
+          <div className="cta-glow" />
+          <h2 className="cta-heading">Ready to build your professional site?</h2>
+          <p className="cta-sub">
+            Try the template first in our AI Sandbox editor, or purchase a commercial license to download the source archives immediately.
+          </p>
+          <div className="cta-buttons">
+            <button
+              onClick={() => {
+                const aiSec = document.getElementById("ai-preview-section");
+                if (aiSec) aiSec.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="cta-primary-btn"
+            >
+              Try AI Preview
+            </button>
+            <button
+              onClick={handleAddToCart}
+              className="cta-secondary-btn"
+            >
+              Buy Now
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Screenshot Lightbox Modal */}
+      <AnimatePresence>
+        {lightboxImg && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setLightboxImg(null)}
+            className="lightbox-overlay fixed inset-0 z-[9999] bg-black/90 p-4 flex items-center justify-center cursor-zoom-out"
+          >
+            <div className="relative max-w-5xl max-h-[85vh] aspect-video w-full" onClick={(e) => e.stopPropagation()}>
+              <Image src={lightboxImg} alt="Lightbox view" fill className="object-contain" />
+              <button onClick={() => setLightboxImg(null)} className="absolute -top-10 right-0 text-white font-bold text-sm bg-neutral-900/60 p-2 rounded-full border border-white/20 hover:bg-neutral-800">
+                Close Preview
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+
+// End of file
+

@@ -1,0 +1,109 @@
+"""
+Application configuration via Pydantic Settings.
+
+All values are read from environment variables (or .env file).
+"""
+
+from functools import lru_cache
+from typing import List
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore",
+    )
+
+    # ── App ───────────────────────────────────────────────────────────────────
+    APP_NAME: str = "AI Site Studio"
+    APP_VERSION: str = "1.0.0"
+    DEBUG: bool = False
+    ENVIRONMENT: str = "development"  # development | staging | production
+
+    # ── Database ──────────────────────────────────────────────────────────────
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/ai_site_studio"
+
+    # ── Redis ─────────────────────────────────────────────────────────────────
+    REDIS_URL: str = "redis://localhost:6379/0"
+
+    # ── Security ──────────────────────────────────────────────────────────────
+    SECRET_KEY: str = "change-me-in-production-must-be-at-least-32-characters"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 525600  # 365 days
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+
+    # ── OAuth (Google / Facebook) ─────────────────────────────────────────────
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    FACEBOOK_CLIENT_ID: str = ""
+    FACEBOOK_CLIENT_SECRET: str = ""
+    GITHUB_CLIENT_ID: str = ""
+    GITHUB_CLIENT_SECRET: str = ""
+
+    # ── OpenAI ────────────────────────────────────────────────────────────────
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-4o"
+    OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
+
+    # ── Gemini ────────────────────────────────────────────────────────────────
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-1.5-flash"
+
+    # ── Qdrant ────────────────────────────────────────────────────────────────
+    QDRANT_URL: str = "http://localhost:6333"
+    QDRANT_API_KEY: str = ""
+    QDRANT_COLLECTION: str = "templates"
+
+    # ── Cloudflare R2 (optional — not used when STORAGE_BACKEND=postgres) ────
+    R2_ACCOUNT_ID: str = ""
+    R2_ACCESS_KEY_ID: str = ""
+    R2_SECRET_ACCESS_KEY: str = ""
+    R2_BUCKET_NAME: str = "ai-site-studio"
+    R2_PUBLIC_URL: str = ""
+
+    # ── File Storage ──────────────────────────────────────────────────────────
+    STORAGE_BACKEND: str = "postgres"  # postgres
+    STORAGE_BASE_URL: str = "http://localhost:8000/api/v1/files"
+
+    # ── Razorpay ──────────────────────────────────────────────────────────────
+    RAZORPAY_KEY_ID: str = ""
+    RAZORPAY_KEY_SECRET: str = ""
+
+    # ── Stripe ────────────────────────────────────────────────────────────────
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_PUBLISHABLE_KEY: str = ""
+
+    # ── CORS ──────────────────────────────────────────────────────────────────
+    FRONTEND_URL: str = "http://localhost:3000"
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
+
+    # ── File Uploads ──────────────────────────────────────────────────────────
+    MAX_UPLOAD_SIZE_MB: int = 50
+    ALLOWED_IMAGE_TYPES: str = "image/jpeg,image/png,image/webp,image/gif"
+
+    # ── Computed Properties ───────────────────────────────────────────────────
+    @property
+    def ALLOWED_ORIGINS_LIST(self) -> List[str]:
+        return [o.strip() for o in self.ALLOWED_ORIGINS.split(",")]
+
+    @property
+    def ALLOWED_IMAGE_TYPES_LIST(self) -> List[str]:
+        return [t.strip() for t in self.ALLOWED_IMAGE_TYPES.split(",")]
+
+    @property
+    def MAX_UPLOAD_SIZE_BYTES(self) -> int:
+        return self.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+
+
+@lru_cache
+def get_settings() -> Settings:
+    """Return cached settings instance."""
+    return Settings()
+
+
+settings = get_settings()

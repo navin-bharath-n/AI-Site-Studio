@@ -1,0 +1,153 @@
+"""
+Template service — business logic layer.
+"""
+
+import uuid
+from typing import List, Optional, Tuple
+from math import ceil
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.template import Template
+from app.models.user import User
+from app.repositories.template_repo import TemplateRepository
+from app.repositories.favorite_repo import FavoriteRepository, WishlistRepository
+from app.schemas.template import (
+    TemplateCreate, TemplateUpdate, TemplateResponse,
+    TemplateCardResponse, TemplateListResponse, TemplateFilterParams,
+)
+from app.core.config import settings
+from fastapi import HTTPException, status
+
+
+class TemplateService:
+    def __init__(self, db: AsyncSession):
+        self.db = db
+        self.repo = TemplateRepository(db)
+        self.favorites = FavoriteRepository(db)
+        self.wishlist = WishlistRepository(db)
+
+    async def list_templates(
+        self,
+        filters: TemplateFilterParams,
+        current_user: Optional[User] = None,
+    ) -> TemplateListResponse:
+        templates, total = await self.repo.list_with_filters(filters)
+
+        # Get user interaction flags in bulk
+        favorited_ids: set = set()
+        wishlisted_ids: set = set()
+        if current_user:
+            favorited_ids = set(await self.favorites.get_favorited_ids(current_user.id))
+            wishlisted_ids = set(await self.wishlist.get_wishlisted_ids(current_user.id))
+
+        cards = [
+            TemplateCardResponse(
+                **{
+                    "id": t.id,
+                    "title": t.title,
+                    "slug": t.slug,
+                    "short_description": t.short_description,
+                    "price": t.price,
+                    "original_price": t.original_price,
+                    "is_free": t.is_free,
+                    "is_on_sale": t.is_on_sale,
+                    "thumbnail_url": t.thumbnail_url,
+                    "video_url": t.video_url,
+                    "category_id": t.category_id,
+                    "tags": t.tags,
+                    "framework": t.framework,
+                    "pages_count": t.pages_count,
+                    "has_dark_mode": t.has_dark_mode,
+                    "is_featured": t.is_featured,
+                    "is_bestseller": t.is_bestseller,
+                    "is_new": t.is_new,
+                    "downloads_count": t.downloads_count,
+                    "rating_avg": t.rating_avg,
+                    "rating_count": t.rating_count,
+                    "developer_name": t.developer_name,
+                    "is_favorited": t.id in favorited_ids if current_user else None,
+                    "is_wishlisted": t.id in wishlisted_ids if current_user else None,
+                }
+            )
+            for t in templates
+        ]
+
+        total_pages = ceil(total / filters.page_size) if total > 0 else 1
+
+        return TemplateListResponse(
+            items=cards,
+            total=total,
+            page=filters.page,
+            page_size=filters.page_size,
+            total_pages=total_pages,
+        )
+
+    async def get_template(
+        self,
+        slug: str,
+        current_user: Optional[User] = None,
+    ) -> TemplateResponse:
+        template = await self.repo.get_by_slug(slug)
+        if not template:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+
+        # Increment view count (fire-and-forget style in real app)
+        await self.repo.increment_views(template.id)
+
+        is_favorited = None
+        is_wishlisted = None
+        if current_user:
+            is_favorited = await self.favorites.is_favorited(current_user.id, template.id)
+            is_wishlisted = await self.wishlist.is_wishlisted(current_user.id, template.id)
+
+        response = TemplateResponse.model_validate(template)
+        response.is_favorited = is_favorited
+        response.is_wishlisted = is_wishlisted
+        return response
+
+    async def create_template(
+        self, data: TemplateCreate, seller_id: Optional[uuid.UUID] = None
+    ) -> TemplateResponse:
+        template = await self.repo.create(data)
+        # Permanently bind this template to the uploading seller's account
+        if seller_id is not None:
+            template.seller_id = seller_id
+            await self.db.flush()
+            await self.db.commit()
+            # Re-fetch with eagerly loaded relationships (selectinload) instead
+            # of refresh(), which strips loaded relationships and causes
+            # MissingGreenlet when Pydantic serializes in async context.
+            template = await self.repo.get_by_id(template.id)
+        return TemplateResponse.model_validate(template)
+
+    async def update_template(
+        self, template_id: uuid.UUID, data: TemplateUpdate
+    ) -> TemplateResponse:
+        template = await self.repo.get_by_id(template_id)
+        if not template:
+            raise HTTPException(status_code=404, detail="Template not found")
+        template = await self.repo.update(template, data)
+        return TemplateResponse.model_validate(template)
+
+    async def delete_template(
+        self, template_id: uuid.UUID, current_user: Optional[User] = None
+    ) -> None:
+        template = await self.repo.get_by_id(template_id)
+        if not template:
+            raise HTTPException(status_code=404, detail="Template not found")
+
+        # Admins and super-admins can delete any template.
+        # Sellers can only delete templates they own.
+        if current_user and current_user.role.value not in ("admin", "super_admin"):
+            if template.seller_id != current_user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You can only delete your own templates.",
+                )
+
+        await self.repo.delete(template)
+
+    async def get_featured_templates(self, limit: int = 8) -> List[TemplateCardResponse]:
+        templates = await self.repo.get_featured(limit)
+        return [TemplateCardResponse.model_validate(t) for t in templates]
