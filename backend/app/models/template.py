@@ -34,6 +34,7 @@ class StringList(TypeDecorator):
     and fallback JSON/Text type on SQLite.
     """
     impl = JSON
+    cache_ok = True  # Safe: no mutable instance state; all behaviour is dialect-driven
 
     def load_dialect_impl(self, dialect):
         if dialect.name == "postgresql":

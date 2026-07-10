@@ -82,9 +82,7 @@ export default function OnboardingPage() {
           animate={{ opacity: 1, y: 0 }}
           className="onboarding-logo-row"
         >
-          <div className="logo-box">
-            <Sparkles className="logo-sparkle-icon" />
-          </div>
+          <img src="/logo.png" alt="AI Site Studio Logo" className="navbar-logo-img" width={36} height={36} />
           <span className="logo-text">
             AI Site Studio
           </span>

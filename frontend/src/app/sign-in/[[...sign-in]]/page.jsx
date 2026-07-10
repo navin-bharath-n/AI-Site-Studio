@@ -13,9 +13,7 @@ export default function SignInPage() {
       <div className="signup-content-container">
         <div className="signup-header">
           <Link href="/" className="signup-logo-link">
-            <div className="signup-logo-box">
-              <Sparkles className="signup-logo-sparkle" />
-            </div>
+            <img src="/logo.png" alt="AI Site Studio Logo" className="navbar-logo-img" width={32} height={32} />
             <span className="signup-logo-text gradient-text">
               AI Site Studio
             </span>

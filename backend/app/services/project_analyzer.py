@@ -50,11 +50,20 @@ class ProjectAnalyzer:
             with open(zip_path, "wb") as f:
                 f.write(file_content)
 
-            # 2. Extract zip file
+            # 2. Extract zip file — skip bloated/non-template directories
             extract_dir = temp_dir / "extracted"
             extract_dir.mkdir(exist_ok=True)
+            _SKIP_DIRS = {
+                "node_modules", ".git", ".venv", "venv", "__pycache__",
+                ".next", ".nuxt", ".output", "dist", "build", ".cache",
+                "vendor", ".tox", ".eggs", "*.egg-info",
+            }
             with zipfile.ZipFile(zip_path, "r") as zip_ref:
-                zip_ref.extractall(extract_dir)
+                for member in zip_ref.infolist():
+                    member_parts = Path(member.filename).parts
+                    if any(p in _SKIP_DIRS for p in member_parts):
+                        continue
+                    zip_ref.extract(member, extract_dir)
 
             # 3. Locate root folder (sometimes ZIP extracts into a subfolder or contains package.json recursively)
             root_path = extract_dir
@@ -83,7 +92,23 @@ class ProjectAnalyzer:
                     if len(extracted_items) == 1 and os.path.isdir(extract_dir / extracted_items[0]):
                         root_path = extract_dir / extracted_items[0]
 
-            # 4. Scan files recursively
+            # 4. Guard: reject backend/server projects — only web templates allowed
+            backend_check = self._detect_backend_project(root_path)
+            if backend_check["is_backend"]:
+                return {
+                    "success": False,
+                    "is_backend_project": True,
+                    "backend_type": backend_check.get("backend_type", "Backend"),
+                    "error": backend_check["reason"],
+                    "framework_detected": backend_check.get("backend_type", "Backend"),
+                    "pages": [],
+                    "components": [],
+                    "categories": {},
+                    "color_palette": [],
+                    "assets_count": {"images": 0, "svg": 0, "icons": 0, "videos": 0, "fonts": 0},
+                }
+
+            # 5. Scan files recursively
             scan_results = self._scan_project_files(root_path)
 
             # 5. Get AI analysis using Gemini API (or fallback to OpenAI or Mock)
@@ -601,6 +626,118 @@ class ProjectAnalyzer:
             "dependencies": dependencies,
             "assets_count": assets,
         }
+
+    def _detect_backend_project(self, root_path: Path) -> dict:
+        """
+        Detects whether an uploaded project is a backend/server application
+        rather than a frontend web template.
+        Returns {is_backend, backend_type, reason}.
+        """
+        BACKEND_NODE_PKGS = {
+            "express", "fastify", "@nestjs/core", "koa", "@hapi/hapi",
+            "restify", "sails", "feathers", "@feathersjs/feathers",
+            "strapi", "keystone", "@loopback/core", "moleculer",
+            "@adonisjs/core", "hapi", "polka", "micro",
+        }
+        FRONTEND_PKGS = {
+            "react", "vue", "next", "nuxt", "svelte", "@sveltejs/kit",
+            "astro", "@angular/core", "vite", "gatsby", "@remix-run/react",
+            "solid-js", "preact",
+        }
+        PYTHON_BACKEND_FILES = [
+            "manage.py", "wsgi.py", "asgi.py", "app.py",
+            "main.py", "run.py", "server.py", "wsgi.py",
+        ]
+        PYTHON_DEP_FILES = ["requirements.txt", "Pipfile", "setup.py", "pyproject.toml"]
+
+        has_index_html = (root_path / "index.html").exists()
+        has_package_json = (root_path / "package.json").exists()
+        has_python_deps = any((root_path / f).exists() for f in PYTHON_DEP_FILES)
+        has_python_backend_entry = any((root_path / f).exists() for f in PYTHON_BACKEND_FILES)
+
+        # ── Check 1: Python backend project ──────────────────────────────────
+        if has_python_deps and not has_index_html:
+            backend_type = "Python Backend"
+            for dep_file in PYTHON_DEP_FILES:
+                dep_path = root_path / dep_file
+                if dep_path.exists():
+                    try:
+                        content = dep_path.read_text(encoding="utf-8", errors="ignore").lower()
+                        if "django" in content:
+                            backend_type = "Django"
+                        elif "fastapi" in content:
+                            backend_type = "FastAPI"
+                        elif "flask" in content:
+                            backend_type = "Flask"
+                        elif "tornado" in content:
+                            backend_type = "Tornado"
+                        elif "aiohttp" in content:
+                            backend_type = "AioHTTP"
+                    except Exception:
+                        pass
+
+            if has_python_deps or has_python_backend_entry:
+                return {
+                    "is_backend": True,
+                    "backend_type": backend_type,
+                    "reason": (
+                        f"\u26a0\ufe0f This looks like a {backend_type} backend/server project, not a web template. "
+                        "Please upload only frontend web templates (HTML, React, Vue, Next.js, Nuxt, Svelte, Astro, etc.). "
+                        "Backend projects cannot be previewed or sold as website templates."
+                    ),
+                }
+
+        # ── Check 2: Node.js backend project ─────────────────────────────────
+        if has_package_json and not has_index_html:
+            try:
+                with open(root_path / "package.json", "r", encoding="utf-8") as f:
+                    pkg = json.load(f)
+                all_deps = {**pkg.get("dependencies", {}), **pkg.get("devDependencies", {})}
+
+                has_frontend = any(dep in all_deps for dep in FRONTEND_PKGS)
+                has_backend  = any(dep in all_deps for dep in BACKEND_NODE_PKGS)
+
+                if has_backend and not has_frontend:
+                    detected_pkg = next(
+                        (dep for dep in BACKEND_NODE_PKGS if dep in all_deps),
+                        "Node.js Backend"
+                    )
+                    return {
+                        "is_backend": True,
+                        "backend_type": detected_pkg,
+                        "reason": (
+                            f"\u26a0\ufe0f This looks like a Node.js backend project ({detected_pkg}), not a web template. "
+                            "Please upload only frontend web templates (HTML, React, Vue, Next.js, Nuxt, Svelte, Astro, etc.). "
+                            "Backend projects cannot be previewed or sold as website templates."
+                        ),
+                    }
+            except Exception:
+                pass
+
+        # ── Check 3: No HTML / JSX / Vue files at all ─────────────────────────
+        if not has_index_html and not has_package_json:
+            html_files = list(root_path.glob("**/*.html"))
+            frontend_files = (
+                list(root_path.glob("**/*.jsx"))
+                + list(root_path.glob("**/*.tsx"))
+                + list(root_path.glob("**/*.vue"))
+                + list(root_path.glob("**/*.svelte"))
+                + list(root_path.glob("**/*.astro"))
+            )
+            py_files = list(root_path.glob("**/*.py"))
+
+            if not html_files and not frontend_files and py_files:
+                return {
+                    "is_backend": True,
+                    "backend_type": "Python Project",
+                    "reason": (
+                        "\u26a0\ufe0f This project contains only Python files with no web template content. "
+                        "Please upload only frontend web templates (HTML, React, Vue, Next.js, Nuxt, Svelte, Astro, etc.). "
+                        "Backend projects cannot be previewed or sold as website templates."
+                    ),
+                }
+
+        return {"is_backend": False, "reason": "", "backend_type": ""}
 
     async def _run_ai_analysis(self, scan_results: Dict[str, Any]) -> Dict[str, Any]:
         """Calls Gemini API (or fallback) to do an analysis of code parameters."""

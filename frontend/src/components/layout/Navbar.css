@@ -29,27 +29,22 @@
   gap: 0.5rem;
 }
 
-.logo-icon-bg {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.75rem;
-  background: linear-gradient(135deg, hsl(var(--primary)) 0%, #0d9488 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Logo image — circular, monochrome eagle style */
+.navbar-logo-img {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 50%;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 2px solid hsl(var(--foreground) / 0.25);
+  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.1);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
-.logo-zap-badge {
-  position: absolute;
-  top: -0.125rem;
-  right: -0.125rem;
-  width: 0.75rem;
-  height: 0.75rem;
-  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
-  border-radius: 9999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.navbar-logo-img:hover {
+  border-color: hsl(var(--foreground) / 0.65);
+  box-shadow: 0 4px 16px hsl(var(--foreground) / 0.18);
 }
 
 /* Navigation items & buttons */
@@ -145,15 +140,16 @@
   font-size: 0.875rem;
   font-weight: 600;
   border-radius: var(--radius);
-  background-color: #2563eb; /* cobalt-500 */
-  color: #ffffff;
-  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 4px 6px -1px hsl(var(--primary) / 0.15);
   transition: background-color 0.15s, box-shadow 0.15s;
   text-decoration: none;
 }
 
 .btn-getstarted:hover {
-  background-color: #1d4ed8; /* cobalt-600 */
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
 }
 
 /* Mobile responsive menu */
@@ -240,13 +236,13 @@
   font-size: 0.875rem;
   font-weight: 600;
   text-align: left;
-  color: #2563eb;
+  color: hsl(var(--primary));
   transition: background-color 0.15s;
   text-decoration: none;
 }
 
 .mobile-link-getstarted:hover {
-  background-color: rgba(37, 99, 235, 0.1);
+  background-color: hsl(var(--primary) / 0.1);
 }
 
 /* Extracted custom styling rules replacing Tailwind utility tags */

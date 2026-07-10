@@ -7,7 +7,7 @@ from fastapi import APIRouter
 from app.api.v1.routes import (
     auth, templates, categories, search,
     orders, payment, reviews, favorites,
-    wishlist, dashboard, admin, preview, ai, files,
+    wishlist, dashboard, admin, preview, ai, files, follows,
 )
 
 api_router = APIRouter()
@@ -26,3 +26,4 @@ api_router.include_router(admin.router,      prefix="/admin",      tags=["Admin"
 api_router.include_router(preview.router,    prefix="/preview",    tags=["Preview"])
 api_router.include_router(ai.router,         prefix="/ai",         tags=["AI"])
 api_router.include_router(files.router,      prefix="/files",      tags=["Files"])
+api_router.include_router(follows.router,    prefix="/follows",    tags=["Follows"])

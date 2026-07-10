@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import TemplateCard from "@/components/marketplace/TemplateCard";
-import { useTemplate, useTemplates, useToggleFavorite, useToggleWishlist } from "@/hooks/useTemplates";
+import { useTemplate, useTemplates, useToggleFavorite, useToggleWishlist, useTemplateReviews, useCreateReview, useFollowStatus, useToggleFollow } from "@/hooks/useTemplates";
 import { cn, formatPrice, formatNumber } from "@/lib/utils";
 import { useCartStore } from "@/store";
 import "./Page.css";
@@ -71,73 +71,13 @@ export default function TemplateDetailsPage({ slug: propSlug }) {
   // Compare modal or banner toggle
   const [compareActive, setCompareActive] = useState(false);
 
-  // Interactive Reviews
-  const [reviewsList, setReviewsList] = useState([
-    {
-      id: 1,
-      user: "Sarah Jenkins",
-      avatar: "https://picsum.photos/seed/user1/100/100",
-      verified: true,
-      rating: 5,
-      comment: "Stunning animations and very easy to customize. Saved me weeks of development time. The folder structure in the Next.js version is clean and logical. Performance scores are absolutely real - I got a 98 on my production build instantly.",
-      date: "May 2026",
-      helpful: 14,
-      liked: false,
-      reply: "Thank you Sarah! Great to hear it helped speed up your development. Our team worked hard on the Next.js optimization."
-    },
-    {
-      id: 2,
-      user: "Robert Patel",
-      avatar: "https://picsum.photos/seed/user2/100/100",
-      verified: true,
-      rating: 4,
-      comment: "Great responsive template, clean CSS. Had a small discrepancy with the mobile navigation layout in v2.2, but the author pushed an update in v2.3 within a day. Outstanding support and code quality.",
-      date: "June 2026",
-      helpful: 8,
-      liked: false,
-      reply: "Thanks Robert! The mobile menu layout issue has been solved. We always aim to provide responses and fixes in under 24 hours."
-    },
-    {
-      id: 3,
-      user: "DevMinds",
-      avatar: "https://picsum.photos/seed/user3/100/100",
-      verified: true,
-      rating: 5,
-      comment: "Fully semantic HTML and SEO-ready schemas. Extended license allows us to spin up multiple marketing pages for our clients effortlessly. High value for money.",
-      date: "June 2026",
-      helpful: 5,
-      liked: false,
-    }
-  ]);
-
-  // Interactive Questions & Answers
-  const [qnas, setQnas] = useState([
-    {
-      id: 1,
-      question: "Does this template work with React and TypeScript?",
-      answer: "Yes! The download archive includes a complete React / Next.js project scaffold written in TypeScript, along with a static HTML5/CSS3 build for standard deployments.",
-      author: "Alex G.",
-      date: "Feb 2026",
-    },
-    {
-      id: 2,
-      question: "Can I use the regular license for a commercial client website?",
-      answer: "No. The Regular License is for personal or non-commercial single projects only. To build a site for a client or charge money, please select the Commercial License or Extended License.",
-      author: "Marcus S.",
-      date: "Mar 2026",
-    },
-    {
-      id: 3,
-      question: "Can the AI generator rewrite the content for a specific healthcare sub-niche?",
-      answer: "Yes, our integrated AI Preview generator automatically synthesizes sub-niche content based on the location and industry inputs you supply.",
-      author: "Elena R.",
-      date: "Jun 2026",
-    }
-  ]);
-  const [newQuestion, setNewQuestion] = useState("");
+  // Dynamic Reviews & Likes State
+  const [newReview, setNewReview] = useState({ rating: 5, title: "", body: "" });
+  const [likedReviews, setLikedReviews] = useState({});
+  const [reviewError, setReviewError] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   // Seller Profile Card States
-  const [isFollowing, setIsFollowing] = useState(false);
 
   // Recently Viewed Templates
   const [recentlyViewed, setRecentlyViewed] = useState([]);
@@ -152,6 +92,12 @@ export default function TemplateDetailsPage({ slug: propSlug }) {
   const wishlistMutation = useToggleWishlist(token ?? "");
   const addToCart = useCartStore((s) => s.addItem);
   const isInCart = useCartStore((s) => s.isInCart(template?.id ?? ""));
+  const { data: reviewsData, isLoading: isReviewsLoading } = useTemplateReviews(template?.id);
+  const reviewsList = reviewsData?.items || [];
+  const createReviewMutation = useCreateReview(token);
+  const { data: followStatusData } = useFollowStatus(template?.seller_id, token);
+  const isFollowing = !!followStatusData?.is_following;
+  const toggleFollowMutation = useToggleFollow(token);
 
   const isSeller = isSignedIn && (user?.role === "seller" || user?.role === "SELLER");
 
@@ -243,33 +189,38 @@ export default function TemplateDetailsPage({ slug: propSlug }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleAskQuestion = (e) => {
-    e.preventDefault();
-    if (!newQuestion.trim()) return;
-    const item = {
-      id: qnas.length + 1,
-      question: newQuestion,
-      answer: "Our team will review your question and respond shortly! Usually under 2 hours.",
-      author: user?.name || "Anonymous",
-      date: "Just now",
-    };
-    setQnas([item, ...qnas]);
-    setNewQuestion("");
+  const handleLikeReview = (id) => {
+    setLikedReviews((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
   };
 
-  const handleLikeReview = (id) => {
-    setReviewsList(
-      reviewsList.map((rev) => {
-        if (rev.id === id) {
-          return {
-            ...rev,
-            helpful: rev.liked ? rev.helpful - 1 : rev.helpful + 1,
-            liked: !rev.liked,
-          };
-        }
-        return rev;
-      })
-    );
+  const handleReviewSubmit = async (e) => {
+    e.preventDefault();
+    if (!token) {
+      setReviewError("Please sign in to submit a review.");
+      return;
+    }
+    if (!newReview.body.trim()) {
+      setReviewError("Review comment is required.");
+      return;
+    }
+    setReviewError("");
+    setIsSubmittingReview(true);
+    try {
+      await createReviewMutation.mutateAsync({
+        template_id: template.id,
+        rating: Number(newReview.rating),
+        title: newReview.title || "Review",
+        body: newReview.body,
+      });
+      setNewReview({ rating: 5, title: "", body: "" });
+    } catch (err) {
+      setReviewError(err.message || "Failed to submit review");
+    } finally {
+      setIsSubmittingReview(false);
+    }
   };
 
   // Simulated AI Generation Terminal steps
@@ -1032,11 +983,11 @@ npm run build`;
                 <div className="flex-1 space-y-2">
                   <span className="font-bold text-xs uppercase text-muted-foreground">Rating Distribution</span>
                   {[
-                    { stars: 5, pct: "88%" },
-                    { stars: 4, pct: "9%" },
-                    { stars: 3, pct: "3%" },
-                    { stars: 2, pct: "0%" },
-                    { stars: 1, pct: "0%" },
+                    { stars: 5, pct: reviewsList.length ? `${Math.round((reviewsList.filter(r => r.rating === 5).length / reviewsList.length) * 100)}%` : "0%" },
+                    { stars: 4, pct: reviewsList.length ? `${Math.round((reviewsList.filter(r => r.rating === 4).length / reviewsList.length) * 100)}%` : "0%" },
+                    { stars: 3, pct: reviewsList.length ? `${Math.round((reviewsList.filter(r => r.rating === 3).length / reviewsList.length) * 100)}%` : "0%" },
+                    { stars: 2, pct: reviewsList.length ? `${Math.round((reviewsList.filter(r => r.rating === 2).length / reviewsList.length) * 100)}%` : "0%" },
+                    { stars: 1, pct: reviewsList.length ? `${Math.round((reviewsList.filter(r => r.rating === 1).length / reviewsList.length) * 100)}%` : "0%" },
                   ].map((d) => (
                     <div key={d.stars} className="flex items-center gap-3 text-xs">
                       <span className="w-3 text-right">{d.stars}</span>
@@ -1050,103 +1001,142 @@ npm run build`;
               </div>
 
               {/* Review Comments list */}
-              <div className="divide-y divide-border/30 space-y-6">
-                {reviewsList.map((rev) => (
-                  <div key={rev.id} className="pt-4 first:pt-0 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full overflow-hidden bg-muted">
-                          <Image src={rev.avatar} alt={rev.user} width={32} height={32} />
-                        </div>
-                        <div>
-                          <span className="font-bold text-xs block text-foreground">{rev.user}</span>
-                          <div className="flex items-center gap-1.5">
-                            <span className="flex">
-                              {[1, 2, 3, 4, 5].map((s) => (
-                                <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30")} />
-                              ))}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">• {rev.date}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {rev.verified && (
-                        <span className="text-[9px] font-bold text-green-500 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded flex items-center gap-1">
-                          <Shield className="w-2.5 h-2.5" /> Verified Purchase
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="text-xs text-muted-foreground leading-relaxed">{rev.comment}</p>
-
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => handleLikeReview(rev.id)}
-                        className={cn(
-                          "px-2.5 py-1 rounded border border-border/50 text-[10px] font-semibold flex items-center gap-1 hover:border-primary/30 transition-all",
-                          rev.liked && "bg-primary/5 text-primary border-primary/20"
-                        )}
-                      >
-                        Helpful ({rev.helpful})
-                      </button>
-                      <button className="text-[10px] text-muted-foreground hover:text-foreground font-semibold">Reply</button>
-                    </div>
-
-                    {rev.reply && (
-                      <div className="p-3 bg-muted/20 border-l-2 border-primary/40 rounded-r-lg space-y-1.5 ml-4">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-[10px] text-foreground">John Studio</span>
-                          <span className="text-[8px] bg-primary/10 text-primary border border-primary/20 px-1 rounded uppercase">Seller</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground leading-relaxed">{rev.reply}</p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* 18. Questions & Answers */}
-            <div className="details-qna-block card-container">
-              <h3 className="section-title">Questions & Answers</h3>
-
-              {/* Question list */}
-              <div className="space-y-4 mb-6">
-                {qnas.map((q) => (
-                  <div key={q.id} className="p-3.5 bg-muted/15 rounded-lg border border-border/20 space-y-2">
-                    <div className="flex justify-between items-start gap-3">
-                      <h4 className="font-bold text-xs text-foreground flex gap-1.5 items-start">
-                        <span className="text-primary font-mono text-sm">Q:</span>
-                        {q.question}
-                      </h4>
-                      <span className="text-[9px] text-muted-foreground whitespace-nowrap">Asked by {q.author}</span>
-                    </div>
-                    <div className="flex gap-1.5 items-start pl-4 text-xs text-muted-foreground border-l border-border/50">
-                      <span className="text-green-500 font-mono font-bold">A:</span>
-                      <p className="leading-relaxed">{q.answer}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Submit Question form */}
-              <form onSubmit={handleAskQuestion} className="space-y-2.5">
-                <span className="text-xs font-bold text-foreground">Have a question before buying?</span>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    className="form-input text-xs"
-                    placeholder="Ask a question about this template layout or compatibility..."
-                    value={newQuestion}
-                    onChange={(e) => setNewQuestion(e.target.value)}
-                    required
-                  />
-                  <button type="submit" className="py-2.5 px-5 bg-card border border-border/60 text-xs font-bold rounded-lg hover:border-primary/30 transition-all shrink-0">
-                    Ask Question
-                  </button>
+              {isReviewsLoading ? (
+                <div className="text-center py-6 text-xs text-muted-foreground animate-pulse">
+                  Loading buyer reviews...
                 </div>
-              </form>
+              ) : reviewsList.length === 0 ? (
+                <div className="text-center py-8 border border-dashed border-border/40 rounded-xl bg-muted/5 text-xs text-muted-foreground mb-6">
+                  No verified buyer reviews yet. Be the first to share your feedback!
+                </div>
+              ) : (
+                <div className="divide-y divide-border/30 space-y-6 mb-6">
+                  {reviewsList.map((rev) => {
+                    const isLiked = !!likedReviews[rev.id];
+                    const helpfulCount = rev.helpful_count + (isLiked ? 1 : 0);
+                    const reviewerName = rev.user?.name || rev.user?.email || "Anonymous Buyer";
+                    const reviewerAvatar = rev.user?.avatar_url || `https://picsum.photos/seed/${rev.id}/100/100`;
+                    const formattedDate = rev.created_at ? new Date(rev.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long' }) : "Just now";
+
+                    return (
+                      <div key={rev.id} className="pt-4 first:pt-0 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-full overflow-hidden bg-muted relative">
+                              <Image src={reviewerAvatar} alt={reviewerName} width={32} height={32} className="object-cover" />
+                            </div>
+                            <div>
+                              <span className="font-bold text-xs block text-foreground">{reviewerName}</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="flex">
+                                  {[1, 2, 3, 4, 5].map((s) => (
+                                    <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30")} />
+                                  ))}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">• {formattedDate}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {rev.is_verified_purchase && (
+                            <span className="text-[9px] font-bold text-green-500 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded flex items-center gap-1">
+                              <Shield className="w-2.5 h-2.5" /> Verified Purchase
+                            </span>
+                          )}
+                        </div>
+
+                        {rev.title && <h4 className="font-bold text-xs text-foreground mt-1">{rev.title}</h4>}
+                        <p className="text-xs text-muted-foreground leading-relaxed">{rev.body}</p>
+
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => handleLikeReview(rev.id)}
+                            className={cn(
+                              "px-2.5 py-1 rounded border border-border/50 text-[10px] font-semibold flex items-center gap-1 hover:border-primary/30 transition-all",
+                              isLiked && "bg-primary/5 text-primary border-primary/20"
+                            )}
+                          >
+                            Helpful ({helpfulCount})
+                          </button>
+                        </div>
+
+                        {rev.admin_reply && (
+                          <div className="p-3 bg-muted/20 border-l-2 border-primary/40 rounded-r-lg space-y-1.5 ml-4">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-[10px] text-foreground">John Studio</span>
+                              <span className="text-[8px] bg-primary/10 text-primary border border-primary/20 px-1 rounded uppercase">Seller</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground leading-relaxed">{rev.admin_reply}</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Review Submission Form */}
+              {isSignedIn ? (
+                <form onSubmit={handleReviewSubmit} className="mt-8 p-4 rounded-xl border border-border/40 bg-muted/5 space-y-4">
+                  <h4 className="font-bold text-xs text-foreground">Write a Review</h4>
+                  {reviewError && (
+                    <div className="text-[11px] text-red-500 bg-red-500/10 border border-red-500/20 p-2 rounded-lg">
+                      {reviewError}
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <span className="text-xs text-muted-foreground block font-medium">Select Rating</span>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setNewReview(prev => ({ ...prev, rating: s }))}
+                          className="p-1 focus:outline-none transition-transform active:scale-95"
+                        >
+                          <Star className={cn("w-6 h-6", s <= newReview.rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30")} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground block font-medium">Review Title (optional)</label>
+                    <input
+                      type="text"
+                      className="form-input text-xs w-full p-2.5 rounded-lg border border-border bg-card/50 text-foreground"
+                      placeholder="e.g. Excellent codebase style!"
+                      value={newReview.title}
+                      onChange={(e) => setNewReview(prev => ({ ...prev, title: e.target.value }))}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground block font-medium">Your Feedback</label>
+                    <textarea
+                      rows={3}
+                      className="form-input text-xs w-full p-2.5 rounded-lg border border-border bg-card/50 text-foreground resize-y"
+                      placeholder="Write your review here. What did you like or dislike?"
+                      value={newReview.body}
+                      onChange={(e) => setNewReview(prev => ({ ...prev, body: e.target.value }))}
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmittingReview}
+                    className="py-2 px-4 bg-primary text-primary-foreground text-xs font-bold rounded-lg hover:bg-primary/95 transition-all disabled:opacity-50"
+                  >
+                    {isSubmittingReview ? "Submitting..." : "Submit Review"}
+                  </button>
+                </form>
+              ) : (
+                <div className="mt-8 p-4 rounded-xl border border-dashed border-border/40 text-center bg-muted/5 text-xs text-muted-foreground">
+                  Please sign in to write a review.
+                </div>
+              )}
             </div>
 
             {/* 20. Changelog */}
@@ -1345,7 +1335,7 @@ npm run build`;
                     <>
                       <button
                         onClick={handleAddToCart}
-                        className={cn("details-purchase-btn w-full py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md text-sm", isInCart ? "bg-green-500 hover:bg-green-600 text-white shadow-green-500/10" : "bg-primary hover:bg-primary/95 text-white shadow-primary/20")}
+                        className={cn("details-purchase-btn w-full py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md text-sm", isInCart ? "bg-green-500 hover:bg-green-600 text-white shadow-green-500/10" : "bg-primary hover:bg-primary/95 text-primary-foreground shadow-primary/20")}
                       >
                         {isInCart ? (
                           <>

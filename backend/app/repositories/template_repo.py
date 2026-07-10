@@ -155,15 +155,47 @@ class TemplateRepository:
             query = query.where(Template.tags.overlap(filters.tags))
 
         if filters.q:
-            search = f"%{filters.q}%"
-            query = query.where(
-                or_(
-                    Template.title.ilike(search),
-                    Template.short_description.ilike(search),
-                    Template.description.ilike(search),
-                    Template.industry.ilike(search),
+            if filters.semantic:
+                # Resolve circular import by importing locally
+                from app.services.search_service import SearchService
+                search_service = SearchService(self.db)
+                
+                # Fetch semantic matches (limit to a pool of 50 candidates for filtering)
+                try:
+                    # Run semantic search synchronously inside the async context
+                    matched_cards = await search_service.semantic_search(
+                        query=filters.q, 
+                        limit=50, 
+                        category_filter=filters.category
+                    )
+                    matched_ids = [c.id for c in matched_cards]
+                except Exception:
+                    matched_ids = []
+                    
+                if not matched_ids:
+                    # Return no matches found if semantic search finds nothing
+                    query = query.where(Template.id == uuid.uuid4()) # dummy false UUID
+                else:
+                    query = query.where(Template.id.in_(matched_ids))
+                    # Order by the semantic relevance score ranking returned by Qdrant + Reranker
+                    from sqlalchemy import case
+                    ordering = case(
+                        {id_: index for index, id_ in enumerate(matched_ids)},
+                        value=Template.id
+                    )
+                    # We will bypass the default sorting list below and order by semantic relevance directly
+                    query = query.order_by(ordering)
+            else:
+                search = f"%{filters.q}%"
+                query = query.where(
+                    or_(
+                        Template.title.ilike(search),
+                        Template.short_description.ilike(search),
+                        Template.description.ilike(search),
+                        Template.industry.ilike(search),
+                    )
                 )
-            )
+
 
         # ── Count ─────────────────────────────────────────────────────────────
         count_query = select(func.count()).select_from(query.subquery())
@@ -171,17 +203,19 @@ class TemplateRepository:
         total = total_result.scalar_one()
 
         # ── Sort ──────────────────────────────────────────────────────────────
-        sort_map = {
-            "newest": Template.created_at.desc(),
-            "best_sellers": Template.downloads_count.desc(),
-            "best_rated": Template.rating_avg.desc(),
-            "trending": Template.views_count.desc(),
-            "lowest_price": Template.price.asc(),
-            "highest_price": Template.price.desc(),
-            "most_downloaded": Template.downloads_count.desc(),
-        }
-        order_by = sort_map.get(filters.sort, Template.created_at.desc())
-        query = query.order_by(order_by)
+        if not (filters.q and filters.semantic):
+            sort_map = {
+                "newest": Template.created_at.desc(),
+                "best_sellers": Template.downloads_count.desc(),
+                "best_rated": Template.rating_avg.desc(),
+                "trending": Template.views_count.desc(),
+                "lowest_price": Template.price.asc(),
+                "highest_price": Template.price.desc(),
+                "most_downloaded": Template.downloads_count.desc(),
+            }
+            order_by = sort_map.get(filters.sort, Template.created_at.desc())
+            query = query.order_by(order_by)
+
 
         # ── Pagination ────────────────────────────────────────────────────────
         offset = (filters.page - 1) * filters.page_size

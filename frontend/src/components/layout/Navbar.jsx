@@ -54,14 +54,13 @@ function NavbarComponent() {
         {/* Left group: Logo + primary nav links */}
         <div className="navbar-left-group">
           <Link href="/" className="logo-container">
-            <div className="logo-icon-wrapper">
-              <div className="logo-icon-bg">
-                <Sparkles className="footer-logo-sparkle" />
-              </div>
-              <div className="logo-zap-badge">
-                <Zap className="w-2 h-2 text-white" />
-              </div>
-            </div>
+            <img
+              src="/logo.png"
+              alt="AI Site Studio Logo"
+              className="navbar-logo-img"
+              width={36}
+              height={36}
+            />
             <span className="logo-text gradient-text">
               AI Site Studio
             </span>

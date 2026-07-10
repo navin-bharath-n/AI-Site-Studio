@@ -68,9 +68,13 @@ export default function HomePage() {
           <div className="footer-grid">
             <div className="footer-brand-col">
               <Link href="/" className="footer-brand-logo-link">
-                <div className="footer-logo-icon">
-                  <Sparkles className="footer-logo-sparkle" />
-                </div>
+                <img
+                  src="/logo.png"
+                  alt="AI Site Studio Logo"
+                  className="navbar-logo-img"
+                  width={32}
+                  height={32}
+                />
                 <span className="font-bold text-lg gradient-text">AI Site Studio</span>
               </Link>
               <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">

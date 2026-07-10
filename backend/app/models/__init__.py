@@ -16,6 +16,7 @@ from app.models.preview_session import PreviewSession
 from app.models.ai_history import AIHistory
 from app.models.analytics import AnalyticsEvent
 from app.models.stored_file import StoredFile
+from app.models.follow import Follow
 
 __all__ = [
     "User", "UserRole",
@@ -32,4 +33,5 @@ __all__ = [
     "AIHistory",
     "AnalyticsEvent",
     "StoredFile",
+    "Follow",
 ]

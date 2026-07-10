@@ -2,7 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 import { useEffect } from 'react'
 import { Toaster } from 'sonner'
 import { useAppUser } from './lib/auth.jsx'
-import { useAuthStore } from './store/authStore.js'
+import { useAuthStore } from './store/authStore.js';
+import SupportButton from './components/support/SupportButton.jsx';
 import Home from './app/page.jsx'
 import Marketplace from './app/marketplace/page.jsx'
 import Dashboard from './app/dashboard/page.jsx'
@@ -82,6 +83,7 @@ function App() {
         </Routes>
         <Toaster richColors position="top-center" theme="dark" />
       </div>
+        <SupportButton />
     </BrowserRouter>
   )
 }

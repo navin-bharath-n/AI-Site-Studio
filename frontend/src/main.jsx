@@ -8,7 +8,7 @@ import { ThemeProvider } from 'next-themes'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ThemeProvider attribute="class" forcedTheme="light" enableSystem disableTransitionOnChange>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <AppAuthProvider>
         <Providers>
           <App />

@@ -107,3 +107,55 @@ export function useToggleWishlist(token) {
     },
   });
 }
+
+/**
+ * Fetch reviews for a template dynamically.
+ */
+export function useTemplateReviews(templateId, page = 1, pageSize = 20) {
+  return useQuery({
+    queryKey: ["reviews", templateId, page, pageSize],
+    queryFn: () =>
+      api.get(`/reviews/template/${templateId}?page=${page}&page_size=${pageSize}`),
+    enabled: !!templateId,
+  });
+}
+
+/**
+ * Submit a review for a template.
+ */
+export function useCreateReview(token) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data) => api.post("/reviews", data, token),
+    onSuccess: (review) => {
+      qc.invalidateQueries({ queryKey: ["reviews", review.template_id] });
+      qc.invalidateQueries({ queryKey: templateKeys.all });
+    },
+  });
+}
+
+/**
+ * Fetch follow status of current user for a seller.
+ */
+export function useFollowStatus(sellerId, token) {
+  return useQuery({
+    queryKey: ["follow-status", sellerId],
+    queryFn: () => api.get(`/follows/status/${sellerId}`, token),
+    enabled: !!sellerId && !!token,
+  });
+}
+
+/**
+ * Toggle follow status for a seller.
+ */
+export function useToggleFollow(token) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (sellerId) => api.post(`/follows/toggle/${sellerId}`, {}, token),
+    onSuccess: (data, sellerId) => {
+      qc.invalidateQueries({ queryKey: ["follow-status", sellerId] });
+      qc.invalidateQueries({ queryKey: ["seller-followers"] });
+    },
+  });
+}
+

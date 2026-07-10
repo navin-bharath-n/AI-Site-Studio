@@ -27,11 +27,20 @@ class ReviewUpdate(BaseModel):
     body: Optional[str] = None
 
 
+class ReviewTemplateInfo(BaseModel):
+    id: uuid.UUID
+    title: str
+    slug: str
+
+    model_config = {"from_attributes": True}
+
+
 class ReviewResponse(ReviewBase):
     id: uuid.UUID
     template_id: uuid.UUID
     user_id: uuid.UUID
     user: Optional[UserPublicResponse] = None
+    template: Optional[ReviewTemplateInfo] = None
     is_verified_purchase: bool
     is_approved: bool
     helpful_count: int

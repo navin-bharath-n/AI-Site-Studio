@@ -194,8 +194,8 @@
 
   background:
     linear-gradient(90deg,
-      #7c3aed,
-      #2563eb);
+      hsl(var(--muted-foreground)),
+      hsl(var(--foreground)));
 
   transform: scaleX(0);
 

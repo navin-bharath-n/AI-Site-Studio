@@ -72,8 +72,8 @@
 
   background:
     linear-gradient(135deg,
-      #7c3aed,
-      #2563eb);
+      hsl(var(--foreground)) 0%,
+      hsl(var(--muted-foreground)) 100%);
 
   box-shadow:
     0 12px 30px rgba(124, 58, 237, .25);
@@ -367,10 +367,10 @@
 
   background:
     linear-gradient(90deg,
-      #7c3aed,
-      #2563eb);
+      hsl(var(--foreground)) 0%,
+      hsl(var(--muted-foreground)) 100%);
 
-  color: white;
+  color: hsl(var(--primary-foreground));
 
   font-weight: 700;
 
@@ -500,8 +500,8 @@
 
   background:
     linear-gradient(135deg,
-      #7c3aed,
-      #2563eb);
+      hsl(var(--foreground) / 0.8),
+      hsl(var(--muted-foreground) / 0.8));
 
   opacity: .9;
 }
@@ -581,12 +581,12 @@
 
   text-decoration: none;
 
-  color: #fff;
+  color: hsl(var(--primary-foreground));
 
   background:
     linear-gradient(135deg,
-      #7c3aed 0%,
-      #2563eb 100%);
+      hsl(var(--foreground)) 0%,
+      hsl(var(--muted-foreground)) 100%);
 
   box-shadow:
     0 10px 35px rgba(124, 58, 237, .30);

@@ -13,8 +13,13 @@
   overflow: hidden;
   flex-direction: column;
   justify-content: space-between;
-  background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+  background: linear-gradient(135deg, hsl(var(--muted)) 0%, hsl(var(--background)) 100%);
   border-right: 1px solid hsl(var(--border));
+}
+
+:root[class~="dark"] .auth-left-panel,
+.dark .auth-left-panel {
+  background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%);
 }
 
 @media (min-width: 1024px) {
@@ -22,6 +27,7 @@
     display: flex;
   }
 }
+
 
 .auth-logo-box {
   width: 2.25rem;
@@ -126,16 +132,17 @@
 }
 
 .auth-role-btn.active.buyer {
-  background-color: hsla(221, 83%, 53%, 0.1);
-  border-color: #2563eb;
-  color: #2563eb;
+  background-color: hsl(var(--foreground) / 0.08);
+  border-color: hsl(var(--foreground));
+  color: hsl(var(--foreground));
 }
 
 .auth-role-btn.active.seller {
-  background-color: hsla(175, 84%, 41%, 0.1);
-  border-color: #0d9488;
-  color: #0d9488;
+  background-color: hsl(var(--foreground) / 0.08);
+  border-color: hsl(var(--foreground));
+  color: hsl(var(--foreground));
 }
+
 
 .auth-input-field {
   width: 100%;

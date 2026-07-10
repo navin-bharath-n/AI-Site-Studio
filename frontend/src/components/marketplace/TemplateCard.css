@@ -115,10 +115,21 @@
   border-radius: 9999px;
 }
 
-.card-badge-item.bestseller { background-color: #f97316; }
-.card-badge-item.new { background-color: #22c55e; }
-.card-badge-item.onsale { background-color: #ef4444; }
-.card-badge-item.featured { background-color: #0ea5e9; }
+.card-badge-item.bestseller {
+  background-color: #f97316;
+}
+
+.card-badge-item.new {
+  background-color: #22c55e;
+}
+
+.card-badge-item.onsale {
+  background-color: #ef4444;
+}
+
+.card-badge-item.featured {
+  background-color: #0ea5e9;
+}
 
 .card-action-list {
   position: absolute;
@@ -326,4 +337,3 @@
   align-items: center;
   gap: 0.5rem;
 }
-

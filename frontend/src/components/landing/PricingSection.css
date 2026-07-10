@@ -168,7 +168,7 @@
 
 .pricing-cta.popular {
   background: linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
-  color: #ffffff;
+  color: #292929;
 }
 
 .pricing-cta.popular:hover {

@@ -19,7 +19,9 @@ class ReviewRepository:
 
     async def get_by_id(self, review_id: uuid.UUID) -> Optional[Review]:
         result = await self.db.execute(
-            select(Review).options(selectinload(Review.user)).where(Review.id == review_id)
+            select(Review)
+            .options(selectinload(Review.user), selectinload(Review.template))
+            .where(Review.id == review_id)
         )
         return result.scalar_one_or_none()
 
@@ -35,7 +37,7 @@ class ReviewRepository:
 
         result = await self.db.execute(
             select(Review)
-            .options(selectinload(Review.user))
+            .options(selectinload(Review.user), selectinload(Review.template))
             .where(Review.template_id == template_id, Review.is_approved == True)
             .order_by(Review.created_at.desc())
             .offset((page - 1) * page_size)
@@ -86,3 +88,43 @@ class ReviewRepository:
         avg = float(row[0]) if row[0] else 0.0
         count = row[1] or 0
         return round(avg, 2), count
+
+    async def get_by_seller(
+        self, seller_id: uuid.UUID, page: int = 1, page_size: int = 20
+    ) -> Tuple[List[Review], int]:
+        """Get reviews for templates uploaded by a specific seller."""
+        from app.models.template import Template
+        
+        count_result = await self.db.execute(
+            select(func.count(Review.id))
+            .join(Template)
+            .where(Template.seller_id == seller_id)
+        )
+        total = count_result.scalar_one()
+
+        result = await self.db.execute(
+            select(Review)
+            .join(Template)
+            .options(selectinload(Review.user), selectinload(Review.template))
+            .where(Template.seller_id == seller_id)
+            .order_by(Review.created_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        return list(result.scalars().all()), total
+
+    async def get_all_reviews(
+        self, page: int = 1, page_size: int = 20
+    ) -> Tuple[List[Review], int]:
+        """[Admin] Get all reviews on the platform for moderation."""
+        count_result = await self.db.execute(select(func.count(Review.id)))
+        total = count_result.scalar_one()
+
+        result = await self.db.execute(
+            select(Review)
+            .options(selectinload(Review.user), selectinload(Review.template))
+            .order_by(Review.created_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        return list(result.scalars().all()), total

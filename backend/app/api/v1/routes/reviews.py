@@ -69,6 +69,54 @@ async def create_review(
     return ReviewResponse.model_validate(review)
 
 
+@router.get("/seller", response_model=PaginatedResponse[ReviewResponse])
+async def get_seller_reviews(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get paginated reviews for templates uploaded by the current seller."""
+    if current_user.role.value not in ("seller", "admin", "super_admin"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only sellers and administrators can view seller reviews",
+        )
+    repo = ReviewRepository(db)
+    reviews, total = await repo.get_by_seller(current_user.id, page, page_size)
+    return PaginatedResponse(
+        items=[ReviewResponse.model_validate(r) for r in reviews],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=ceil(total / page_size) if total else 1,
+    )
+
+
+@router.get("/admin", response_model=PaginatedResponse[ReviewResponse])
+async def get_admin_reviews(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """[Admin] Get all reviews on the platform for moderation."""
+    if current_user.role.value not in ("admin", "super_admin"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can view admin reviews",
+        )
+    repo = ReviewRepository(db)
+    reviews, total = await repo.get_all_reviews(page, page_size)
+    return PaginatedResponse(
+        items=[ReviewResponse.model_validate(r) for r in reviews],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=ceil(total / page_size) if total else 1,
+    )
+
+
 @router.patch("/{review_id}", response_model=ReviewResponse)
 async def update_review(
     review_id: uuid.UUID,
@@ -114,3 +162,33 @@ async def delete_review(
     avg, count = await repo.get_rating_stats(template_id)
     template_repo = TemplateRepository(db)
     await template_repo.update_rating(template_id, avg, count)
+
+
+@router.patch("/{review_id}/approve", response_model=ReviewResponse)
+async def toggle_review_approval(
+    review_id: uuid.UUID,
+    is_approved: bool = Query(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """[Admin] Toggle review approval status to show/hide it from template listings."""
+    if current_user.role.value not in ("admin", "super_admin"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can toggle review approval",
+        )
+    repo = ReviewRepository(db)
+    review = await repo.get_by_id(review_id)
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+        
+    review.is_approved = is_approved
+    await db.flush()
+    await db.commit()
+    
+    # Recalculate rating
+    avg, count = await repo.get_rating_stats(review.template_id)
+    template_repo = TemplateRepository(db)
+    await template_repo.update_rating(review.template_id, avg, count)
+    
+    return ReviewResponse.model_validate(review)

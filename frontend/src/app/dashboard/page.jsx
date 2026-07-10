@@ -282,9 +282,29 @@ function Dashboard() {
   const [metaTitle, setMetaTitle] = useState("");
   const [metaDesc, setMetaDesc] = useState("");
   const [keywords, setKeywords] = useState("");
-  const [thumbnailFile, setThumbnailFile] = useState(null);
   const [zipFile, setZipFile] = useState(null);
   const [folderFiles, setFolderFiles] = useState(null);
+
+  // ── 9-step wizard extended state ──────────────────────────────────────────
+  const [wizardCategory, setWizardCategory] = useState("");
+  const [wizardSubCategory, setWizardSubCategory] = useState("");
+  const [wizardIndustry, setWizardIndustry] = useState([]);
+  const [wizardCssFw, setWizardCssFw] = useState("Tailwind");
+  const [wizardBackend, setWizardBackend] = useState("None");
+  const [wizardDb, setWizardDb] = useState("No Database");
+  const [wizardPages, setWizardPages] = useState([]);
+  const [wizardFeatures, setWizardFeatures] = useState([]);
+  const [wizardDesignStyle, setWizardDesignStyle] = useState("");
+  const [wizardPrimaryColor, setWizardPrimaryColor] = useState("#6366f1");
+  const [wizardAccentColor, setWizardAccentColor] = useState("#10b981");
+  const [wizardFont, setWizardFont] = useState("Inter");
+  const [wizardLayout, setWizardLayout] = useState("");
+  const [wizardCoverImage, setWizardCoverImage] = useState(null);
+  const [wizardTargetAudience, setWizardTargetAudience] = useState([]);
+  const [wizardBusinessTypes, setWizardBusinessTypes] = useState([]);
+  const [wizardMood, setWizardMood] = useState("");
+  const [wizardConversionGoal, setWizardConversionGoal] = useState("");
+
   const [uploadType, setUploadType] = useState("zip"); // "zip" or "git"
   const [hasInitializedUploadType, setHasInitializedUploadType] = useState(false);
 

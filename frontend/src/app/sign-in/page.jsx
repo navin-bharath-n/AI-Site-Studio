@@ -117,9 +117,13 @@ export default function SignInPage({ isRegister = false }) {
 
         {/* Logo */}
         <div className="auth-brand-logo">
-          <div className="auth-logo-box">
-            <Sparkles className="auth-brand-logo-icon" />
-          </div>
+          <img
+            src="/logo.png"
+            alt="AI Site Studio Logo"
+            className="navbar-logo-img"
+            width={40}
+            height={40}
+          />
           <span className="auth-logo-text">
             AI Site Studio
           </span>
@@ -165,9 +169,7 @@ export default function SignInPage({ isRegister = false }) {
         <div className="auth-form-wrapper">
           {/* Mobile logo */}
           <div className="auth-brand-logo-mobile">
-            <div className="auth-logo-box">
-              <Sparkles className="auth-brand-logo-icon" />
-            </div>
+            <img src="/logo.png" alt="AI Site Studio Logo" className="navbar-logo-img" width={32} height={32} />
             <span className="auth-logo-text">
               AI Site Studio
             </span>

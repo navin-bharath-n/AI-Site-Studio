@@ -62,6 +62,7 @@ async def list_templates(
     sort: str = Query("newest", description="Sort field"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    semantic: bool = Query(False, description="Use AI semantic search"),
     db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
@@ -76,8 +77,9 @@ async def list_templates(
         framework=framework, industry=industry, color_scheme=color_scheme,
         license_type=license_type, sales=sales, compatibility=compatibility, language=language,
         date_added=date_added,
-        sort=sort, page=page, page_size=page_size,
+        sort=sort, page=page, page_size=page_size, semantic=semantic,
     )
+
     service = TemplateService(db)
     return await service.list_templates(filters, current_user)
 
