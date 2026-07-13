@@ -396,7 +396,7 @@ Return a JSON object matching this exact structure:
   "color_scheme": "e.g. Elegant Gold & Charcoal, Minimal Neon Cyan",
   "pages_count": 5,
   "has_dark_mode": true,
-  "included_pages": ["Home", "About", "Services", "Contact", "Gallery","etc"],
+  "included_pages": ["A comprehensive list of all page names required to build a fully featured website for this type of business (e.g., Home, About, Services, Products, Team, Portfolio, Blog, Testimonials, FAQ, Contact, Careers, Reviews). Choose the best 5 to 8 pages that make sense for this specific business type."],
   "seo_keywords": ["portfolio", "agency", "creative"],
   "logo_prompt": "A prompt describing a clean, minimalist developer brand avatar logo customized specifically for the target business theme (DO NOT copy template studio templates; e.g. if request is coffee shop, describe a coffee cup badge logo).",
   "thumbnail_prompt": "A detailed layout prompt for generating the template's landing page screenshot, reflecting the exact design aesthetics, colorful palettes, theme, and layouts matching this business category (DO NOT copy the dashboard example; write a custom screenshot prompt tailored to the request).",
@@ -476,6 +476,7 @@ Return ONLY valid JSON. Do not include markdown code block notation (```json) or
             break
     if not has_home:
         pages.insert(0, "Home")
+    pages_count = len(pages)
 
     # Format dynamic pages structures for HTML prompts
     html_pages_desc = []
