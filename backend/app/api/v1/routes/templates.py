@@ -515,9 +515,12 @@ Ensure all pages are fully styled with Tailwind CSS via CDN. Make sure they link
 
 CRITICAL STRUCTURAL CODE REQUIREMENTS (DO NOT SKIP ANY SECTION):
 1. NO SHORTCUTS: Write the complete, production-ready HTML code for each file. Do not use placeholders, shorthand snippets, or ellipses like `<!-- other content here -->`. Every single layout component, form input, image, and text block must be fully written out.
-2. RICH COMPONENTS:
-   - Navigation Header: Glassmorphic background with backdrop-blur-md, brand logo, desktop link states with active underlines, and a fully functional mobile layout.
-   - Home Page (index.html) MUST include: A high-impact Hero banner with colorful gradients, a detailed multi-card Features Grid, a visual Showcase/Gallery container, a Statistics/Numbers section, and a professional Footer with social links and subscription newsletter.
+2. RICH COMPONENTS & GRID LAYOUTS:
+   - Navigation Header: Glassmorphic background with backdrop-blur-md, brand logo image, links with active underlines, and a responsive mobile navbar toggler.
+   - HERO SECTION (index.html): MUST be a split two-column layout on desktop:
+     - Left Column (Text & CTAs): Contains a glowing pill-badge at the top (e.g., "AI Powered Template"), a massive bold title featuring vibrant gradient text (using Tailwind's `bg-clip-text bg-gradient-to-r`), a concise professional sub-headline, and a flex container with two premium styled buttons (one primary gradient solid button, one secondary glassmorphic outline button).
+     - Right Column (Visual Showcase Device Mockup): A beautifully styled mockup of a browser window or laptop/phone screen container. It MUST contain a high-quality showcase image utilizing the provided hero background image ('{thumbnail_url}'), styled with rounded corners, subtle neon border glows, and floating micro-card indicators.
+   - Home Page (index.html) MUST ALSO include: A detailed multi-card Features Grid, a visual Showcase/Gallery container, a Statistics/Numbers section, and a professional Footer with social links and subscription newsletter.
    - About Page MUST include: Story intro, an interactive vertical/horizontal Timeline layout, and a Team profile grid featuring styled avatar cards.
    - Services Page MUST include: Detailed pricing comparison tables/cards with active checklist icons, a detailed service process/flow section, and prominent CTA cards.
    - Contact Page MUST include: A double-column layout with visual contact cards (SVG icons for phone/email/map location) on the left, and a styled contact form on the right.
@@ -531,7 +534,7 @@ If you need additional images, illustrations, or profile photos, use the Pollina
 (Ensure the description is short, descriptive, and safely URL-encoded).
 
 CRITICAL ANIMATIONS & EFFECTS:
-1. DESIGN STYLE: Make the design extremely attractive, vibrant, and colorful! Use rich background gradients (e.g. `bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900`), glowing glassmorphic cards, colored border accents (`border-t-2 border-primary`), and gradient text (`text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-pink-500 to-amber-400`).
+1. DESIGN STYLE: Make the design extremely attractive, vibrant, and colorful! Use rich background gradients (e.g. `bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900`), glowing glassmorphic cards (`bg-slate-900/40 backdrop-blur-xl border border-white/10 hover:border-primary/50`), colored border accents (`border-t-2 border-primary`), and gradient text (`text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-pink-500 to-amber-400`).
 2. CSS KEYFRAME ANIMATIONS: Inside the <head> of EACH page, inject a <style> block containing custom CSS @keyframes:
    - fadeInUp: smooth entry from bottom (opacity 0, translateY 20px -> opacity 1, translateY 0).
    - fadeIn: simple fade entry.
@@ -570,9 +573,12 @@ Import lucide icons at the top: `import {{ Sparkles, ArrowRight, Check, ... }} f
 
 CRITICAL STRUCTURAL CODE REQUIREMENTS (DO NOT SKIP ANY SECTION):
 1. NO SHORTCUTS: Write the complete, production-ready React JSX code for `src/App.jsx`. Do not use placeholders, shorthand snippets, or comments like `/* other sections here */`. Every single layout component, form input, image, and text block must be fully written out.
-2. RICH COMPONENTS:
+2. RICH COMPONENTS & GRID LAYOUTS:
    - Navigation Header: Glassmorphic background with backdrop-blur-md, brand logo, links with active underlines, and a responsive mobile navbar toggler.
-   - Home Page MUST include: A high-impact Hero banner with colorful gradients, a detailed multi-card Features Grid, a visual Showcase/Gallery container, a Statistics/Numbers section, and a professional Footer with social links and subscription newsletter.
+   - HERO SECTION (Home view): MUST be a split two-column layout on desktop:
+     - Left Column (Text & CTAs): Contains a glowing pill-badge at the top (e.g., "AI Powered Template"), a massive bold title featuring vibrant gradient text (using Tailwind's `bg-clip-text bg-gradient-to-r`), a concise professional sub-headline, and a flex container with two premium styled buttons (one primary gradient solid button, one secondary glassmorphic outline button).
+     - Right Column (Visual Showcase Device Mockup): A beautifully styled mockup of a browser window or laptop/phone screen container. It MUST contain a high-quality showcase image utilizing the provided hero background image ('{thumbnail_url}'), styled with rounded corners, subtle neon border glows, and floating micro-card indicators.
+   - Home Page MUST ALSO include: A detailed multi-card Features Grid, a visual Showcase/Gallery container, a Statistics/Numbers section, and a professional Footer with social links and subscription newsletter.
    - About Page MUST include: Story intro, a Timeline layout, and a Team profile grid featuring styled avatar cards.
    - Services Page MUST include: Detailed pricing comparison cards with checklist elements and active checklist icons, a detailed service process/flow section, and prominent CTA cards.
    - Contact Page MUST include: A double-column layout with visual contact cards (Lucide icons for phone/email/map location) on the left, and a styled contact form on the right.
@@ -586,7 +592,7 @@ If you need additional images, illustrations, or profile photos, use the Pollina
 (Ensure the description is short, descriptive, and safely URL-encoded).
 
 CRITICAL ANIMATIONS & EFFECTS:
-1. DESIGN STYLE: Make the design extremely attractive, vibrant, and colorful! Use rich background gradients (e.g. `bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900`), glowing glassmorphic cards, colored border accents, and gradient text (`text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-pink-500 to-amber-400`).
+1. DESIGN STYLE: Make the design extremely attractive, vibrant, and colorful! Use rich background gradients (e.g. `bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900`), glowing glassmorphic cards (`bg-slate-900/40 backdrop-blur-xl border border-white/10 hover:border-primary/50`), colored border accents, and gradient text (`text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-pink-500 to-amber-400`).
 2. CSS KEYFRAME ANIMATIONS: Inject a `<style>` element inside the App component return JSX containing custom keyframe animations:
    - fadeInUp (smooth entry from bottom: opacity 0, translateY 20px -> opacity 1, translateY 0).
    - fadeIn (simple fade entry).
