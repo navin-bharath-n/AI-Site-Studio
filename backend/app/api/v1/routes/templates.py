@@ -508,8 +508,15 @@ Return ONLY valid JSON. Do not include markdown code block notation (```json) or
     if framework_lower == "html":
         code_prompt = f"""You are an elite, world-class lead frontend designer.
 Create a complete, responsive, multi-page HTML website matching this user description: "{request.prompt}".
-You must write the code for these exact pages:
-{html_pages_list_str}
+
+THE METADATA AND VISUAL DESIGN SPECS YOU MUST MATCH EXACTLY:
+- Website Title: "{title}"
+- Target Industry: "{industry}"
+- Color Scheme & Styling Palette: "{color_scheme}" (Use this exact color scheme for background gradients, buttons, card borders, active navigations, and glow states).
+- Visual Mockup Description: "{thumb_prompt}"
+- Overall Design System & Aesthetic: "{desc}"
+- Custom Tags: {json.dumps(tags)}
+- Exact Pages to Generate: {html_pages_list_str}
 
 Ensure all pages are fully styled with Tailwind CSS via CDN. Make sure they link to each other correctly (e.g., href="index.html", href="about.html", etc. matching the filenames above). Use professional layouts, modern color palettes, and beautiful fonts.
 
@@ -564,9 +571,18 @@ Do not include markdown code block syntax (like ```json) or explanations."""
     else:  # react
         code_prompt = f"""You are a senior lead React developer.
 Generate the complete source code for a single-file React component `src/App.jsx` matching this user description: "{request.prompt}".
+
+THE METADATA AND VISUAL DESIGN SPECS YOU MUST MATCH EXACTLY:
+- Website Title: "{title}"
+- Target Industry: "{industry}"
+- Color Scheme & Styling Palette: "{color_scheme}" (Use this exact color scheme for background gradients, buttons, card borders, active navigations, and glow states).
+- Visual Mockup Description: "{thumb_prompt}"
+- Overall Design System & Aesthetic: "{desc}"
+- Custom Tags: {json.dumps(tags)}
+- Exact Pages to Toggle: {react_pages_list_str} (possible state values: {react_pages_states_str})
+
 The file must export a default App component. It must use Tailwind CSS utility classes and Lucide React icons.
-To support a multi-page experience, implement a state-driven client-side router inside App.jsx using state hooks (e.g. `const [currentPage, setCurrentPage] = useState('home')`) to toggle between these exact pages:
-{react_pages_list_str} (possible state values: {react_pages_states_str})
+To support a multi-page experience, implement a state-driven client-side router inside App.jsx using state hooks (e.g. `const [currentPage, setCurrentPage] = useState('home')`) to toggle between these exact pages.
 
 Ensure the navigation bar links change the current page state dynamically, and the website has premium layouts, micro-interactions, and beautiful copywriting.
 Import lucide icons at the top: `import {{ Sparkles, ArrowRight, Check, ... }} from 'lucide-react';`
