@@ -396,7 +396,7 @@ Return a JSON object matching this exact structure:
   "color_scheme": "e.g. Elegant Gold & Charcoal, Minimal Neon Cyan",
   "pages_count": 5,
   "has_dark_mode": true,
-  "included_pages": ["Home", "About", "Services", "Contact", "Gallery"],
+  "included_pages": ["Home", "About", "Services", "Contact", "Gallery","etc"],
   "seo_keywords": ["portfolio", "agency", "creative"],
   "logo_prompt": "A prompt describing a clean, minimalist developer brand avatar logo customized specifically for the target business theme (DO NOT copy template studio templates; e.g. if request is coffee shop, describe a coffee cup badge logo).",
   "thumbnail_prompt": "A detailed layout prompt for generating the template's landing page screenshot, reflecting the exact design aesthetics, colorful palettes, theme, and layouts matching this business category (DO NOT copy the dashboard example; write a custom screenshot prompt tailored to the request).",
@@ -481,7 +481,7 @@ Return ONLY valid JSON. Do not include markdown code block notation (```json) or
     html_pages_desc = []
     json_structure_template = {}
     for idx, p in enumerate(pages):
-        fname = "index.html" if p == "Home" else f"{re.sub(r'[^a-zA-Z0-9]', '-', p.lower()).strip('-')}.html"
+        fname = "index.html" if p == "Home" else f"{re.sub(r'[^a-zA-Z0-9]+', '-', p.lower()).strip('-')}.html"
         html_pages_desc.append(f"{idx+1}. {fname} (The complete page layout for the '{p}' section)")
         json_structure_template[fname] = f"<!DOCTYPE html>... (complete styled HTML5 code for {p} page)"
 
@@ -522,20 +522,19 @@ Ensure all pages are fully styled with Tailwind CSS via CDN. Make sure they link
 
 CRITICAL STRUCTURAL CODE REQUIREMENTS (DO NOT SKIP ANY SECTION):
 1. NO SHORTCUTS: Write the complete, production-ready HTML code for each file. Do not use placeholders, shorthand snippets, or ellipses like `<!-- other content here -->`. Every single layout component, form input, image, and text block must be fully written out.
-2. RICH COMPONENTS & GRID LAYOUTS:
-   - Navigation Header: Glassmorphic background with backdrop-blur-md, brand logo image, links with active underlines, and a responsive mobile navbar toggler.
-   - HERO SECTION (index.html): MUST be a split two-column layout on desktop:
-     - Left Column (Text & CTAs): Contains a glowing pill-badge at the top (e.g., "AI Powered Template"), a massive bold title featuring vibrant gradient text (using Tailwind's `bg-clip-text bg-gradient-to-r`), a concise professional sub-headline, and a flex container with two premium styled buttons (one primary gradient solid button, one secondary glassmorphic outline button).
-     - Right Column (Visual Showcase Device Mockup): A beautifully styled mockup of a browser window or laptop/phone screen container. It MUST contain a high-quality showcase image utilizing the provided hero background image ('{thumbnail_url}'), styled with rounded corners, subtle neon border glows, and floating micro-card indicators.
-   - Home Page (index.html) MUST ALSO include: A detailed multi-card Features Grid, a visual Showcase/Gallery container, a Statistics/Numbers section, and a professional Footer with social links and subscription newsletter.
-   - About Page MUST include: Story intro, an interactive vertical/horizontal Timeline layout, and a Team profile grid featuring styled avatar cards.
-   - Services Page MUST include: Detailed pricing comparison tables/cards with active checklist icons, a detailed service process/flow section, and prominent CTA cards.
-   - Contact Page MUST include: A double-column layout with visual contact cards (SVG icons for phone/email/map location) on the left, and a styled contact form on the right.
+2. RICH COMPONENTS & GRID LAYOUTS FOR EACH DYNAMIC PAGE:
+   - Whichever page is the main landing/home page (index.html): MUST include a high-impact Hero banner (split two-column layout on desktop), a detailed multi-card Features Grid, a visual Showcase/Gallery container, a Statistics/Numbers section, and a professional Footer with social links and subscription newsletter.
+   - Whichever page represents the "About" or "Process" or "Story" page (matching the filenames in the list above): MUST include a story intro, an interactive vertical/horizontal Timeline layout, and a Team/Profile grid featuring styled avatar cards.
+   - Whichever page represents the "Services" or "Products" or "Portfolio" or "Gallery" page (matching the filenames in the list above): MUST include detailed pricing tables or item grids with checklist elements, styled checklist cards, and prominent CTA cards.
+   - Whichever page represents the "Contact" or "Booking" page (matching the filenames in the list above): MUST include a double-column layout with visual contact cards (SVG icons for phone/email/map location) on one side, and a fully styled contact form on the other side.
 
 CRITICAL VISUAL DESIGN & IMAGES:
-- Use this brand logo image URL for the website navbar logo/avatar: '{developer_avatar}'
-- Use this main banner image URL for the main page hero section background: '{thumbnail_url}'
-- Use these image URLs for other section blocks (about, gallery, team): {json.dumps(gallery_images)}
+- Navbar brand logo image URL: '{developer_avatar}'
+- Home page hero section background image URL: '{thumbnail_url}'
+- Section background or showcase image URLs:
+  - First Showcase Image: '{gallery_images[0] if len(gallery_images) > 0 else ""}'
+  - Second Showcase Image: '{gallery_images[1] if len(gallery_images) > 1 else ""}'
+  - Third Showcase Image: '{gallery_images[2] if len(gallery_images) > 2 else ""}'
 If you need additional images, illustrations, or profile photos, use the Pollinations AI image service directly in the img src tags:
 `https://image.pollinations.ai/prompt/{{{{description_of_desired_image}}}}?width=600&height=400&nologo=true`
 (Ensure the description is short, descriptive, and safely URL-encoded).
@@ -589,20 +588,20 @@ Import lucide icons at the top: `import {{ Sparkles, ArrowRight, Check, ... }} f
 
 CRITICAL STRUCTURAL CODE REQUIREMENTS (DO NOT SKIP ANY SECTION):
 1. NO SHORTCUTS: Write the complete, production-ready React JSX code for `src/App.jsx`. Do not use placeholders, shorthand snippets, or comments like `/* other sections here */`. Every single layout component, form input, image, and text block must be fully written out.
-2. RICH COMPONENTS & GRID LAYOUTS:
+2. RICH COMPONENTS & GRID LAYOUTS FOR EACH DYNAMIC VIEW:
    - Navigation Header: Glassmorphic background with backdrop-blur-md, brand logo, links with active underlines, and a responsive mobile navbar toggler.
-   - HERO SECTION (Home view): MUST be a split two-column layout on desktop:
-     - Left Column (Text & CTAs): Contains a glowing pill-badge at the top (e.g., "AI Powered Template"), a massive bold title featuring vibrant gradient text (using Tailwind's `bg-clip-text bg-gradient-to-r`), a concise professional sub-headline, and a flex container with two premium styled buttons (one primary gradient solid button, one secondary glassmorphic outline button).
-     - Right Column (Visual Showcase Device Mockup): A beautifully styled mockup of a browser window or laptop/phone screen container. It MUST contain a high-quality showcase image utilizing the provided hero background image ('{thumbnail_url}'), styled with rounded corners, subtle neon border glows, and floating micro-card indicators.
-   - Home Page MUST ALSO include: A detailed multi-card Features Grid, a visual Showcase/Gallery container, a Statistics/Numbers section, and a professional Footer with social links and subscription newsletter.
-   - About Page MUST include: Story intro, a Timeline layout, and a Team profile grid featuring styled avatar cards.
-   - Services Page MUST include: Detailed pricing comparison cards with checklist elements and active checklist icons, a detailed service process/flow section, and prominent CTA cards.
-   - Contact Page MUST include: A double-column layout with visual contact cards (Lucide icons for phone/email/map location) on the left, and a styled contact form on the right.
+   - Whichever page is the main landing/home view: MUST include a high-impact Hero banner (split two-column layout on desktop), a detailed multi-card Features Grid, a visual Showcase/Gallery container, a Statistics/Numbers section, and a professional Footer with social links and subscription newsletter.
+   - Whichever page represents the "About" or "Process" or "Story" view: MUST include a story intro, an interactive vertical/horizontal Timeline layout, and a Team/Profile grid featuring styled avatar cards.
+   - Whichever page represents the "Services" or "Products" or "Portfolio" or "Gallery" view: MUST include detailed pricing comparison cards with checklist elements and active checklist icons, a detailed service process/flow section, and prominent CTA cards.
+   - Whichever page represents the "Contact" or "Booking" view: MUST include a double-column layout with visual contact cards (Lucide icons for phone/email/map location) on the left, and a styled contact form on the right.
 
 CRITICAL VISUAL DESIGN & IMAGES:
-- Use this brand logo image URL for the website navbar logo/avatar: '{developer_avatar}'
-- Use this main banner image URL for the main page hero section background: '{thumbnail_url}'
-- Use these image URLs for other section blocks (about, gallery, team): {json.dumps(gallery_images)}
+- Navbar brand logo image URL: '{developer_avatar}'
+- Home page hero section background image URL: '{thumbnail_url}'
+- Section background or showcase image URLs:
+  - First Showcase Image: '{gallery_images[0] if len(gallery_images) > 0 else ""}'
+  - Second Showcase Image: '{gallery_images[1] if len(gallery_images) > 1 else ""}'
+  - Third Showcase Image: '{gallery_images[2] if len(gallery_images) > 2 else ""}'
 If you need additional images, illustrations, or profile photos, use the Pollinations AI image service directly in the img src tags:
 `https://image.pollinations.ai/prompt/{{{{description_of_desired_image}}}}?width=600&height=400&nologo=true`
 (Ensure the description is short, descriptive, and safely URL-encoded).
