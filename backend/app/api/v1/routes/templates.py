@@ -329,3 +329,370 @@ async def download_template(
         raise HTTPException(status_code=400, detail="Source zip file not configured for this template")
         
     return {"download_url": zip_url}
+
+
+class TemplateGenerateRequest(BaseModel):
+    prompt: str
+    framework: str = "html"  # html | react
+
+
+@router.post("/generate", response_model=TemplateResponse)
+async def generate_template_by_prompt(
+    request: TemplateGenerateRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Generate a website template dynamically using Gemini and Pollinations AI images.
+    """
+    import urllib.parse
+    import json
+    import decimal
+    import re
+    import io
+    import zipfile
+    from app.repositories.category_repo import CategoryRepository
+    from app.repositories.template_repo import TemplateRepository
+    from app.services.search_service import SearchService
+    from app.services.ai_service import ai_service
+    from app.core.storage import storage
+    from app.schemas.template import TemplateResponse
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # Validate framework parameter
+    framework_lower = request.framework.lower()
+    if framework_lower not in ["html", "react"]:
+        raise HTTPException(status_code=400, detail="Framework must be 'html' or 'react'")
+    
+    # 1. Fetch available categories
+    category_repo = CategoryRepository(db)
+    categories = await category_repo.get_all_active()
+    if not categories:
+        raise HTTPException(status_code=400, detail="No active categories found in database to link the generated template.")
+        
+    categories_list = [{"id": str(c.id), "name": c.name, "slug": c.slug} for c in categories]
+    
+    # 2. Query Gemini to structure the template metadata
+    gemini_prompt = f"""You are a professional website template developer.
+A user wants to create a template matching this request: "{request.prompt}"
+The framework requested is: "{framework_lower}"
+
+Here are the available category options in the database:
+{json.dumps(categories_list)}
+
+Analyze the prompt and choose the most suitable category.
+Then, generate a high-fidelity website template configuration.
+
+Return a JSON object matching this exact structure:
+{{
+  "title": "A highly creative, premium title for the template listing",
+  "short_description": "A catchy, persuasive 1-2 sentence description of the template for the marketplace grid card.",
+  "description": "A comprehensive, beautifully formatted description outlining the design system, target industries, page layouts, components, and responsive details.",
+  "price": 49.00,
+  "category_id": "the chosen UUID category_id from the options list",
+  "tags": ["3-5 matching tags like 'portfolio', 'creative', 'dark-mode'"],
+  "industry": "e.g. Design, Real Estate, E-commerce, Restaurant",
+  "color_scheme": "e.g. Elegant Gold & Charcoal, Minimal Neon Cyan",
+  "pages_count": 5,
+  "has_dark_mode": true,
+  "included_pages": ["Home", "About", "Services", "Contact", "Gallery"],
+  "seo_keywords": ["portfolio", "agency", "creative"],
+  "logo_prompt": "A prompt describing a clean, minimalist developer brand avatar logo. E.g. 'a creative vector badge logo for a template studio, circular icon, modern dark blue theme'",
+  "thumbnail_prompt": "A prompt for generating the template's landing page screenshot. E.g. 'a premium web dashboard screenshot, dark mode UI/UX, charts, glassmorphism card components, sleek design'",
+  "gallery_prompts": [
+    "screenshot of the services/pricing section with smooth card layouts, dark slate theme",
+    "screenshot of the contact and form input page with minimalist buttons, modern cyan accents"
+  ]
+}}
+
+Ensure price is a number.
+Return ONLY valid JSON. Do not include markdown code block notation (```json) or explanations."""
+
+    try:
+        response_text = await ai_service._generate_content(gemini_prompt, response_mime_type="application/json")
+        data = json.loads(response_text)
+    except Exception as e:
+        logger.error(f"Gemini template generator prompt failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate template properties using AI: {str(e)}")
+
+    # Extract chosen category UUID and other attributes
+    try:
+        category_uuid = uuid.UUID(data.get("category_id"))
+    except Exception:
+        # Fallback to first category if invalid UUID returned
+        category_uuid = categories[0].id
+
+    # Find the chosen category name for search indexing metadata
+    chosen_cat_name = categories[0].name
+    for c in categories:
+        if c.id == category_uuid:
+            chosen_cat_name = c.name
+            break
+
+    title = data.get("title", "AI Generated Template")
+    short_desc = data.get("short_description", "Premium AI-generated website template.")
+    desc = data.get("description", "A stunning template built by AI.")
+    price = data.get("price", 49.00)
+    tags = data.get("tags", ["ai-generated", "premium"])
+    industry = data.get("industry", "Business")
+    color_scheme = data.get("color_scheme", "Modern Dark")
+    pages_count = data.get("pages_count", 5)
+    has_dark_mode = data.get("has_dark_mode", True)
+    included_pages = data.get("included_pages", ["Home"])
+    seo_keywords = data.get("seo_keywords", ["website"])
+    
+    # Pollinations AI generation prompts
+    logo_prompt = data.get("logo_prompt", f"minimalist developer avatar for {title} template creator")
+    thumb_prompt = data.get("thumbnail_prompt", f"premium template homepage website screenshot of {title}")
+    g_prompts = data.get("gallery_prompts", [
+        f"screenshot of about section for {title} website template",
+        f"screenshot of contact section for {title} website template"
+    ])
+
+    # 3. Create Pollinations AI URLs
+    thumbnail_url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(thumb_prompt)}?width=1024&height=768&nologo=true&seed=42"
+    gallery_images = [
+        f"https://image.pollinations.ai/prompt/{urllib.parse.quote(p)}?width=1024&height=768&nologo=true&seed={i}"
+        for i, p in enumerate(g_prompts)
+    ]
+    developer_avatar = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(logo_prompt)}?width=250&height=250&nologo=true&seed=88"
+
+    # Helper function to clean markdown code snippets
+    def clean_code_response(text: str, language: str) -> str:
+        text = text.strip()
+        if text.startswith(f"```{language}"):
+            text = text.replace(f"```{language}", "", 1)
+        elif text.startswith("```"):
+            text = text.replace("```", "", 1)
+        if text.endswith("```"):
+            text = text[:-3]
+        return text.strip()
+
+    # 4. Generate the actual Code using Gemini Pro
+    print(f"Generating custom {framework_lower} code...")
+    if framework_lower == "html":
+        code_prompt = f"""You are a senior frontend developer.
+Generate the complete code for a single-file static HTML website matching this user description: "{request.prompt}".
+Include a beautiful responsive design with modern layout, colors, typography, navigation, card components, hero showcase, and an interactive contact form.
+Use Tailwind CSS (loaded via CDN link <script src="https://cdn.tailwindcss.com"></script>) for styling.
+You may also load FontAwesome or Lucide icons via CDN if needed. Ensure the site looks absolutely gorgeous and has micro-interactions.
+
+Return ONLY the complete HTML code. Do not include markdown code block syntax (like ```html ... ```) or explanation."""
+        
+        try:
+            raw_code = await ai_service._generate_content(code_prompt, response_mime_type="text/plain")
+            generated_code = clean_code_response(raw_code, "html")
+        except Exception as e:
+            logger.error(f"Gemini HTML code generation failed: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to generate template HTML codebase: {str(e)}")
+
+        # Package ZIP
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+            zip_file.writestr("index.html", generated_code)
+        zip_bytes = zip_buffer.getvalue()
+
+    else:  # react
+        code_prompt = f"""You are a senior React developer.
+Generate the complete source code for a single-file React component `src/App.jsx` matching this user description: "{request.prompt}".
+The file must export a default App component. It must use Tailwind CSS utility classes and Lucide React icons.
+Design a highly polished single-page app containing a navigation bar, a gorgeous hero section with gradients, a services card grid, an about us layout, a project showcase gallery, and a clean contact form with validation state hooks.
+Import lucide icons at the top: `import {{ Sparkles, ArrowRight, Check, ... }} from 'lucide-react';`
+
+Return ONLY the complete React ES6 Javascript code. Do not include markdown code block syntax (like ```javascript ... ```) or explanation."""
+
+        try:
+            raw_code = await ai_service._generate_content(code_prompt, response_mime_type="text/plain")
+            generated_code = clean_code_response(raw_code, "jsx")
+            # If generated code still starts with js/jsx block, strip it
+            generated_code = clean_code_response(generated_code, "javascript")
+        except Exception as e:
+            logger.error(f"Gemini React code generation failed: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to generate template React codebase: {str(e)}")
+
+        # Construct standard React Vite project
+        package_json = {
+            "name": "ai-generated-template",
+            "private": True,
+            "version": "1.0.0",
+            "type": "module",
+            "scripts": {
+                "dev": "vite",
+                "build": "vite build",
+                "preview": "vite preview"
+            },
+            "dependencies": {
+                "react": "^18.2.0",
+                "react-dom": "^18.2.0",
+                "lucide-react": "^0.344.0"
+            },
+            "devDependencies": {
+                "@types/react": "^18.2.66",
+                "@types/react-dom": "^18.2.22",
+                "@vitejs/plugin-react": "^4.2.1",
+                "vite": "^5.1.6"
+            }
+        }
+        
+        vite_config = """import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+})
+"""
+
+        index_html = """<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Generated Template</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: '#6366f1',
+              secondary: '#8b5cf6',
+            }
+          }
+        }
+      }
+    </script>
+  </head>
+  <body class="bg-slate-900 text-slate-100">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+"""
+
+        main_jsx = """import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App.jsx'
+import './index.css'
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+)
+"""
+
+        index_css = """/* Custom style */
+body {
+  margin: 0;
+  background-color: #0f172a;
+}
+"""
+
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+            zip_file.writestr("package.json", json.dumps(package_json, indent=2))
+            zip_file.writestr("vite.config.js", vite_config)
+            zip_file.writestr("index.html", index_html)
+            zip_file.writestr("src/main.jsx", main_jsx)
+            zip_file.writestr("src/App.jsx", generated_code)
+            zip_file.writestr("src/index.css", index_css)
+        zip_bytes = zip_buffer.getvalue()
+
+    # Helper function to generate slug
+    base_slug = re.sub(r"[^\w\s-]", "", title.lower()).strip()
+    base_slug = re.sub(r"[-\s]+", "-", base_slug)
+    slug = base_slug
+    counter = 1
+    template_repo = TemplateRepository(db)
+    while True:
+        existing = await template_repo.get_by_slug(slug)
+        if not existing:
+            break
+        slug = f"{base_slug}-{counter}"
+        counter += 1
+
+    # 5. Upload Codebase ZIP to DB Storage
+    zip_url = await storage.upload_file(
+        db=db,
+        file_content=zip_bytes,
+        folder="templates",
+        original_filename=f"{slug}.zip",
+        content_type="application/zip"
+    )
+
+    download_assets = {
+        "react": zip_url if framework_lower == "react" else None,
+        "html": zip_url if framework_lower == "html" else None,
+        "zip": zip_url
+    }
+
+    # 6. Create Template in DB
+    from app.models.template import Template, TemplateStatus, TemplateLicense, TemplateFramework
+    new_template = Template(
+        title=title,
+        slug=slug,
+        short_description=short_desc,
+        description=desc,
+        price=price,
+        original_price=decimal.Decimal(str(price)) * decimal.Decimal("1.25") if price else None,
+        is_free=False,
+        is_on_sale=True,
+        thumbnail_url=thumbnail_url,
+        preview_url=f"https://example.com/preview/{slug}",
+        video_url=None,
+        gallery_images=gallery_images,
+        category_id=category_uuid,
+        tags=tags,
+        industry=industry,
+        color_scheme=color_scheme,
+        framework=TemplateFramework(framework_lower),
+        pages_count=pages_count,
+        has_dark_mode=has_dark_mode,
+        is_responsive=True,
+        is_rtl_supported=False,
+        is_ai_ready=True,
+        compatibility=["Chrome", "Safari", "Edge"],
+        version="1.0.0",
+        license_type=TemplateLicense.REGULAR,
+        status=TemplateStatus.PUBLISHED,
+        is_featured=False,
+        is_bestseller=False,
+        is_new=True,
+        developer_name="AI Studio",
+        developer_avatar=developer_avatar,
+        seller_id=current_user.id,
+        download_assets=download_assets,
+        changelog={"1.0.0": "Initial AI generation"},
+        included_pages=included_pages,
+        seo_keywords=seo_keywords
+    )
+    
+    db.add(new_template)
+    await db.flush()
+    await db.commit()
+    await db.refresh(new_template)
+
+    # 7. Index in Qdrant Vector search
+    try:
+        search_service = SearchService(db)
+        await search_service.index_template(
+            template_id=new_template.id,
+            text=f"{new_template.title} {new_template.short_description} {new_template.description}",
+            metadata={
+                "title": new_template.title,
+                "category": chosen_cat_name,
+                "industry": new_template.industry,
+                "tags": new_template.tags,
+                "features": new_template.included_pages,
+                "framework": new_template.framework,
+                "style": "Modern",
+                "color_scheme": new_template.color_scheme,
+                "seo_keywords": new_template.seo_keywords
+            }
+        )
+    except Exception as e:
+        logger.error(f"Failed to index generated template in Qdrant: {e}")
+
+    # Return template detail
+    return await template_repo.get_by_id(new_template.id)

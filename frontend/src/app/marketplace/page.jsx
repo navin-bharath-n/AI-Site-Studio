@@ -145,6 +145,15 @@ function Marketplace() {
                       <Sparkles className={cn("ai-toggle-icon", filters.semantic && "glow-animation")} />
                       <span>AI Search</span>
                     </button>
+
+                    <button
+                      onClick={() => navigate("/marketplace/generate")}
+                      className="ai-generate-btn"
+                      title="Generate a custom template using AI"
+                    >
+                      <Sparkles className="ai-generate-icon animate-pulse" />
+                      <span>AI Creator</span>
+                    </button>
                   </div>
                 </div>
 

@@ -1,25 +1,55 @@
 """
-AI service — OpenAI integration for preview content generation, 
+AI service — Gemini integration for preview content generation, 
 template recommendations, color palettes, and SEO.
 """
 
 import json
-from typing import Optional
-
-from openai import AsyncOpenAI
+import logging
+import httpx
+from typing import Optional, List
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class AIService:
     def __init__(self):
-        self._client: Optional[AsyncOpenAI] = None
+        pass
 
     @property
-    def client(self) -> AsyncOpenAI:
-        if not self._client:
-            self._client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-        return self._client
+    def client(self):
+        """
+        Boolean-like indicator for route check compatibility (request.ai_fill and ai_service.client).
+        Returns the Gemini API key if configured.
+        """
+        return settings.GEMINI_API_KEY or None
+
+    async def _generate_content(self, prompt: str, response_mime_type: str = "application/json") -> str:
+        """Call Gemini model to generate content."""
+        if not settings.GEMINI_API_KEY:
+            raise ValueError("GEMINI_API_KEY is not configured")
+
+        headers = {"Content-Type": "application/json"}
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.GEMINI_MODEL}:generateContent?key={settings.GEMINI_API_KEY}"
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+        }
+        if response_mime_type == "application/json":
+            payload["generationConfig"] = {
+                "responseMimeType": "application/json"
+            }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, json=payload, headers=headers, timeout=60.0)
+            if response.status_code == 200:
+                data = response.json()
+                try:
+                    return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                except (KeyError, IndexError) as e:
+                    raise RuntimeError(f"Unexpected response structure from Gemini: {data}") from e
+            else:
+                raise RuntimeError(f"Gemini API returned status {response.status_code}: {response.text}")
 
     async def generate_business_content(
         self,
@@ -32,7 +62,7 @@ class AIService:
         Auto-generate website content for a business.
         Used in the Preview Builder when user clicks "AI Fill".
 
-        Returns a dict with: about, services, tagline, contact_placeholder, etc.
+        Returns a dict with: tagline, about, services, service_descriptions, etc.
         """
         prompt = f"""You are a professional website copywriter.
 
@@ -57,17 +87,10 @@ Return a JSON object with these exact fields:
   "hero_subheadline": "Hero section subheadline"
 }}
 
-Return only valid JSON, no markdown."""
+Return ONLY valid JSON. Do not include markdown code block notation (```json) or explanations."""
 
-        response = await self.client.chat.completions.create(
-            model=settings.OPENAI_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            response_format={"type": "json_object"},
-        )
-
-        content = response.choices[0].message.content
-        return json.loads(content)
+        response_text = await self._generate_content(prompt, response_mime_type="application/json")
+        return json.loads(response_text)
 
     async def generate_seo(
         self,
@@ -88,15 +111,12 @@ Return JSON:
   "keywords": ["kw1", "kw2", ...],
   "og_title": "...",
   "og_description": "..."
-}}"""
+}}
 
-        response = await self.client.chat.completions.create(
-            model=settings.OPENAI_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.5,
-            response_format={"type": "json_object"},
-        )
-        return json.loads(response.choices[0].message.content)
+Return ONLY valid JSON. Do not include markdown code block notation (```json) or explanations."""
+
+        response_text = await self._generate_content(prompt, response_mime_type="application/json")
+        return json.loads(response_text)
 
     async def generate_color_palette(self, industry: str, mood: str = "professional") -> dict:
         """Generate a color palette for a business."""
@@ -110,15 +130,12 @@ Return JSON:
   "background": "#HEXCODE",
   "text": "#HEXCODE",
   "rationale": "Brief explanation"
-}}"""
+}}
 
-        response = await self.client.chat.completions.create(
-            model=settings.OPENAI_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.6,
-            response_format={"type": "json_object"},
-        )
-        return json.loads(response.choices[0].message.content)
+Return ONLY valid JSON. Do not include markdown code block notation (```json) or explanations."""
+
+        response_text = await self._generate_content(prompt, response_mime_type="application/json")
+        return json.loads(response_text)
 
     async def recommend_templates(
         self,
@@ -136,15 +153,12 @@ Return JSON:
   "recommended_categories": ["cat1", "cat2"],
   "search_keywords": ["kw1", "kw2", "kw3"],
   "reasoning": "Brief explanation"
-}}"""
+}}
 
-        response = await self.client.chat.completions.create(
-            model=settings.OPENAI_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.4,
-            response_format={"type": "json_object"},
-        )
-        return json.loads(response.choices[0].message.content)
+Return ONLY valid JSON. Do not include markdown code block notation (```json) or explanations."""
+
+        response_text = await self._generate_content(prompt, response_mime_type="application/json")
+        return json.loads(response_text)
 
 
 # Module-level singleton
