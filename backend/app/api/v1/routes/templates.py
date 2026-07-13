@@ -398,11 +398,11 @@ Return a JSON object matching this exact structure:
   "has_dark_mode": true,
   "included_pages": ["Home", "About", "Services", "Contact", "Gallery"],
   "seo_keywords": ["portfolio", "agency", "creative"],
-  "logo_prompt": "A prompt describing a clean, minimalist developer brand avatar logo. E.g. 'a creative vector badge logo for a template studio, circular icon, modern dark blue theme'",
-  "thumbnail_prompt": "A prompt for generating the template's landing page screenshot. E.g. 'a premium web dashboard screenshot, dark mode UI/UX, charts, glassmorphism card components, sleek design'",
+  "logo_prompt": "A prompt describing a clean, minimalist developer brand avatar logo customized specifically for the target business theme (DO NOT copy template studio templates; e.g. if request is coffee shop, describe a coffee cup badge logo).",
+  "thumbnail_prompt": "A detailed layout prompt for generating the template's landing page screenshot, reflecting the exact design aesthetics, colorful palettes, theme, and layouts matching this business category (DO NOT copy the dashboard example; write a custom screenshot prompt tailored to the request).",
   "gallery_prompts": [
-    "screenshot of the services/pricing section with smooth card layouts, dark slate theme",
-    "screenshot of the contact and form input page with minimalist buttons, modern cyan accents"
+    "A screenshot prompt for the services/products section of this specific business type",
+    "A screenshot prompt for the contact/about section of this specific business type"
   ]
 }}
 
