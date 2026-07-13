@@ -506,14 +506,23 @@ Return ONLY valid JSON. Do not include markdown code block notation (```json) or
     # 4. Generate the actual Code using Gemini Pro
     print(f"Generating custom {framework_lower} code...")
     if framework_lower == "html":
-        code_prompt = f"""You are a senior frontend developer.
+        code_prompt = f"""You are an elite, world-class lead frontend designer.
 Create a complete, responsive, multi-page HTML website matching this user description: "{request.prompt}".
 You must write the code for these exact pages:
 {html_pages_list_str}
 
 Ensure all pages are fully styled with Tailwind CSS via CDN. Make sure they link to each other correctly (e.g., href="index.html", href="about.html", etc. matching the filenames above). Use professional layouts, modern color palettes, and beautiful fonts.
 
-CRITICAL: Integrate real, high-quality images and logo assets:
+CRITICAL STRUCTURAL CODE REQUIREMENTS (DO NOT SKIP ANY SECTION):
+1. NO SHORTCUTS: Write the complete, production-ready HTML code for each file. Do not use placeholders, shorthand snippets, or ellipses like `<!-- other content here -->`. Every single layout component, form input, image, and text block must be fully written out.
+2. RICH COMPONENTS:
+   - Navigation Header: Glassmorphic background with backdrop-blur-md, brand logo, desktop link states with active underlines, and a fully functional mobile layout.
+   - Home Page (index.html) MUST include: A high-impact Hero banner with colorful gradients, a detailed multi-card Features Grid, a visual Showcase/Gallery container, a Statistics/Numbers section, and a professional Footer with social links and subscription newsletter.
+   - About Page MUST include: Story intro, an interactive vertical/horizontal Timeline layout, and a Team profile grid featuring styled avatar cards.
+   - Services Page MUST include: Detailed pricing comparison tables/cards with active checklist icons, a detailed service process/flow section, and prominent CTA cards.
+   - Contact Page MUST include: A double-column layout with visual contact cards (SVG icons for phone/email/map location) on the left, and a styled contact form on the right.
+
+CRITICAL VISUAL DESIGN & IMAGES:
 - Use this brand logo image URL for the website navbar logo/avatar: '{developer_avatar}'
 - Use this main banner image URL for the main page hero section background: '{thumbnail_url}'
 - Use these image URLs for other section blocks (about, gallery, team): {json.dumps(gallery_images)}
@@ -521,7 +530,7 @@ If you need additional images, illustrations, or profile photos, use the Pollina
 `https://image.pollinations.ai/prompt/{{{{description_of_desired_image}}}}?width=600&height=400&nologo=true`
 (Ensure the description is short, descriptive, and safely URL-encoded).
 
-CRITICAL: Include premium website animations, colorful accents, and micro-interactions:
+CRITICAL ANIMATIONS & EFFECTS:
 1. DESIGN STYLE: Make the design extremely attractive, vibrant, and colorful! Use rich background gradients (e.g. `bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900`), glowing glassmorphic cards, colored border accents (`border-t-2 border-primary`), and gradient text (`text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-pink-500 to-amber-400`).
 2. CSS KEYFRAME ANIMATIONS: Inside the <head> of EACH page, inject a <style> block containing custom CSS @keyframes:
    - fadeInUp: smooth entry from bottom (opacity 0, translateY 20px -> opacity 1, translateY 0).
@@ -550,7 +559,7 @@ Do not include markdown code block syntax (like ```json) or explanations."""
         zip_bytes = zip_buffer.getvalue()
 
     else:  # react
-        code_prompt = f"""You are a senior React developer.
+        code_prompt = f"""You are a senior lead React developer.
 Generate the complete source code for a single-file React component `src/App.jsx` matching this user description: "{request.prompt}".
 The file must export a default App component. It must use Tailwind CSS utility classes and Lucide React icons.
 To support a multi-page experience, implement a state-driven client-side router inside App.jsx using state hooks (e.g. `const [currentPage, setCurrentPage] = useState('home')`) to toggle between these exact pages:
@@ -559,7 +568,16 @@ To support a multi-page experience, implement a state-driven client-side router 
 Ensure the navigation bar links change the current page state dynamically, and the website has premium layouts, micro-interactions, and beautiful copywriting.
 Import lucide icons at the top: `import {{ Sparkles, ArrowRight, Check, ... }} from 'lucide-react';`
 
-CRITICAL: Integrate real, high-quality images and logo assets:
+CRITICAL STRUCTURAL CODE REQUIREMENTS (DO NOT SKIP ANY SECTION):
+1. NO SHORTCUTS: Write the complete, production-ready React JSX code for `src/App.jsx`. Do not use placeholders, shorthand snippets, or comments like `/* other sections here */`. Every single layout component, form input, image, and text block must be fully written out.
+2. RICH COMPONENTS:
+   - Navigation Header: Glassmorphic background with backdrop-blur-md, brand logo, links with active underlines, and a responsive mobile navbar toggler.
+   - Home Page MUST include: A high-impact Hero banner with colorful gradients, a detailed multi-card Features Grid, a visual Showcase/Gallery container, a Statistics/Numbers section, and a professional Footer with social links and subscription newsletter.
+   - About Page MUST include: Story intro, a Timeline layout, and a Team profile grid featuring styled avatar cards.
+   - Services Page MUST include: Detailed pricing comparison cards with checklist elements and active checklist icons, a detailed service process/flow section, and prominent CTA cards.
+   - Contact Page MUST include: A double-column layout with visual contact cards (Lucide icons for phone/email/map location) on the left, and a styled contact form on the right.
+
+CRITICAL VISUAL DESIGN & IMAGES:
 - Use this brand logo image URL for the website navbar logo/avatar: '{developer_avatar}'
 - Use this main banner image URL for the main page hero section background: '{thumbnail_url}'
 - Use these image URLs for other section blocks (about, gallery, team): {json.dumps(gallery_images)}
@@ -567,7 +585,7 @@ If you need additional images, illustrations, or profile photos, use the Pollina
 `https://image.pollinations.ai/prompt/{{{{description_of_desired_image}}}}?width=600&height=400&nologo=true`
 (Ensure the description is short, descriptive, and safely URL-encoded).
 
-CRITICAL: Include premium website animations, colorful accents, and micro-interactions:
+CRITICAL ANIMATIONS & EFFECTS:
 1. DESIGN STYLE: Make the design extremely attractive, vibrant, and colorful! Use rich background gradients (e.g. `bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900`), glowing glassmorphic cards, colored border accents, and gradient text (`text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-pink-500 to-amber-400`).
 2. CSS KEYFRAME ANIMATIONS: Inject a `<style>` element inside the App component return JSX containing custom keyframe animations:
    - fadeInUp (smooth entry from bottom: opacity 0, translateY 20px -> opacity 1, translateY 0).
