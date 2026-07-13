@@ -488,13 +488,15 @@ You must write the code for these pages:
 
 Ensure all pages are fully styled with Tailwind CSS via CDN. Make sure they link to each other correctly (e.g., href="index.html", href="about.html", etc.). Use professional layouts, modern color palettes, and beautiful fonts.
 
-CRITICAL: Include premium website animations and micro-interactions:
-1. Inside the <head> of EACH page, inject a <style> block containing custom CSS @keyframes animations:
-   - fadeInUp: smooth entry from bottom (0% opacity, translateY 20px -> 100% opacity, translateY 0).
+CRITICAL: Include premium website animations, colorful accents, and micro-interactions:
+1. DESIGN STYLE: Make the design extremely attractive, vibrant, and colorful! Use rich background gradients (e.g. `bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900`), glowing glassmorphic cards, colored border accents (`border-t-2 border-primary`), and gradient text (`text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-pink-500 to-amber-400`).
+2. CSS KEYFRAME ANIMATIONS: Inside the <head> of EACH page, inject a <style> block containing custom CSS @keyframes:
+   - fadeInUp: smooth entry from bottom (opacity 0, translateY 20px -> opacity 1, translateY 0).
    - fadeIn: simple fade entry.
-   - pulseGlow: subtle glow pulse effect for CTA buttons.
-   Create helper classes like .animate-fade-in-up {{{{ animation: fadeInUp 0.8s ease-out forwards; }}}} and apply them to headings, cards, and sections.
-2. Add Tailwind hover transition classes (e.g., transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] hover:shadow-2xl) to all cards, grid items, buttons, and navigation elements.
+   - pulseGlow: subtle glow pulse effect for CTA buttons and badges.
+   Apply helper classes like .animate-fade-in-up {{{{ animation: fadeInUp 0.8s ease-out forwards; }}}} to headers, cards, and sections.
+3. PAGE TRANSITIONS: Implement smooth multi-page transitions. Inject a fullscreen transition overlay and a simple JavaScript handler that intercepts page link clicks (preventing default instant load), animates a smooth fade/wipe effect, and then completes the redirect, ensuring a premium, seamless feeling between pages.
+4. Tailwind hover transition classes (e.g., transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] hover:shadow-2xl) to all cards, grid items, buttons, and navigation elements.
 
 Return ONLY a valid JSON object mapping filenames to their complete file content string, matching this structure:
 {{
@@ -532,12 +534,14 @@ To support a multi-page experience, implement a state-driven client-side router 
 Ensure the navigation bar links change the current page state dynamically, and the website has premium layouts, micro-interactions, and beautiful copywriting.
 Import lucide icons at the top: `import {{ Sparkles, ArrowRight, Check, ... }} from 'lucide-react';`
 
-CRITICAL: Include premium website animations and micro-interactions:
-1. Inject a `<style>` element inside the App component return JSX containing custom keyframe animations:
+CRITICAL: Include premium website animations, colorful accents, and micro-interactions:
+1. DESIGN STYLE: Make the design extremely attractive, vibrant, and colorful! Use rich background gradients (e.g. `bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900`), glowing glassmorphic cards, colored border accents, and gradient text (`text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-pink-500 to-amber-400`).
+2. CSS KEYFRAME ANIMATIONS: Inject a `<style>` element inside the App component return JSX containing custom keyframe animations:
    - fadeInUp (smooth entry from bottom: opacity 0, translateY 20px -> opacity 1, translateY 0).
    - fadeIn (simple fade entry).
    Assign class names like `animate-fade-in-up` to structural elements.
-2. Apply Tailwind hover transition classes (e.g. `transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] hover:shadow-2xl`) to buttons, navigation elements, and service cards.
+3. PAGE TRANSITIONS: Wrap each page component in a transition container that triggers a smooth fade-in and scale-up animation whenever `currentPage` changes, providing a seamless page change effect.
+4. Apply Tailwind hover transition classes (e.g. `transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] hover:shadow-2xl`) to buttons, navigation elements, and service cards.
 
 Return ONLY the complete React ES6 Javascript code. Do not include markdown code block syntax (like ```javascript) or explanation."""
 
