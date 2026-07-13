@@ -464,6 +464,34 @@ Return ONLY valid JSON. Do not include markdown code block notation (```json) or
     ]
     developer_avatar = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(logo_prompt)}?width=250&height=250&nologo=true&seed=88"
 
+    # Ensure the list of pages is clean and contains strings
+    raw_pages = data.get("included_pages", ["Home", "About", "Services", "Contact"])
+    pages = [p.strip() for p in raw_pages if isinstance(p, str) and p.strip()]
+    # Normalize: Ensure "Home" exists
+    has_home = False
+    for i, p in enumerate(pages):
+        if p.lower() in ["home", "homepage"]:
+            pages[i] = "Home"
+            has_home = True
+            break
+    if not has_home:
+        pages.insert(0, "Home")
+
+    # Format dynamic pages structures for HTML prompts
+    html_pages_desc = []
+    json_structure_template = {}
+    for idx, p in enumerate(pages):
+        fname = "index.html" if p == "Home" else f"{re.sub(r'[^a-zA-Z0-9]', '-', p.lower()).strip('-')}.html"
+        html_pages_desc.append(f"{idx+1}. {fname} (The complete page layout for the '{p}' section)")
+        json_structure_template[fname] = f"<!DOCTYPE html>... (complete styled HTML5 code for {p} page)"
+
+    html_pages_list_str = "\n".join(html_pages_desc)
+    json_struct_str = json.dumps(json_structure_template, indent=2)
+
+    # Format dynamic pages structures for React prompts
+    react_pages_list_str = ", ".join(pages)
+    react_pages_states_str = ", ".join([f"'{p.lower().replace(' ', '-')}'" for p in pages])
+
     # Helper function to clean markdown code snippets
     def clean_code_response(text: str, language: str) -> str:
         text = text.strip()
@@ -480,13 +508,18 @@ Return ONLY valid JSON. Do not include markdown code block notation (```json) or
     if framework_lower == "html":
         code_prompt = f"""You are a senior frontend developer.
 Create a complete, responsive, multi-page HTML website matching this user description: "{request.prompt}".
-You must write the code for these pages:
-1. index.html (Home page with hero section, introduction, and key features)
-2. about.html (About page detailing story, values, and team)
-3. services.html (Services or products menu page)
-4. contact.html (Contact page with an interactive form)
+You must write the code for these exact pages:
+{html_pages_list_str}
 
-Ensure all pages are fully styled with Tailwind CSS via CDN. Make sure they link to each other correctly (e.g., href="index.html", href="about.html", etc.). Use professional layouts, modern color palettes, and beautiful fonts.
+Ensure all pages are fully styled with Tailwind CSS via CDN. Make sure they link to each other correctly (e.g., href="index.html", href="about.html", etc. matching the filenames above). Use professional layouts, modern color palettes, and beautiful fonts.
+
+CRITICAL: Integrate real, high-quality images and logo assets:
+- Use this brand logo image URL for the website navbar logo/avatar: '{developer_avatar}'
+- Use this main banner image URL for the main page hero section background: '{thumbnail_url}'
+- Use these image URLs for other section blocks (about, gallery, team): {json.dumps(gallery_images)}
+If you need additional images, illustrations, or profile photos, use the Pollinations AI image service directly in the img src tags:
+`https://image.pollinations.ai/prompt/{{{{description_of_desired_image}}}}?width=600&height=400&nologo=true`
+(Ensure the description is short, descriptive, and safely URL-encoded).
 
 CRITICAL: Include premium website animations, colorful accents, and micro-interactions:
 1. DESIGN STYLE: Make the design extremely attractive, vibrant, and colorful! Use rich background gradients (e.g. `bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900`), glowing glassmorphic cards, colored border accents (`border-t-2 border-primary`), and gradient text (`text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-pink-500 to-amber-400`).
@@ -499,12 +532,7 @@ CRITICAL: Include premium website animations, colorful accents, and micro-intera
 4. Tailwind hover transition classes (e.g., transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] hover:shadow-2xl) to all cards, grid items, buttons, and navigation elements.
 
 Return ONLY a valid JSON object mapping filenames to their complete file content string, matching this structure:
-{{
-  "index.html": "<!DOCTYPE html>...",
-  "about.html": "<!DOCTYPE html>...",
-  "services.html": "<!DOCTYPE html>...",
-  "contact.html": "<!DOCTYPE html>..."
-}}
+{json_struct_str}
 Do not include markdown code block syntax (like ```json) or explanations."""
         
         try:
@@ -525,14 +553,19 @@ Do not include markdown code block syntax (like ```json) or explanations."""
         code_prompt = f"""You are a senior React developer.
 Generate the complete source code for a single-file React component `src/App.jsx` matching this user description: "{request.prompt}".
 The file must export a default App component. It must use Tailwind CSS utility classes and Lucide React icons.
-To support a multi-page experience, implement a state-driven client-side router inside App.jsx (e.g., using `const [currentPage, setCurrentPage] = useState('home')`) to toggle between the following pages:
-- Home: Hero section, features list, and testimonials.
-- About: Biography/story, values, and team layouts.
-- Services: Detailed services card grid.
-- Contact: Interactive form with success state handlers.
+To support a multi-page experience, implement a state-driven client-side router inside App.jsx using state hooks (e.g. `const [currentPage, setCurrentPage] = useState('home')`) to toggle between these exact pages:
+{react_pages_list_str} (possible state values: {react_pages_states_str})
 
 Ensure the navigation bar links change the current page state dynamically, and the website has premium layouts, micro-interactions, and beautiful copywriting.
 Import lucide icons at the top: `import {{ Sparkles, ArrowRight, Check, ... }} from 'lucide-react';`
+
+CRITICAL: Integrate real, high-quality images and logo assets:
+- Use this brand logo image URL for the website navbar logo/avatar: '{developer_avatar}'
+- Use this main banner image URL for the main page hero section background: '{thumbnail_url}'
+- Use these image URLs for other section blocks (about, gallery, team): {json.dumps(gallery_images)}
+If you need additional images, illustrations, or profile photos, use the Pollinations AI image service directly in the img src tags:
+`https://image.pollinations.ai/prompt/{{{{description_of_desired_image}}}}?width=600&height=400&nologo=true`
+(Ensure the description is short, descriptive, and safely URL-encoded).
 
 CRITICAL: Include premium website animations, colorful accents, and micro-interactions:
 1. DESIGN STYLE: Make the design extremely attractive, vibrant, and colorful! Use rich background gradients (e.g. `bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900`), glowing glassmorphic cards, colored border accents, and gradient text (`text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-pink-500 to-amber-400`).
