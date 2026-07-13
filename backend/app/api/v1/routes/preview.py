@@ -186,23 +186,37 @@ async def serve_live_preview(
         raise HTTPException(status_code=400, detail="Template does not have source ZIP assets")
         
     file_id_str = zip_url.split("/")[-1]
+    is_external = False
+    file_id = None
     try:
         file_id = uuid.UUID(file_id_str)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid source asset URL")
+        is_external = True
         
     preview_dir = os.path.join(tempfile.gettempdir(), "ai_site_studio", "live_previews", str(template_id))
     os.makedirs(preview_dir, exist_ok=True)
     
     # Extract files if preview_dir is empty (first-time extract)
     if not os.listdir(preview_dir):
-        from app.models import StoredFile
-        result = await db.execute(select(StoredFile).where(StoredFile.id == file_id))
-        stored_file = result.scalar_one_or_none()
-        if not stored_file:
-            raise HTTPException(status_code=404, detail="Source template archive file not found")
+        if is_external:
+            import httpx
+            try:
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(zip_url, follow_redirects=True, timeout=30.0)
+                    if response.status_code != 200:
+                        raise HTTPException(status_code=400, detail=f"Failed to fetch external ZIP assets: status {response.status_code}")
+                    zip_data = response.content
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Failed to download external template ZIP: {str(e)}")
+        else:
+            from app.models import StoredFile
+            result = await db.execute(select(StoredFile).where(StoredFile.id == file_id))
+            stored_file = result.scalar_one_or_none()
+            if not stored_file:
+                raise HTTPException(status_code=404, detail="Source template archive file not found")
+            zip_data = stored_file.data
             
-        with zipfile.ZipFile(io.BytesIO(stored_file.data)) as zip_ref:
+        with zipfile.ZipFile(io.BytesIO(zip_data)) as zip_ref:
             for member in zip_ref.infolist():
                 clean_path = os.path.normpath(member.filename).replace("..", "")
                 if clean_path.startswith("/") or clean_path.startswith("\\"):
