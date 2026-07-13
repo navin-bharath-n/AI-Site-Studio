@@ -25,6 +25,7 @@ import TemplateCard from "@/components/marketplace/TemplateCard";
 import { useTemplate, useTemplates, useToggleFavorite, useToggleWishlist, useTemplateReviews, useCreateReview, useFollowStatus, useToggleFollow } from "@/hooks/useTemplates";
 import { cn, formatPrice, formatNumber } from "@/lib/utils";
 import { useCartStore } from "@/store";
+import { API_URL } from "@/lib/api";
 import "./Page.css";
 
 export default function TemplateDetailsPage({ slug: propSlug }) {
@@ -36,7 +37,7 @@ export default function TemplateDetailsPage({ slug: propSlug }) {
   const [activeImage, setActiveImage] = useState(0);
   const [copied, setCopied] = useState(false);
   const [selectedLicense, setSelectedLicense] = useState("regular"); // regular, commercial, extended
-  const [heroTab, setHeroTab] = useState("screenshot"); // screenshot, gallery, video, mobile, tablet, desktop
+  const [heroTab, setHeroTab] = useState("desktop"); // screenshot, gallery, video, mobile, tablet, desktop
 
   // Live Preview Device section
   const [deviceTab, setDeviceTab] = useState("desktop"); // desktop, laptop, tablet, mobile
@@ -88,6 +89,9 @@ export default function TemplateDetailsPage({ slug: propSlug }) {
   }, [getToken]);
 
   const { data: template, isLoading, error } = useTemplate(slug, token);
+  const previewSrc = template?.preview_url && !template.preview_url.includes("example.com")
+    ? template.preview_url
+    : `${API_URL}/preview/live/${template?.id}`;
   const favoriteMutation = useToggleFavorite(token ?? "");
   const wishlistMutation = useToggleWishlist(token ?? "");
   const addToCart = useCartStore((s) => s.addItem);
@@ -391,7 +395,7 @@ npm run build`;
 
                 <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
                   <a
-                    href={template.preview_url || `http://localhost:8000/api/v1/preview/live/${template.id}`}
+                    href={previewSrc}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hero-action-btn live"
@@ -481,7 +485,7 @@ npm run build`;
                       {/* Auto-scrolling screen content */}
                       <div className="video-player-screen">
                         <iframe
-                          src={template.preview_url || `http://localhost:8000/api/v1/preview/live/${template.id}`}
+                          src={previewSrc}
                           title={`AI Live Video Walkthrough — ${template.title}`}
                           sandbox="allow-scripts allow-same-origin allow-forms"
                           className="autoscroll-iframe"
@@ -524,7 +528,7 @@ npm run build`;
                       {/* Screen Content */}
                       <div className="iphone-screen">
                         <iframe
-                          src={template.preview_url || `http://localhost:8000/api/v1/preview/live/${template.id}`}
+                          src={previewSrc}
                           title={`Mobile Preview — ${template.title}`}
                           sandbox="allow-scripts allow-same-origin allow-forms"
                         />
@@ -595,7 +599,7 @@ npm run build`;
                           className="object-cover object-top"
                         />
                         <iframe
-                          src={template.preview_url || `http://localhost:8000/api/v1/preview/live/${template.id}`}
+                          src={previewSrc}
                           title={`${heroTab} Preview — ${template.title}`}
                           sandbox="allow-scripts allow-same-origin allow-forms"
                           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none", zIndex: 1 }}
