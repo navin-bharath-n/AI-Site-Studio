@@ -646,8 +646,8 @@ body {
     )
 
     download_assets = {
-        "react": zip_url if framework_lower == "react" else None,
-        "html": zip_url if framework_lower == "html" else None,
+        "react": zip_url if framework_lower == "react" else "",
+        "html": zip_url if framework_lower == "html" else "",
         "zip": zip_url
     }
 
