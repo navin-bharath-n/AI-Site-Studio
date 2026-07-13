@@ -239,11 +239,15 @@ async def list_git_repos(
             repos = response.json()
             return [
                 {
+                    "id": r.get("id"),
                     "name": r.get("name"),
                     "full_name": r.get("full_name"),
                     "clone_url": r.get("clone_url"),
                     "description": r.get("description"),
                     "private": r.get("private"),
+                    "language": r.get("language"),
+                    "stargazers_count": r.get("stargazers_count", 0),
+                    "updated_at": r.get("updated_at"),
                 }
                 for r in repos if isinstance(r, dict)
             ]

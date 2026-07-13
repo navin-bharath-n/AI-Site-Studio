@@ -410,8 +410,8 @@
   height: 1.25rem;
 }
 
-.social-svg-icon.fb {
-  color: #3b82f6;
+.social-svg-icon.github {
+  color: hsl(var(--foreground));
   fill: currentColor;
 }
 

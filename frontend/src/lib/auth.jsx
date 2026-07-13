@@ -54,8 +54,8 @@ export function useGoogleAuth() {
   return useAuthStore((s) => s.beginGoogleAuth);
 }
 
-export function useFacebookAuth() {
-  return useAuthStore((s) => s.beginFacebookAuth);
+export function useGithubAuth() {
+  return useAuthStore((s) => s.beginGithubAuth);
 }
 
 export function useCompleteOnboarding() {

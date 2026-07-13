@@ -37,7 +37,7 @@ export default function OnboardingPage() {
   const completeOnboarding = useAuthStore((s) => s.completeOnboarding);
   const pendingOAuthData = useAuthStore((s) => s.pendingOAuthData);
   const providerLabel = useAuthStore((s) =>
-    s.pendingProvider === "google" ? "Google" : "Facebook"
+    s.pendingProvider === "google" ? "Google" : s.pendingProvider === "github" ? "GitHub" : "Social"
   );
 
   const [role, setRole] = useState(defaultRole);

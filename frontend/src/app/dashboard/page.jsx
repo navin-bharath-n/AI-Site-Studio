@@ -284,6 +284,7 @@ function Dashboard() {
   const [keywords, setKeywords] = useState("");
   const [zipFile, setZipFile] = useState(null);
   const [folderFiles, setFolderFiles] = useState(null);
+  const [videoFile, setVideoFile] = useState(null);
 
   // ── 9-step wizard extended state ──────────────────────────────────────────
   const [wizardCategory, setWizardCategory] = useState("");
@@ -738,7 +739,13 @@ function Dashboard() {
         finalZipUrl = await uploadFileHelper(finalZipFile, "source ZIP");
       }
 
-      // 4. Submit Template details as JSON to match TemplateCreate schema
+      // 4. Upload Video file if exists (seller with GitHub connected)
+      let finalVideoUrl = null;
+      if (videoFile) {
+        finalVideoUrl = await uploadFileHelper(videoFile, "video preview");
+      }
+
+      // 5. Submit Template details as JSON to match TemplateCreate schema
       const payload = {
         title,
         slug: slug || title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
@@ -750,7 +757,7 @@ function Dashboard() {
         is_on_sale: !!salePrice,
         thumbnail_url: finalThumbnailUrl,
         preview_url: demoUrl || null,
-        video_url: null,
+        video_url: finalVideoUrl,
         gallery_images: [],
         category_id: categoryId,
         tags: tags ? tags.split(",").map(t => t.trim()) : [],
@@ -805,6 +812,7 @@ function Dashboard() {
       setTags("");
       setDemoUrl("");
       setThumbnailFile(null);
+      setVideoFile(null);
       setZipFile(null);
       setFolderFiles(null);
       setUploadType("zip");
@@ -1615,32 +1623,195 @@ function Dashboard() {
                             </div>
                           </div>
                         ) : (
-                          <div className="db-upload-dropzone p-8 flex flex-col space-y-6">
-                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto text-primary">
-                              <Globe className="w-6 h-6 animate-pulse" />
-                            </div>
-                            <div>
-                              <h4 className="font-bold text-base text-foreground mb-1">Import from Git Repository</h4>
-                              <p className="text-xs text-muted-foreground text-center max-w-sm mx-auto">
-                                Paste the URL of your public Git repository (GitHub, GitLab, Bitbucket, etc.) to clone and analyze the template.
-                              </p>
-                            </div>
+                          /* ── GIT REPOSITORY TAB ─────────────────────────── */
+                          <div className="space-y-5">
 
-                            <div className="w-full max-w-md mx-auto flex flex-col gap-3">
-                              <input 
-                                type="text"
-                                placeholder="https://github.com/username/repository-name.git"
-                                value={gitUrl}
-                                onChange={(e) => setGitUrl(e.target.value)}
-                                className="w-full px-4 py-2.5 rounded-xl border border-border bg-background/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-center text-foreground"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => handleGitAnalysis()}
-                                className="w-full py-2.5 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/95 transition-all flex items-center justify-center gap-1.5 shadow-sm font-semibold"
-                              >
-                                Import & Analyze Repository
-                              </button>
+                            {/* STATE A: GitHub NOT connected — one-click OAuth */}
+                            {!user?.has_github_token && (
+                              <div className="db-upload-dropzone p-10 flex flex-col items-center gap-6">
+                                <div className="relative">
+                                  <div className="w-20 h-20 rounded-3xl bg-[#24292e] flex items-center justify-center shadow-2xl shadow-black/30">
+                                    <svg className="w-11 h-11 text-white" viewBox="0 0 24 24" fill="currentColor">
+                                      <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+                                    </svg>
+                                  </div>
+                                  {/* animated ring */}
+                                  <div className="absolute -inset-1 rounded-3xl border-2 border-primary/20 animate-pulse" />
+                                </div>
+
+                                <div className="text-center space-y-2 max-w-xs">
+                                  <h4 className="font-bold text-lg text-foreground">Connect GitHub</h4>
+                                  <p className="text-xs text-muted-foreground leading-relaxed">
+                                    Authorise AI Site Studio on GitHub and we'll automatically load all your repositories. No keys, no copy-pasting.
+                                  </p>
+                                </div>
+
+                                <div className="flex flex-col items-center gap-3 w-full max-w-xs">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      // Pass current JWT so the backend links GitHub to this account, not creates a new user
+                                      const API_BASE = "http://localhost:8000/api/v1";
+                                      window.location.href = `${API_BASE}/auth/github/login?token=${authToken}&redirect=/dashboard?tab=seller-upload`;
+                                    }}
+                                    className="w-full py-3 bg-[#24292e] hover:bg-[#1a1e23] text-white text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2.5 shadow-lg shadow-black/20 hover:shadow-black/30 hover:-translate-y-0.5"
+                                  >
+                                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                      <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+                                    </svg>
+                                    Continue with GitHub
+                                  </button>
+
+                                  <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                                    <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3 text-green-500" /> Secure OAuth 2.0</span>
+                                    <span>·</span>
+                                    <span className="flex items-center gap-1"><Key className="w-3 h-3 text-primary" /> No passwords stored</span>
+                                    <span>·</span>
+                                    <span className="flex items-center gap-1"><CheckCircle className="w-3 h-3 text-blue-400" /> One-time setup</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+
+                            {/* STATE B: GitHub connected — repo browser */}
+                            {user?.has_github_token && (
+                              <div className="space-y-4">
+                                {/* Header row */}
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-7 h-7 rounded-lg bg-[#24292e] flex items-center justify-center">
+                                      <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-bold text-foreground">Your Repositories</p>
+                                      <p className="text-[10px] text-muted-foreground">{fetchedRepos.length} repos found · Click any to import</p>
+                                    </div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setFetchedRepos([]); fetchGithubRepos(); }}
+                                    disabled={fetchingRepos}
+                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-primary transition-all"
+                                  >
+                                    <Loader2 className={cn("w-3 h-3", fetchingRepos && "animate-spin")} />
+                                    Refresh
+                                  </button>
+                                </div>
+
+                                {/* STATE B-loading: skeletons */}
+                                {fetchingRepos && (
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {[1, 2, 3, 4].map(i => (
+                                      <div key={i} className="p-4 rounded-xl border border-border/50 bg-muted/10 space-y-2 animate-pulse">
+                                        <div className="h-3.5 bg-muted/40 rounded w-2/3" />
+                                        <div className="h-2.5 bg-muted/30 rounded w-full" />
+                                        <div className="h-2.5 bg-muted/20 rounded w-1/2" />
+                                        <div className="flex gap-2 pt-1">
+                                          <div className="h-5 w-14 bg-muted/30 rounded-full" />
+                                          <div className="h-5 w-10 bg-muted/20 rounded-full" />
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* STATE B-loaded: repo cards */}
+                                {!fetchingRepos && fetchedRepos.length > 0 && (
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-border">
+                                    {fetchedRepos.map((repo) => (
+                                      <div
+                                        key={repo.id || repo.clone_url}
+                                        className={cn(
+                                          "group p-4 rounded-xl border bg-card/50 hover:border-primary hover:bg-primary/5 transition-all cursor-pointer space-y-2",
+                                          gitUrl === repo.clone_url ? "border-primary bg-primary/5" : "border-border/50"
+                                        )}
+                                        onClick={() => setGitUrl(repo.clone_url)}
+                                      >
+                                        {/* Repo header */}
+                                        <div className="flex items-start justify-between gap-2">
+                                          <div className="flex items-center gap-1.5 min-w-0">
+                                            <Folder className="w-3.5 h-3.5 text-primary shrink-0" />
+                                            <span className="text-sm font-bold text-foreground truncate">{repo.name}</span>
+                                          </div>
+                                          <span className={cn(
+                                            "text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0",
+                                            repo.private ? "bg-amber-500/10 text-amber-500" : "bg-green-500/10 text-green-500"
+                                          )}>
+                                            {repo.private ? "Private" : "Public"}
+                                          </span>
+                                        </div>
+
+                                        {/* Description */}
+                                        <p className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
+                                          {repo.description || "No description provided"}
+                                        </p>
+
+                                        {/* Meta chips */}
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          {repo.language && (
+                                            <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                                              <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" />
+                                              {repo.language}
+                                            </span>
+                                          )}
+                                          {repo.stargazers_count > 0 && (
+                                            <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-muted-foreground">
+                                              <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
+                                              {repo.stargazers_count}
+                                            </span>
+                                          )}
+                                          {repo.updated_at && (
+                                            <span className="text-[9px] text-muted-foreground/60 ml-auto">
+                                              {new Date(repo.updated_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        {/* Import button */}
+                                        <button
+                                          type="button"
+                                          onClick={(e) => { e.stopPropagation(); setGitUrl(repo.clone_url); handleGitAnalysis(repo.clone_url); }}
+                                          className="w-full mt-1 py-1.5 bg-primary text-white text-[10px] font-bold rounded-lg hover:bg-primary/90 transition-all flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100"
+                                        >
+                                          <Zap className="w-3 h-3" /> Import & Analyze
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Empty state */}
+                                {!fetchingRepos && fetchedRepos.length === 0 && (
+                                  <div className="text-center py-8 text-muted-foreground text-xs">
+                                    No repositories found. Click Refresh or check your token permissions.
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Manual URL fallback — always visible */}
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                                {user?.has_github_token ? "Or paste a public / GitLab / Bitbucket URL:" : "Or paste any public Git URL:"}
+                              </p>
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  placeholder="https://github.com/username/repository-name.git"
+                                  value={gitUrl}
+                                  onChange={(e) => setGitUrl(e.target.value)}
+                                  className="flex-1 px-4 py-2.5 rounded-xl border border-border bg-background/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleGitAnalysis()}
+                                  disabled={!gitUrl}
+                                  className="px-4 py-2.5 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/95 transition-all flex items-center gap-1.5 disabled:opacity-40 shrink-0"
+                                >
+                                  <Zap className="w-3.5 h-3.5" /> Analyze
+                                </button>
+                              </div>
                             </div>
                           </div>
                         )}
@@ -1655,6 +1826,7 @@ function Dashboard() {
                           </div>
                           <span className="text-[10px] text-muted-foreground/60 mt-1">Maximum upload size: 2 GB</span>
                         </div>
+
                       </div>
                     )}
 
@@ -2027,6 +2199,26 @@ function Dashboard() {
                             />
                           </div>
                         </div>
+
+                        {/* Video Upload — only for sellers with GitHub connected */}
+                        {user?.has_github_token && (
+                          <div className="p-4 border border-primary/20 bg-primary/5 rounded-xl space-y-2">
+                            <label className="block text-xs font-semibold text-primary uppercase mb-1 flex items-center gap-1.5">
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+                              Video Preview (GitHub Connected)
+                            </label>
+                            <p className="text-[10px] text-muted-foreground">Upload a walkthrough video of your template. Buyers will see this on the product page.</p>
+                            <input
+                              type="file"
+                              accept="video/*"
+                              onChange={(e) => setVideoFile(e.target.files[0])}
+                              className="w-full text-xs text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                            />
+                            {videoFile && (
+                              <p className="text-[10px] text-green-500 font-semibold">✓ {videoFile.name} selected</p>
+                            )}
+                          </div>
+                        )}
 
                         <div>
                           <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Short Description</label>

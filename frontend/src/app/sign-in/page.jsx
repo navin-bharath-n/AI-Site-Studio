@@ -12,16 +12,7 @@ const fadeUp = (delay = 0) => ({
   animate: { opacity: 1, y: 0, transition: { delay, duration: 0.45 } },
 });
 
-const isCompanyEmail = (email) => {
-  if (!email || !email.includes("@")) return false;
-  const domain = email.split("@").pop().toLowerCase();
-  const publicDomains = new Set([
-    "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com",
-    "aol.com", "zoho.com", "protonmail.com", "proton.me", "mail.com",
-    "yandex.com", "gmx.com", "live.com", "msn.com"
-  ]);
-  return !publicDomains.has(domain);
-};
+
 
 export default function SignInPage({ isRegister = false }) {
   const navigate = useNavigate();
@@ -56,14 +47,12 @@ export default function SignInPage({ isRegister = false }) {
   }, [initialRole]);
 
   const beginGoogleAuth = useAuthStore((s) => s.beginGoogleAuth);
-  const beginFacebookAuth = useAuthStore((s) => s.beginFacebookAuth);
   const signInWithEmail = useAuthStore((s) => s.signInWithEmail);
   const registerWithEmail = useAuthStore((s) => s.registerWithEmail);
 
-  const handleOAuth = async (provider) => {
-    setOauthLoading(provider);
-    const fn = provider === "google" ? beginGoogleAuth : beginFacebookAuth;
-    fn(role);
+  const handleOAuth = async () => {
+    setOauthLoading("google");
+    beginGoogleAuth(role);
   };
 
   const handleEmailAuth = async (e) => {
@@ -72,11 +61,7 @@ export default function SignInPage({ isRegister = false }) {
     setError("");
     setAuthLoading(true);
 
-    if (role === "seller" && !isCompanyEmail(email)) {
-      setError("Sellers must use a company email address (not public domains like Gmail).");
-      setAuthLoading(false);
-      return;
-    }
+
 
     try {
       if (isRegister) {
@@ -180,7 +165,7 @@ export default function SignInPage({ isRegister = false }) {
               {isRegister ? "Create an account" : "Welcome back"}
             </h1>
             <p className="auth-form-subtitle">
-              Sign in securely using Google or Facebook. No extra passwords needed.
+              Sign in securely using Google. No extra passwords needed.
             </p>
           </motion.div>
 
@@ -208,17 +193,13 @@ export default function SignInPage({ isRegister = false }) {
                 Seller
               </button>
             </div>
-            {role === "seller" && (
-              <p className="seller-notice-text">
-                ℹ️ Sellers must use a <strong>company email address</strong> (public domains like Gmail, Yahoo, etc. are not allowed).
-              </p>
-            )}
+
           </motion.div>
 
           {/* Social Buttons */}
           <motion.div {...fadeUp(0.08)} className="auth-social-group">
             <button
-              onClick={() => handleOAuth("google")}
+              onClick={() => handleOAuth()}
               disabled={!!oauthLoading}
               className="social-btn"
             >
@@ -233,21 +214,6 @@ export default function SignInPage({ isRegister = false }) {
                 </svg>
               )}
               Continue with Google
-            </button>
-
-            <button
-              onClick={() => handleOAuth("facebook")}
-              disabled={!!oauthLoading}
-              className="social-btn"
-            >
-              {oauthLoading === "facebook" ? (
-                <span className="auth-btn-loader social" />
-              ) : (
-                <svg className="social-svg-icon fb" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                </svg>
-              )}
-              Continue with Facebook
             </button>
           </motion.div>
           {/* Divider */}

@@ -75,8 +75,12 @@ async def login(
     token: Optional[str] = None
 ):
     """Redirects to the OAuth provider."""
-    if provider not in ["google", "facebook", "github"]:
+    # github is allowed only when 'token' param is present (connect-to-existing-user flow)
+    # It should NOT be a standalone login method — the sign-in page only shows Google.
+    if provider not in ["google", "github"]:
         raise HTTPException(status_code=404, detail="Provider not supported")
+    if provider == "github" and not token:
+        raise HTTPException(status_code=403, detail="GitHub OAuth is only available for connecting to an existing account. Please sign in with Google first.")
     
     client = oauth.create_client(provider)
     if not client:
@@ -84,7 +88,6 @@ async def login(
         
     redirect_uri = request.url_for('auth_callback', provider=provider)
     
-
     request.session['auth_role'] = role
     if redirect:
         request.session['auth_redirect'] = redirect
@@ -98,14 +101,14 @@ async def login(
                 request.session['auth_current_user_id'] = user_id
         except Exception:
             pass
-    
+            
     return await client.authorize_redirect(request, redirect_uri)
 
 
 @router.get("/{provider}/callback")
 async def auth_callback(provider: str, request: Request, db: AsyncSession = Depends(get_db)):
     """Handles OAuth callback and creates/updates the user."""
-    if provider not in ["google", "facebook", "github"]:
+    if provider not in ["google", "github"]:
         raise HTTPException(status_code=404, detail="Provider not supported")
         
     client = oauth.create_client(provider)
@@ -186,11 +189,6 @@ async def auth_callback(provider: str, request: Request, db: AsyncSession = Depe
         await db.refresh(user)
     else:
         role = request.session.get('auth_role', 'buyer')
-        if role.lower() == "seller" and not is_company_email(email):
-            from urllib.parse import quote_plus
-            error_msg = quote_plus("Sellers must use a company email address (not public domains like Gmail).")
-            redirect_url = f"{settings.FRONTEND_URL}/sign-in?error={error_msg}&role=seller"
-            return RedirectResponse(url=redirect_url)
 
         user = await repo.upsert_oauth_user(
             provider=provider,
@@ -209,7 +207,10 @@ async def auth_callback(provider: str, request: Request, db: AsyncSession = Depe
     access_token = create_access_token(subject=str(user.id))
     
     redirect_path = request.session.pop('auth_redirect', None)
-    if not redirect_path:
+    # If this was a GitHub connect operation, send the user back to the upload tab
+    if not redirect_path and current_user_id and provider == "github":
+        redirect_path = "/dashboard?tab=seller-upload"
+    elif not redirect_path:
         redirect_path = "/dashboard" if role.lower() == "seller" else "/"
 
     from urllib.parse import quote_plus

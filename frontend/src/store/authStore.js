@@ -91,12 +91,6 @@ export const useAuthStore = create(
         return { success: true };
       },
 
-      /** Redirect to backend OAuth (Facebook) */
-      beginFacebookAuth: (role) => {
-        window.location.href = `${API_BASE}/auth/facebook/login?role=${role || 'buyer'}`;
-        return { success: true };
-      },
-
       /** Email Login */
       signInWithEmail: async ({ email, password }) => {
         try {
