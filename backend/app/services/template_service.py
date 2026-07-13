@@ -32,7 +32,7 @@ class TemplateService:
         filters: TemplateFilterParams,
         current_user: Optional[User] = None,
     ) -> TemplateListResponse:
-        templates, total = await self.repo.list_with_filters(filters)
+        templates, total = await self.repo.list_with_filters(filters, current_user)
 
         # Get user interaction flags in bulk
         favorited_ids: set = set()

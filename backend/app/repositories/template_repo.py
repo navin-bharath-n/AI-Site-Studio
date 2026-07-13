@@ -13,6 +13,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.template import Template, TemplateStatus, TemplateFramework, TemplateLicense
 from app.models.category import Category
+from app.models.user import User
 from app.schemas.template import TemplateCreate, TemplateUpdate, TemplateFilterParams
 
 
@@ -76,6 +77,7 @@ class TemplateRepository:
     async def list_with_filters(
         self,
         filters: TemplateFilterParams,
+        current_user: Optional[User] = None,
     ) -> Tuple[List[Template], int]:
         """Return paginated, filtered, sorted templates + total count."""
         query = (
@@ -166,7 +168,8 @@ class TemplateRepository:
                     matched_cards = await search_service.semantic_search(
                         query=filters.q, 
                         limit=50, 
-                        category_filter=filters.category
+                        category_filter=filters.category,
+                        user=current_user
                     )
                     matched_ids = [c.id for c in matched_cards]
                 except Exception:
