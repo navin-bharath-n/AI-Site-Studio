@@ -430,13 +430,19 @@ Return ONLY valid JSON. Do not include markdown code block notation (```json) or
             chosen_cat_name = c.name
             break
 
-    title = data.get("title", "AI Generated Template")
-    short_desc = data.get("short_description", "Premium AI-generated website template.")
+    # Safe Slicing of string fields to prevent DB length constraint truncation failures
+    title = data.get("title", "AI Generated Template")[:255]
+    short_desc = data.get("short_description", "Premium AI-generated website template.")[:500]
     desc = data.get("description", "A stunning template built by AI.")
     price = data.get("price", 49.00)
     tags = data.get("tags", ["ai-generated", "premium"])
-    industry = data.get("industry", "Business")
-    color_scheme = data.get("color_scheme", "Modern Dark")
+    
+    industry_raw = data.get("industry", "Business")
+    industry = industry_raw[:100] if industry_raw else None
+    
+    color_scheme_raw = data.get("color_scheme", "Modern Dark")
+    color_scheme = color_scheme_raw[:50] if color_scheme_raw else None
+
     pages_count = data.get("pages_count", 5)
     has_dark_mode = data.get("has_dark_mode", True)
     included_pages = data.get("included_pages", ["Home"])
@@ -473,34 +479,52 @@ Return ONLY valid JSON. Do not include markdown code block notation (```json) or
     print(f"Generating custom {framework_lower} code...")
     if framework_lower == "html":
         code_prompt = f"""You are a senior frontend developer.
-Generate the complete code for a single-file static HTML website matching this user description: "{request.prompt}".
-Include a beautiful responsive design with modern layout, colors, typography, navigation, card components, hero showcase, and an interactive contact form.
-Use Tailwind CSS (loaded via CDN link <script src="https://cdn.tailwindcss.com"></script>) for styling.
-You may also load FontAwesome or Lucide icons via CDN if needed. Ensure the site looks absolutely gorgeous and has micro-interactions.
+Create a complete, responsive, multi-page HTML website matching this user description: "{request.prompt}".
+You must write the code for these pages:
+1. index.html (Home page with hero section, introduction, and key features)
+2. about.html (About page detailing story, values, and team)
+3. services.html (Services or products menu page)
+4. contact.html (Contact page with an interactive form)
 
-Return ONLY the complete HTML code. Do not include markdown code block syntax (like ```html ... ```) or explanation."""
+Ensure all pages are fully styled with Tailwind CSS via CDN. Make sure they link to each other correctly (e.g., href="index.html", href="about.html", etc.). Use professional layouts, modern color palettes, beautiful fonts, icons, and micro-animations.
+
+Return ONLY a valid JSON object mapping filenames to their complete file content string, matching this structure:
+{{
+  "index.html": "<!DOCTYPE html>...",
+  "about.html": "<!DOCTYPE html>...",
+  "services.html": "<!DOCTYPE html>...",
+  "contact.html": "<!DOCTYPE html>..."
+}}
+Do not include markdown code block syntax (like ```json) or explanations."""
         
         try:
-            raw_code = await ai_service._generate_content(code_prompt, response_mime_type="text/plain")
-            generated_code = clean_code_response(raw_code, "html")
+            raw_code = await ai_service._generate_content(code_prompt, response_mime_type="application/json")
+            files_dict = json.loads(clean_code_response(raw_code, "json"))
         except Exception as e:
-            logger.error(f"Gemini HTML code generation failed: {e}")
+            logger.error(f"Gemini HTML code generation or JSON parse failed: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to generate template HTML codebase: {str(e)}")
 
         # Package ZIP
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
-            zip_file.writestr("index.html", generated_code)
+            for fname, fcontent in files_dict.items():
+                zip_file.writestr(fname, fcontent)
         zip_bytes = zip_buffer.getvalue()
 
     else:  # react
         code_prompt = f"""You are a senior React developer.
 Generate the complete source code for a single-file React component `src/App.jsx` matching this user description: "{request.prompt}".
 The file must export a default App component. It must use Tailwind CSS utility classes and Lucide React icons.
-Design a highly polished single-page app containing a navigation bar, a gorgeous hero section with gradients, a services card grid, an about us layout, a project showcase gallery, and a clean contact form with validation state hooks.
+To support a multi-page experience, implement a state-driven client-side router inside App.jsx (e.g., using `const [currentPage, setCurrentPage] = useState('home')`) to toggle between the following pages:
+- Home: Hero section, features list, and testimonials.
+- About: Biography/story, values, and team layouts.
+- Services: Detailed services card grid.
+- Contact: Interactive form with success state handlers.
+
+Ensure the navigation bar links change the current page state dynamically, and the website has premium layouts, micro-interactions, and beautiful copywriting.
 Import lucide icons at the top: `import {{ Sparkles, ArrowRight, Check, ... }} from 'lucide-react';`
 
-Return ONLY the complete React ES6 Javascript code. Do not include markdown code block syntax (like ```javascript ... ```) or explanation."""
+Return ONLY the complete React ES6 Javascript code. Do not include markdown code block syntax (like ```javascript) or explanation."""
 
         try:
             raw_code = await ai_service._generate_content(code_prompt, response_mime_type="text/plain")
