@@ -420,8 +420,8 @@ async def serve_live_preview(
     with open(full_path, "rb") as f:
         content = f.read()
 
-    # Rewrite absolute references to relative on index.html (helpful for subpath hosting on local dev)
-    if mime_type == "text/html" and filepath in [None, "", "/"]:
+    # Rewrite absolute references to relative on all HTML preview pages
+    if mime_type == "text/html":
         try:
             html_content = content.decode("utf-8", errors="ignore")
             

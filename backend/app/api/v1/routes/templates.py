@@ -486,7 +486,15 @@ You must write the code for these pages:
 3. services.html (Services or products menu page)
 4. contact.html (Contact page with an interactive form)
 
-Ensure all pages are fully styled with Tailwind CSS via CDN. Make sure they link to each other correctly (e.g., href="index.html", href="about.html", etc.). Use professional layouts, modern color palettes, beautiful fonts, icons, and micro-animations.
+Ensure all pages are fully styled with Tailwind CSS via CDN. Make sure they link to each other correctly (e.g., href="index.html", href="about.html", etc.). Use professional layouts, modern color palettes, and beautiful fonts.
+
+CRITICAL: Include premium website animations and micro-interactions:
+1. Inside the <head> of EACH page, inject a <style> block containing custom CSS @keyframes animations:
+   - fadeInUp: smooth entry from bottom (0% opacity, translateY 20px -> 100% opacity, translateY 0).
+   - fadeIn: simple fade entry.
+   - pulseGlow: subtle glow pulse effect for CTA buttons.
+   Create helper classes like .animate-fade-in-up {{{{ animation: fadeInUp 0.8s ease-out forwards; }}}} and apply them to headings, cards, and sections.
+2. Add Tailwind hover transition classes (e.g., transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] hover:shadow-2xl) to all cards, grid items, buttons, and navigation elements.
 
 Return ONLY a valid JSON object mapping filenames to their complete file content string, matching this structure:
 {{
@@ -523,6 +531,13 @@ To support a multi-page experience, implement a state-driven client-side router 
 
 Ensure the navigation bar links change the current page state dynamically, and the website has premium layouts, micro-interactions, and beautiful copywriting.
 Import lucide icons at the top: `import {{ Sparkles, ArrowRight, Check, ... }} from 'lucide-react';`
+
+CRITICAL: Include premium website animations and micro-interactions:
+1. Inject a `<style>` element inside the App component return JSX containing custom keyframe animations:
+   - fadeInUp (smooth entry from bottom: opacity 0, translateY 20px -> opacity 1, translateY 0).
+   - fadeIn (simple fade entry).
+   Assign class names like `animate-fade-in-up` to structural elements.
+2. Apply Tailwind hover transition classes (e.g. `transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] hover:shadow-2xl`) to buttons, navigation elements, and service cards.
 
 Return ONLY the complete React ES6 Javascript code. Do not include markdown code block syntax (like ```javascript) or explanation."""
 
