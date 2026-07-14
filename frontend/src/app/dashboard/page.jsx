@@ -1221,12 +1221,36 @@ function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="text-center py-12 text-muted-foreground border border-dashed border-border/40 rounded-xl bg-muted/5">
-                    <Cpu className="w-8 h-8 text-primary mx-auto mb-3 opacity-60" />
-                    <p className="text-sm font-semibold text-white">No AI Generated Projects</p>
-                    <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
-                      You haven't generated any AI prototype workspaces yet. Explore templates in the marketplace to start customizing them with AI.
-                    </p>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="text-center py-12 text-muted-foreground border border-dashed border-border/40 rounded-xl bg-muted/5 flex flex-col justify-center items-center">
+                      <Cpu className="w-8 h-8 text-primary mx-auto mb-3 opacity-60" />
+                      <p className="text-sm font-semibold text-white">No AI Generated Projects</p>
+                      <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
+                        You haven't generated any AI prototype workspaces yet. Explore templates in the marketplace to start customizing them with AI.
+                      </p>
+                    </div>
+
+                    <div className="glass p-6 rounded-xl border border-primary/30 bg-primary/5 flex flex-col justify-between">
+                      <div>
+                        <h4 className="font-bold text-lg text-white mb-2">Create New Project.</h4>
+                        <p className="text-sm text-slate-300 mb-4 leading-relaxed">
+                          Choose a responsive template designed for food services, then customize it using our AI editor to match your branding. For your site generation, try this prompt: <br/><br/>
+                          <span className="italic text-primary/90 block border-l-2 border-primary/50 pl-3">
+                            'Create a professional, modern cafeteria website featuring a digital menu, a daily specials section, an online ordering integration, and a clean, high-contrast aesthetic that highlights food photography.'
+                          </span>
+                          <br/>
+                          Our AI will then generate the structure and layout for you.
+                        </p>
+                      </div>
+                      <Link
+                        to="/marketplace/generate"
+                        state={{ prompt: "Create a professional, modern cafeteria website featuring a digital menu, a daily specials section, an online ordering integration, and a clean, high-contrast aesthetic that highlights food photography." }}
+                        className="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg text-center hover:bg-primary/90 transition-colors"
+                        style={{ textDecoration: 'none' }}
+                      >
+                        Try this Prompt Now
+                      </Link>
+                    </div>
                   </div>
                 </div>
               )}

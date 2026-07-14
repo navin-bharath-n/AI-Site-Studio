@@ -196,6 +196,32 @@ async def serve_live_preview(
     preview_dir = os.path.join(tempfile.gettempdir(), "ai_site_studio", "live_previews", str(template_id))
     os.makedirs(preview_dir, exist_ok=True)
     
+    # If the folder has package.json but lacks a completed build folder (dist/out/etc. containing index.html),
+    # it means a previous compilation failed. Clear the directory to trigger a fresh extraction and self-healing build.
+    package_json_exists = False
+    build_folder_exists = False
+    for root, dirs, files in os.walk(preview_dir):
+        if "package.json" in files:
+            package_json_exists = True
+            for d in ["dist", "out", "build", ".output", "public"]:
+                candidate = os.path.join(root, d)
+                if os.path.isdir(candidate):
+                    for b_root, b_dirs, b_files in os.walk(candidate):
+                        if "index.html" in b_files:
+                            build_folder_exists = True
+                            break
+                    if build_folder_exists:
+                        break
+            break
+
+    if package_json_exists and not build_folder_exists:
+        try:
+            import shutil
+            shutil.rmtree(preview_dir, ignore_errors=True)
+            os.makedirs(preview_dir, exist_ok=True)
+        except Exception:
+            pass
+
     # Extract files if preview_dir is empty (first-time extract)
     if not os.listdir(preview_dir):
         if is_external:
@@ -227,8 +253,26 @@ async def serve_live_preview(
                     os.makedirs(target_path, exist_ok=True)
                 else:
                     os.makedirs(os.path.dirname(target_path), exist_ok=True)
+                    content_bytes = zip_ref.read(member.filename)
+                    # Self-heal previously generated files if they are truncated
+                    if target_path.endswith(".jsx") or target_path.endswith(".js"):
+                        try:
+                            from app.services.ai_service import repair_truncated_jsx
+                            code_str = content_bytes.decode("utf-8", errors="ignore")
+                            repaired_code = repair_truncated_jsx(code_str)
+                            content_bytes = repaired_code.encode("utf-8")
+                        except Exception as e:
+                            print(f"[On-the-fly Self Heal] Failed to repair {target_path}: {e}")
+                    elif target_path.endswith(".html"):
+                        try:
+                            from app.services.ai_service import repair_truncated_html
+                            code_str = content_bytes.decode("utf-8", errors="ignore")
+                            repaired_code = repair_truncated_html(code_str)
+                            content_bytes = repaired_code.encode("utf-8")
+                        except Exception as e:
+                            print(f"[On-the-fly Self Heal] Failed to repair {target_path}: {e}")
                     with open(target_path, "wb") as f:
-                        f.write(zip_ref.read(member.filename))
+                        f.write(content_bytes)
 
     # Detect package.json to see if this is a Node.js project requiring compilation
     import json
@@ -466,16 +510,27 @@ async def serve_live_preview(
     // 2. Intercept click events on absolute links to keep them inside the sandbox
     document.addEventListener('click', function(e) {{
       const link = e.target.closest('a');
-      if (link && link.href) {{
-        try {{
-          const url = new URL(link.href);
-          if (url.origin === window.location.origin) {{
-            let path = url.pathname;
-            if (path.startsWith('/') && !path.startsWith(basePrefix)) {{
-              link.href = url.origin + basePrefix + path + url.search + url.hash;
+      if (link) {{
+        const rawHref = link.getAttribute('href');
+        if (rawHref && rawHref.startsWith('#')) {{
+          e.preventDefault();
+          window.location.hash = rawHref;
+          return;
+        }}
+        if (rawHref && rawHref.startsWith('javascript:')) {{
+          return;
+        }}
+        if (link.href) {{
+          try {{
+            const url = new URL(link.href);
+            if (url.origin === window.location.origin) {{
+              let path = url.pathname;
+              if (path.startsWith('/') && !path.startsWith(basePrefix)) {{
+                link.href = url.origin + basePrefix + path + url.search + url.hash;
+              }}
             }}
-          }}
-        }} catch (err) {{}}
+          }} catch (err) {{}}
+        }}
       }}
     }}, true);
   }})();

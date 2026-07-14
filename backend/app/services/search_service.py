@@ -49,26 +49,9 @@ class SearchService:
 
 
     async def _get_gemini_embedding(self, text: str) -> List[float]:
-        """Generate dense vector embedding using Gemini text-embedding-004 API."""
-        if not settings.GEMINI_API_KEY:
-            raise ValueError("GEMINI_API_KEY is not configured")
-
-        headers = {"Content-Type": "application/json"}
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.GEMINI_EMBEDDING_MODEL}:embedContent?key={settings.GEMINI_API_KEY}"
-        payload = {
-            "model": f"models/{settings.GEMINI_EMBEDDING_MODEL}",
-            "content": {
-                "parts": [{"text": text}]
-            }
-        }
-
-        async with httpx.AsyncClient() as client:
-            response = await client.post(url, json=payload, headers=headers, timeout=30.0)
-            if response.status_code == 200:
-                data = response.json()
-                return data["embedding"]["values"]
-            else:
-                raise RuntimeError(f"Gemini Embedding API returned {response.status_code}: {response.text}")
+        """Generate dense vector embedding using Gemini embedding API or Azure fallback."""
+        from app.services.ai_service import ai_service
+        return await ai_service.generate_embedding(text, "semantic_search")
 
     async def _ensure_collection(self) -> None:
         """Verify if Qdrant collection exists and has 3072 dimensions; recreate if mismatch."""
@@ -172,7 +155,8 @@ class SearchService:
 
     async def _rank_templates(self, query: str, templates_data: List[dict], user_profile_context: Optional[str] = None) -> List[uuid.UUID]:
         """Use RankGemini (gemini-3.5-flash) to re-rank the templates based on query relevance and user context."""
-        if not settings.GEMINI_API_KEY or not templates_data:
+        from app.services.ai_service import ai_service, robust_json_loads
+        if not ai_service.client or not templates_data:
             return [t["id"] for t in templates_data]
 
         # Format templates list for LLM context
@@ -210,31 +194,14 @@ Example format:
   "d6b9d628-9774-4b53-a75d-6c178229b47e"
 ]
 """
-        headers = {"Content-Type": "application/json"}
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.GEMINI_MODEL}:generateContent?key={settings.GEMINI_API_KEY}"
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "responseMimeType": "application/json"
-            }
-        }
-
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(url, json=payload, headers=headers, timeout=20.0)
-                if response.status_code == 200:
-                    data = response.json()
-                    text_response = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-
-                    if text_response.startswith("```json"):
-                        text_response = text_response.replace("```json", "", 1)
-                    if text_response.endswith("```"):
-                        text_response = text_response[:-3]
-                    
-                    ranked_ids = json.loads(text_response.strip())
-                    return [uuid.UUID(rid) for rid in ranked_ids]
-                else:
-                    logger.error(f"RankGemini API returned status {response.status_code}: {response.text}")
+            text_response = await ai_service._generate_content(
+                prompt,
+                response_mime_type="application/json",
+                feature_name="semantic_search"
+            )
+            ranked_ids = robust_json_loads(text_response)
+            return [uuid.UUID(rid) for rid in ranked_ids]
         except Exception as e:
             logger.error(f"RankGemini failed: {e}")
 

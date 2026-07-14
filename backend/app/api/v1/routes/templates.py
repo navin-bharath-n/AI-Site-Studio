@@ -331,9 +331,102 @@ async def download_template(
     return {"download_url": zip_url}
 
 
+class TemplatePrepareRequest(BaseModel):
+    prompt: str
+
+
+class TemplateQuestion(BaseModel):
+    id: str
+    question: str
+    options: list[str]
+
+
+class TemplatePageItem(BaseModel):
+    name: str
+    filename: str
+
+
+class TemplatePrepareResponse(BaseModel):
+    questions: list[TemplateQuestion]
+    suggested_pages: list[TemplatePageItem]
+
+
 class TemplateGenerateRequest(BaseModel):
     prompt: str
     framework: str = "html"  # html | react
+    answers: Optional[dict] = None
+    pages: Optional[list[dict]] = None
+
+
+@router.post("/generate/prepare", response_model=TemplatePrepareResponse)
+async def prepare_template_generation(
+    request: TemplatePrepareRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Generate tailored clarifying questions and pages structure matching the user's template prompt.
+    """
+    from app.services.ai_service import ai_service
+    import json
+    from app.services.ai_service import fix_truncated_json
+    
+    prompt = request.prompt.strip()
+    
+    prepare_prompt = f"""
+    Analyze this website template request: "{prompt}".
+    Generate a JSON response containing:
+    1. A list of 3-4 specific clarifying questions to help customize the styling, colors, and layout (e.g. style tone, color scheme, special elements) with a few options.
+    2. A list of suggested HTML pages (index.html is required, plus up to 4 other pages, e.g. about.html, features.html, contact.html, portal.html) appropriate for this template concept.
+    
+    You MUST return JSON matching this exact structure:
+    {{
+      "questions": [
+        {{
+          "id": "q1",
+          "question": "What primary color scheme do you prefer?",
+          "options": ["Dark Neon Blue", "Professional Crimson", "Modern Teal & White", "Vibrant Gold"]
+        }}
+      ],
+      "suggested_pages": [
+        {{"name": "Home Page", "filename": "index.html"}},
+        {{"name": "About Us", "filename": "about.html"}}
+      ]
+    }}
+    """
+    
+    try:
+        raw_response = await ai_service._generate_content(prepare_prompt, response_mime_type="application/json", feature_name="website_content_generation")
+        fixed_json = fix_truncated_json(raw_response)
+        data = json.loads(fixed_json)
+        # Ensure index.html is present
+        if "suggested_pages" not in data or not data["suggested_pages"]:
+            data["suggested_pages"] = [
+                {"name": "Home Page", "filename": "index.html"},
+                {"name": "About Details", "filename": "about.html"}
+            ]
+        elif not any(p.get("filename") == "index.html" for p in data["suggested_pages"]):
+            data["suggested_pages"].insert(0, {"name": "Home Page", "filename": "index.html"})
+        return data
+    except Exception:
+        return {
+            "questions": [
+                {
+                    "id": "color_scheme",
+                    "question": "Which color scheme matches your brand best?",
+                    "options": ["Modern Slate & Teal", "Vibrant Electric Blue", "Sleek Dark Cyberpunk", "Warm Minimalist Coral"]
+                },
+                {
+                    "id": "layout_style",
+                    "question": "What layout style do you prefer?",
+                    "options": ["Clean & Corporate", "Glassmorphic & Futuristic", "Playful & Vibrant", "Minimalist & Spaced"]
+                }
+            ],
+            "suggested_pages": [
+                {"name": "Home Page", "filename": "index.html"},
+                {"name": "About Details", "filename": "about.html"},
+                {"name": "Contact Page", "filename": "contact.html"}
+            ]
+        }
 
 
 @router.post("/generate", response_model=TemplateResponse)
@@ -354,16 +447,14 @@ async def generate_template_by_prompt(
     from app.repositories.category_repo import CategoryRepository
     from app.repositories.template_repo import TemplateRepository
     from app.services.search_service import SearchService
-    from app.services.ai_service import ai_service
+    from app.services.ai_service import ai_service, robust_json_loads, repair_truncated_jsx, repair_truncated_html
     from app.core.storage import storage
     from app.schemas.template import TemplateResponse
     import logging
     logger = logging.getLogger(__name__)
 
-    # Validate framework parameter
-    framework_lower = request.framework.lower()
-    if framework_lower not in ["html", "react"]:
-        raise HTTPException(status_code=400, detail="Framework must be 'html' or 'react'")
+    # Force framework to always be HTML as requested by the user
+    framework_lower = "html"
     
     # 1. Fetch available categories
     category_repo = CategoryRepository(db)
@@ -410,8 +501,8 @@ Ensure price is a number.
 Return ONLY valid JSON. Do not include markdown code block notation (```json) or explanations."""
 
     try:
-        response_text = await ai_service._generate_content(gemini_prompt, response_mime_type="application/json")
-        data = json.loads(response_text)
+        response_text = await ai_service._generate_content(gemini_prompt, response_mime_type="application/json", feature_name="website_content_generation")
+        data = robust_json_loads(response_text)
     except Exception as e:
         logger.error(f"Gemini template generator prompt failed: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to generate template properties using AI: {str(e)}")
@@ -457,15 +548,27 @@ Return ONLY valid JSON. Do not include markdown code block notation (```json) or
     ])
 
     # 3. Create Pollinations AI URLs
-    thumbnail_url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(thumb_prompt)}?width=1024&height=768&nologo=true&seed=42"
+    thumbnail_url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(thumb_prompt[:120])}?width=1024&height=768&nologo=true&seed=42"
     gallery_images = [
-        f"https://image.pollinations.ai/prompt/{urllib.parse.quote(p)}?width=1024&height=768&nologo=true&seed={i}"
+        f"https://image.pollinations.ai/prompt/{urllib.parse.quote(p[:120])}?width=1024&height=768&nologo=true&seed={i}"
         for i, p in enumerate(g_prompts)
     ]
-    developer_avatar = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(logo_prompt)}?width=250&height=250&nologo=true&seed=88"
+    developer_avatar = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(logo_prompt[:120])}?width=250&height=250&nologo=true&seed=88"
+
+    # Compile custom user answers
+    answers_str = ""
+    if request.answers:
+        answers_list = []
+        for q_id, val in request.answers.items():
+            answers_list.append(f"- {q_id}: {val}")
+        answers_str = "\n".join(answers_list)
 
     # Ensure the list of pages is clean and contains strings
-    raw_pages = data.get("included_pages", ["Home", "About", "Services", "Contact"])
+    if request.pages:
+        raw_pages = [p.get("name") for p in request.pages if p.get("name")]
+    else:
+        raw_pages = data.get("included_pages", ["Home", "About", "Services", "Contact"])
+        
     pages = [p.strip() for p in raw_pages if isinstance(p, str) and p.strip()]
     # Normalize: Ensure "Home" exists
     has_home = False
@@ -482,7 +585,11 @@ Return ONLY valid JSON. Do not include markdown code block notation (```json) or
     html_pages_desc = []
     json_structure_template = {}
     for idx, p in enumerate(pages):
-        fname = "index.html" if p == "Home" else f"{re.sub(r'[^a-zA-Z0-9]+', '-', p.lower()).strip('-')}.html"
+        # Determine filename
+        if p == "Home":
+            fname = "index.html"
+        else:
+            fname = request.pages[idx].get("filename") if (request.pages and idx < len(request.pages) and request.pages[idx].get("filename")) else f"{re.sub(r'[^a-zA-Z0-9]+', '-', p.lower()).strip('-')}.html"
         html_pages_desc.append(f"{idx+1}. {fname} (The complete page layout for the '{p}' section)")
         json_structure_template[fname] = f"<!DOCTYPE html>... (complete styled HTML5 code for {p} page)"
 
@@ -510,6 +617,9 @@ Return ONLY valid JSON. Do not include markdown code block notation (```json) or
         code_prompt = f"""You are an elite, world-class lead frontend designer.
 Create a complete, responsive, multi-page HTML website matching this user description: "{request.prompt}".
 
+SPECIFIC USER DESIGN PREFERENCES:
+{answers_str if answers_str else "No custom design questions answered."}
+
 THE METADATA AND VISUAL DESIGN SPECS YOU MUST MATCH EXACTLY:
 - Website Title: "{title}"
 - Target Industry: "{industry}"
@@ -519,15 +629,19 @@ THE METADATA AND VISUAL DESIGN SPECS YOU MUST MATCH EXACTLY:
 - Custom Tags: {json.dumps(tags)}
 - Exact Pages to Generate: {html_pages_list_str}
 
-Ensure all pages are fully styled with Tailwind CSS via CDN. Make sure they link to each other correctly (e.g., href="index.html", href="about.html", etc. matching the filenames above). Use professional layouts, modern color palettes, and beautiful fonts.
+Ensure all pages are fully styled with Tailwind CSS via CDN. 
+You can implement the multi-page structure in one of two ways based on content size and completeness:
+1. Multi-File Site: Map each filename to its complete HTML code, linking pages together using standard hrefs (e.g. index.html, about.html).
+2. Single-Page Application (SPA): If the codebase is complex, you can write a single unified "index.html" file that contains all pages as distinct sections, using an inline client-side router/JavaScript tab toggler (matching navbar link clicks) to switch between them with smooth transition effects. This keeps all views fully detailed, responsive, and prevents truncation issues. If you choose this SPA approach, make sure all navigation links, buttons, and call-to-actions use hash anchors (e.g. href="#home", href="#request-blood") to toggle the display views dynamically, rather than linking to separate .html files, to prevent browser 404 page navigation errors. The other files in the JSON mapping can contain smaller templates or simply be left as minimal stubs, while index.html hosts the complete interactive site application.
+Use professional layouts, modern color palettes, and beautiful fonts.
 
 CRITICAL STRUCTURAL CODE REQUIREMENTS (DO NOT SKIP ANY SECTION):
-1. NO SHORTCUTS: Write the complete, production-ready HTML code for each file. Do not use placeholders, shorthand snippets, or ellipses like `<!-- other content here -->`. Every single layout component, form input, image, and text block must be fully written out.
-2. RICH COMPONENTS & GRID LAYOUTS FOR EACH DYNAMIC PAGE:
-   - Whichever page is the main landing/home page (index.html): MUST include a high-impact Hero banner (split two-column layout on desktop), a detailed multi-card Features Grid, a visual Showcase/Gallery container, a Statistics/Numbers section, and a professional Footer with social links and subscription newsletter.
-   - Whichever page represents the "About" or "Process" or "Story" page (matching the filenames in the list above): MUST include a story intro, an interactive vertical/horizontal Timeline layout, and a Team/Profile grid featuring styled avatar cards.
-   - Whichever page represents the "Services" or "Products" or "Portfolio" or "Gallery" page (matching the filenames in the list above): MUST include detailed pricing tables or item grids with checklist elements, styled checklist cards, and prominent CTA cards.
-   - Whichever page represents the "Contact" or "Booking" page (matching the filenames in the list above): MUST include a double-column layout with visual contact cards (SVG icons for phone/email/map location) on one side, and a fully styled contact form on the other side.
+1. NO SHORTCUTS: Write the complete, production-ready HTML code. Do not use placeholders, shorthand snippets, or ellipses. Every single layout component, form input, image, and text block must be fully written out.
+2. RICH COMPONENTS & GRID LAYOUTS FOR EACH DYNAMIC VIEW:
+   - Main landing/home view: MUST include a high-impact Hero banner (split two-column layout on desktop), a detailed multi-card Features Grid, a visual Showcase/Gallery container, a Statistics/Numbers section, and a professional Footer with social links and subscription newsletter.
+   - "About" or "Process" or "Story" view: MUST include a story intro, an interactive vertical/horizontal Timeline layout, and a Team/Profile grid featuring styled avatar cards.
+   - "Services" or "Products" or "Portfolio" or "Gallery" view: MUST include detailed pricing tables or item grids with checklist elements, styled checklist cards, and prominent CTA cards.
+   - "Contact" or "Booking" view: MUST include a double-column layout with visual contact cards (SVG icons for phone/email/map location) on one side, and a fully styled contact form on the other side.
 
 CRITICAL VISUAL DESIGN & IMAGES:
 - Navbar brand logo image URL: '{developer_avatar}'
@@ -547,7 +661,7 @@ CRITICAL ANIMATIONS & EFFECTS:
    - fadeIn: simple fade entry.
    - pulseGlow: subtle glow pulse effect for CTA buttons and badges.
    Apply helper classes like .animate-fade-in-up {{{{ animation: fadeInUp 0.8s ease-out forwards; }}}} to headers, cards, and sections.
-3. PAGE TRANSITIONS: Implement smooth multi-page transitions. Inject a fullscreen transition overlay and a simple JavaScript handler that intercepts page link clicks (preventing default instant load), animates a smooth fade/wipe effect, and then completes the redirect, ensuring a premium, seamless feeling between pages.
+3. PAGE TRANSITIONS: Implement smooth multi-page transitions. Inject a fullscreen transition overlay and a simple JavaScript handler that intercepts page link clicks (preventing default instant load), animates a smooth fade/wipe effect, and then completes the redirect, ensuring a premium, seamless feeling between pages. Any loading spinner/transition overlay must have an inline self-destruct script immediately following its HTML markup that automatically hides the overlay after 1 second to prevent it from getting stuck.
 4. Tailwind hover transition classes (e.g., transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] hover:shadow-2xl) to all cards, grid items, buttons, and navigation elements.
 
 Return ONLY a valid JSON object mapping filenames to their complete file content string, matching this structure:
@@ -555,8 +669,8 @@ Return ONLY a valid JSON object mapping filenames to their complete file content
 Do not include markdown code block syntax (like ```json) or explanations."""
         
         try:
-            raw_code = await ai_service._generate_content(code_prompt, response_mime_type="application/json")
-            files_dict = json.loads(clean_code_response(raw_code, "json"))
+            raw_code = await ai_service._generate_content(code_prompt, response_mime_type="application/json", feature_name="code_assistant")
+            files_dict = robust_json_loads(raw_code)
         except Exception as e:
             logger.error(f"Gemini HTML code generation or JSON parse failed: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to generate template HTML codebase: {str(e)}")
@@ -565,6 +679,8 @@ Do not include markdown code block syntax (like ```json) or explanations."""
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
             for fname, fcontent in files_dict.items():
+                if fname.endswith(".html"):
+                    fcontent = repair_truncated_html(fcontent)
                 zip_file.writestr(fname, fcontent)
         zip_bytes = zip_buffer.getvalue()
 
@@ -595,7 +711,7 @@ CRITICAL STRUCTURAL CODE REQUIREMENTS (DO NOT SKIP ANY SECTION):
    - Whichever page represents the "About" or "Process" or "Story" view: MUST include a story intro, an interactive vertical/horizontal Timeline layout, and a Team/Profile grid featuring styled avatar cards.
    - Whichever page represents the "Services" or "Products" or "Portfolio" or "Gallery" view: MUST include detailed pricing comparison cards with checklist elements and active checklist icons, a detailed service process/flow section, and prominent CTA cards.
    - Whichever page represents the "Contact" or "Booking" view: MUST include a double-column layout with visual contact cards (Lucide icons for phone/email/map location) on the left, and a styled contact form on the right.
-
+   - 
 CRITICAL VISUAL DESIGN & IMAGES:
 - Navbar brand logo image URL: '{developer_avatar}'
 - Home page hero section background image URL: '{thumbnail_url}'
@@ -619,10 +735,12 @@ CRITICAL ANIMATIONS & EFFECTS:
 Return ONLY the complete React ES6 Javascript code. Do not include markdown code block syntax (like ```javascript) or explanation."""
 
         try:
-            raw_code = await ai_service._generate_content(code_prompt, response_mime_type="text/plain")
+            raw_code = await ai_service._generate_content(code_prompt, response_mime_type="text/plain", feature_name="code_assistant")
             generated_code = clean_code_response(raw_code, "jsx")
             # If generated code still starts with js/jsx block, strip it
             generated_code = clean_code_response(generated_code, "javascript")
+            # Auto-repair truncated JSX markup and brackets
+            generated_code = repair_truncated_jsx(generated_code)
         except Exception as e:
             logger.error(f"Gemini React code generation failed: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to generate template React codebase: {str(e)}")

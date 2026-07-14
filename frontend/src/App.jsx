@@ -4,6 +4,7 @@ import { Toaster } from 'sonner'
 import { useAppUser } from './lib/auth.jsx'
 import { useAuthStore } from './store/authStore.js';
 import SupportButton from './components/support/SupportButton.jsx';
+import './App.css';
 import Home from './app/page.jsx'
 import Marketplace from './app/marketplace/page.jsx'
 import Dashboard from './app/dashboard/page.jsx'
@@ -41,10 +42,10 @@ function ProtectedRoute({ children }) {
   const location = useLocation();
   if (!isLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
-        <div className="relative w-12 h-12">
-          <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
-          <div className="absolute inset-0 rounded-full border-4 border-t-primary animate-spin" />
+      <div className="app-loading-screen">
+        <div className="app-loading-spinner">
+          <div className="app-spinner-track" />
+          <div className="app-spinner-head" />
         </div>
       </div>
     );
@@ -59,11 +60,11 @@ function App() {
   return (
     <BrowserRouter>
       <OAuthRedirectHandler />
-      <div className="flex-1 flex flex-col w-full relative min-h-screen bg-background text-foreground selection:bg-primary/20">
+      <div className="app-root-container">
         {/* Premium Dark Background glow effects */}
-        <div className="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full blur-[150px] pointer-events-none" style={{ background: "rgba(37, 99, 235, 0.03)" }} />
-        <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full blur-[150px] pointer-events-none" style={{ background: "rgba(13, 148, 136, 0.03)" }} />
-        <div className="fixed top-[40%] left-[60%] w-[30%] h-[30%] rounded-full blur-[150px] pointer-events-none" style={{ background: "rgba(14, 165, 233, 0.02)" }} />
+        <div className="app-bg-glow app-bg-glow-top-left" />
+        <div className="app-bg-glow app-bg-glow-bottom-right" />
+        <div className="app-bg-glow app-bg-glow-center-right" />
 
         <Routes>
           <Route path="/" element={<Home />} />

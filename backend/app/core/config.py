@@ -54,6 +54,57 @@ class Settings(BaseSettings):
     GEMINI_MODEL: str = "gemini-3.1-flash-lite"
     GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-2"
 
+    # Separate Gemini models per feature
+    GEMINI_MODEL_AI_CHAT_ASSISTANT: str = "gemini-3.5-flash"
+    GEMINI_MODEL_WEBSITE_CONTENT_GENERATION: str = "gemini-3.5-flash"
+    GEMINI_MODEL_SEO_GENERATOR: str = "gemini-3.5-flash"
+    GEMINI_MODEL_SEMANTIC_SEARCH: str = "gemini-embedding-2"
+    GEMINI_MODEL_TEMPLATE_RECOMMENDATION: str = "gemini-embedding-2"
+    GEMINI_MODEL_ACCESSIBILITY_REVIEW: str = "gemini-3.5-flash"
+    GEMINI_MODEL_CODE_ASSISTANT: str = "gemini-3.5-flash"
+    GEMINI_MODEL_PROJECT_ZIP_ANALYSIS: str = "gemini-3.5-flash"
+    GEMINI_MODEL_TRANSLATION: str = "gemini-3.5-flash"
+    GEMINI_MODEL_BUSINESS_ANALYSIS: str = "gemini-3.5-flash"
+    GEMINI_MODEL_LOGO_IDEAS: str = "gemini-3.5-flash"
+    GEMINI_MODEL_IMAGE_GENERATION: str = "flux"
+    GEMINI_MODEL_OCR_DOCUMENT_UNDERSTANDING: str = "gemini-3.5-flash"
+
+    # Alternative models per feature
+    ALT_MODEL_AI_CHAT_ASSISTANT: str = "gpt-4o-mini"
+    ALT_MODEL_WEBSITE_CONTENT_GENERATION: str = "gpt-4o-mini"
+    ALT_MODEL_SEO_GENERATOR: str = "gpt-4o-mini"
+    ALT_MODEL_SEMANTIC_SEARCH: str = "cohere-embed"
+    ALT_MODEL_TEMPLATE_RECOMMENDATION: str = "cohere-embed"
+    ALT_MODEL_ACCESSIBILITY_REVIEW: str = "gpt-4o"
+    ALT_MODEL_CODE_ASSISTANT: str = "gpt-4.1"
+    ALT_MODEL_PROJECT_ZIP_ANALYSIS: str = "gpt-4.1"
+    ALT_MODEL_TRANSLATION: str = "gpt-4o-mini"
+    ALT_MODEL_BUSINESS_ANALYSIS: str = "gpt-4o"
+    ALT_MODEL_LOGO_IDEAS: str = "gpt-4o"
+    ALT_MODEL_IMAGE_GENERATION: str = "stable-diffusion-xl"
+    ALT_MODEL_OCR_DOCUMENT_UNDERSTANDING: str = "gpt-4o"
+
+    # ── Azure OpenAI ──────────────────────────────────────────────────────────
+    AZURE_OPENAI_API_KEY: str = ""
+    AZURE_OPENAI_ENDPOINT: str = ""
+    AZURE_OPENAI_API_VERSION: str = "2024-02-15-preview"
+
+    # Azure deployment mappings (leave blank by default, will fallback to AZURE_DEPLOYMENT_CHAT if not set)
+    AZURE_DEPLOYMENT_CHAT: str = ""
+    AZURE_DEPLOYMENT_AI_CHAT_ASSISTANT: str = ""
+    AZURE_DEPLOYMENT_WEBSITE_CONTENT_GENERATION: str = ""
+    AZURE_DEPLOYMENT_SEO_GENERATOR: str = ""
+    AZURE_DEPLOYMENT_SEMANTIC_SEARCH: str = ""
+    AZURE_DEPLOYMENT_TEMPLATE_RECOMMENDATION: str = ""
+    AZURE_DEPLOYMENT_ACCESSIBILITY_REVIEW: str = ""
+    AZURE_DEPLOYMENT_CODE_ASSISTANT: str = ""
+    AZURE_DEPLOYMENT_PROJECT_ZIP_ANALYSIS: str = ""
+    AZURE_DEPLOYMENT_TRANSLATION: str = ""
+    AZURE_DEPLOYMENT_BUSINESS_ANALYSIS: str = ""
+    AZURE_DEPLOYMENT_LOGO_IDEAS: str = ""
+    AZURE_DEPLOYMENT_IMAGE_GENERATION: str = ""
+    AZURE_DEPLOYMENT_OCR_DOCUMENT_UNDERSTANDING: str = ""
+
 
 
     # ── Qdrant ────────────────────────────────────────────────────────────────

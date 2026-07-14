@@ -89,3 +89,17 @@ async def recommend_templates(
         user_description=request.description,
         available_categories=request.available_categories,
     )
+
+
+class ChatRequest(BaseModel):
+    message: str
+
+
+@router.post("/chat")
+async def chat_assistant(
+    request: ChatRequest,
+):
+    """Chat with the AI Site Studio assistant."""
+    return await ai_service.chat_with_assistant(
+        message=request.message,
+    )

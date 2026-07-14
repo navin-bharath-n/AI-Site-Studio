@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Sparkles, ArrowLeft, ArrowRight, Loader2, CheckCircle2, Image as ImageIcon, Globe, Shield } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import Navbar from "@/components/layout/Navbar";
@@ -16,14 +16,22 @@ const GENERATION_STEPS = [
 
 export default function GenerateTemplatePage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const token = useAuthStore((s) => s.token);
-  const [prompt, setPrompt] = useState("");
+  const [prompt, setPrompt] = useState(location.state?.prompt || "");
   const [framework, setFramework] = useState("html");
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState([]);
   const [error, setError] = useState("");
   const [generatedTemplate, setGeneratedTemplate] = useState(null);
+
+  // Advanced Questioning and Page Customization States
+  const [step, setStep] = useState("prompt"); // "prompt" | "questions"
+  const [questions, setQuestions] = useState([]);
+  const [answers, setAnswers] = useState({});
+  const [pages, setPages] = useState([]);
+  const [isPreparing, setIsPreparing] = useState(false);
 
   // Handle steps animation during generation
   useEffect(() => {
@@ -40,7 +48,7 @@ export default function GenerateTemplatePage() {
     return () => clearTimeout(timer);
   }, [isGenerating, currentStep]);
 
-  const handleSubmit = async (e) => {
+  const handlePrepare = async (e) => {
     e.preventDefault();
     if (!prompt.trim() || prompt.length < 10) {
       setError("Please describe your template in at least 10 characters.");
@@ -48,17 +56,48 @@ export default function GenerateTemplatePage() {
     }
 
     setError("");
+    setIsPreparing(true);
+
+    try {
+      const res = await api.post("/templates/generate/prepare", { prompt }, token);
+      setQuestions(res.questions || []);
+
+      // Initialize default answers with first options
+      const defaultAnswers = {};
+      res.questions?.forEach((q) => {
+        if (q.options && q.options.length > 0) {
+          defaultAnswers[q.id] = q.options[0];
+        }
+      });
+      setAnswers(defaultAnswers);
+      setPages(res.suggested_pages || []);
+      setStep("questions");
+    } catch (err) {
+      console.error(err);
+      setError(err?.message || "Failed to analyze template prompt. Please try again.");
+    } finally {
+      setIsPreparing(false);
+    }
+  };
+
+  const handleGenerate = async () => {
+    setError("");
     setIsGenerating(true);
     setCurrentStep(0);
     setCompletedSteps([]);
     setGeneratedTemplate(null);
 
+    const selectedPages = pages.filter((p) => p.selected !== false);
+
     try {
-      // Initiate backend generation
-      const response = await api.post("/templates/generate", { prompt, framework }, token);
-      
-      // Wait for all steps to finish animating if backend returns earlier
-      // to maintain premium user experience
+      // Initiate backend generation with answers and explicit page structures
+      const response = await api.post("/templates/generate", {
+        prompt,
+        framework,
+        answers,
+        pages: selectedPages
+      }, token);
+
       setGeneratedTemplate(response);
     } catch (err) {
       console.error(err);
@@ -75,7 +114,7 @@ export default function GenerateTemplatePage() {
       <Navbar />
       <div className="generate-page">
         <div className="generate-container">
-          
+
           {/* Header */}
           <div className="generate-header">
             <Link to="/marketplace" className="back-link">
@@ -92,9 +131,9 @@ export default function GenerateTemplatePage() {
           </div>
 
           <div className="generate-card-wrapper">
-            {!isGenerating && !generatedTemplate && (
+            {!isGenerating && !generatedTemplate && step === "prompt" && (
               /* Prompt Input Form */
-              <form onSubmit={handleSubmit} className="prompt-form glass-panel">
+              <form onSubmit={handlePrepare} className="prompt-form glass-panel animate-fade-in">
                 <div className="form-group">
                   <label htmlFor="prompt" className="prompt-label">
                     Describe your dream website template
@@ -111,38 +150,113 @@ export default function GenerateTemplatePage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="prompt-label">Select Code Framework</label>
+                  <label className="prompt-label">Code Framework</label>
                   <div className="framework-selector">
-                    <button
-                      type="button"
-                      onClick={() => setFramework("html")}
-                      className={`framework-card ${framework === "html" ? "active" : ""}`}
-                    >
+                    <div className="framework-card active cursor-default">
                       <Globe className="framework-icon" />
                       <div className="framework-text">
                         <h3>HTML5 & CSS</h3>
-                        <p>Single-file responsive static page</p>
+                        <p>Single-file responsive high-fidelity SPA page</p>
                       </div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFramework("react")}
-                      className={`framework-card ${framework === "react" ? "active" : ""}`}
-                    >
-                      <Shield className="framework-icon" />
-                      <div className="framework-text">
-                        <h3>React SPA</h3>
-                        <p>Modern React Vite project structure</p>
-                      </div>
-                    </button>
+                    </div>
                   </div>
                 </div>
 
-                <button type="submit" className="submit-btn group">
-                  <span>Generate Template Listing</span>
-                  <Sparkles className="submit-btn-icon group-hover:rotate-12 transition-transform" />
+                <button type="submit" disabled={isPreparing} className="submit-btn group">
+                  {isPreparing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      <span>Analyzing Prompt...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Next: Customize Layout & Style</span>
+                      <ArrowRight className="submit-btn-icon group-hover:translate-x-1 transition-transform" />
+                    </>
+                  )}
                 </button>
               </form>
+            )}
+
+            {!isGenerating && !generatedTemplate && step === "questions" && (
+              /* Custom Questions Form */
+              <div className="prompt-form glass-panel animate-fade-in">
+                <h2 className="text-xl font-bold text-white mb-1">Customize Your Template</h2>
+                <p className="text-sm text-slate-400 mb-6">
+                  Fine-tune the style preferences and select exactly which pages should be included in your multi-page template code.
+                </p>
+
+                {error && <p className="error-text mb-4">{error}</p>}
+
+                {/* Questions */}
+                <div className="space-y-4 mb-6">
+                  {questions.map((q) => (
+                    <div key={q.id} className="form-group">
+                      <label className="prompt-label font-medium">{q.question}</label>
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        {q.options.map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setAnswers(prev => ({ ...prev, [q.id]: opt }))}
+                            className={`px-3 py-2 text-sm rounded-lg border text-left transition-all ${answers[q.id] === opt
+                                ? "bg-primary/20 border-primary text-white font-medium shadow-lg shadow-primary/10"
+                                : "bg-slate-900/60 border-white/10 text-slate-300 hover:border-white/20"
+                              }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Pages checklist */}
+                <div className="form-group mb-6">
+                  <label className="prompt-label font-medium mb-2 block">Select Pages to Generate</label>
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    {pages.map((p, idx) => (
+                      <div key={p.filename} className="flex items-center justify-between bg-slate-900/50 p-2.5 rounded-lg border border-white/5 hover:border-white/10">
+                        <label className="flex items-center space-x-3 cursor-pointer text-sm text-slate-200">
+                          <input
+                            type="checkbox"
+                            checked={p.selected !== false}
+                            disabled={p.filename === "index.html"}
+                            onChange={(e) => {
+                              const updated = [...pages];
+                              updated[idx] = { ...updated[idx], selected: e.target.checked };
+                              setPages(updated);
+                            }}
+                            className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-primary focus:ring-primary focus:ring-offset-slate-900"
+                          />
+                          <span>{p.name}</span>
+                        </label>
+                        <span className="text-xs text-slate-500 font-mono">{p.filename}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Navigation Buttons */}
+                <div className="flex space-x-3 mt-8">
+                  <button
+                    type="button"
+                    onClick={() => setStep("prompt")}
+                    className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-750 border border-white/10 rounded-xl font-medium text-slate-300 transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleGenerate}
+                    className="flex-1 submit-btn group"
+                  >
+                    <span>Generate Template</span>
+                    <Sparkles className="submit-btn-icon group-hover:rotate-12 transition-transform" />
+                  </button>
+                </div>
+              </div>
             )}
 
             {isGenerating && !isGenerationComplete && (

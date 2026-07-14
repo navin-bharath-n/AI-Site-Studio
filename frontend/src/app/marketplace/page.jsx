@@ -28,12 +28,12 @@ import { useQuery } from "@tanstack/react-query";
 import "./Page.css";
 
 const SORT_OPTIONS = [
-  { value: "newest",          label: "Newest" },
-  { value: "best_sellers",    label: "Best Sellers" },
-  { value: "best_rated",      label: "Best Rated" },
-  { value: "trending",        label: "Trending" },
-  { value: "lowest_price",    label: "Lowest Price" },
-  { value: "highest_price",   label: "Highest Price" },
+  { value: "newest", label: "Newest" },
+  { value: "best_sellers", label: "Best Sellers" },
+  { value: "best_rated", label: "Best Rated" },
+  { value: "trending", label: "Trending" },
+  { value: "lowest_price", label: "Lowest Price" },
+  { value: "highest_price", label: "Highest Price" },
   { value: "most_downloaded", label: "Most Downloaded" },
 ];
 
@@ -50,16 +50,16 @@ function Marketplace() {
     searchParams.forEach((v, k) => { params[k] = v; });
     if (Object.keys(params).length > 0) {
       setFilters({
-        category:    params.category,
-        q:           params.q,
-        sort:        params.sort ?? "newest",
-        page:        params.page ? Number(params.page) : 1,
-        min_price:   params.min_price ? Number(params.min_price) : undefined,
-        max_price:   params.max_price ? Number(params.max_price) : undefined,
-        sales:       params.sales,
+        category: params.category,
+        q: params.q,
+        sort: params.sort ?? "newest",
+        page: params.page ? Number(params.page) : 1,
+        min_price: params.min_price ? Number(params.min_price) : undefined,
+        max_price: params.max_price ? Number(params.max_price) : undefined,
+        sales: params.sales,
         compatibility: params.compatibility,
-        language:    params.language,
-        date_added:  params.date_added,
+        language: params.language,
+        date_added: params.date_added,
       });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -91,7 +91,7 @@ function Marketplace() {
     debouncedSearch(value);
   };
 
-  const total      = data?.total       ?? 0;
+  const total = data?.total ?? 0;
   const totalPages = data?.total_pages ?? 1;
 
   return (
@@ -145,15 +145,6 @@ function Marketplace() {
                       <Sparkles className={cn("ai-toggle-icon", filters.semantic && "glow-animation")} />
                       <span>AI Search</span>
                     </button>
-
-                    <button
-                      onClick={() => navigate("/marketplace/generate")}
-                      className="ai-generate-btn"
-                      title="Generate a custom template using AI"
-                    >
-                      <Sparkles className="ai-generate-icon animate-pulse" />
-                      <span>AI Creator</span>
-                    </button>
                   </div>
                 </div>
 
@@ -173,6 +164,16 @@ function Marketplace() {
 
                   <div className="toolbar-spacer" />
 
+                  <button
+                    onClick={() => navigate("/marketplace/generate")}
+                    className="ai-generate-btn"
+                    style={{ marginRight: "0.75rem" }}
+                    title="Generate a custom template using AI"
+                  >
+                    <Sparkles className="ai-generate-icon animate-pulse" />
+                    <span>AI Creator</span>
+                  </button>
+
                   <div className="view-toggle">
                     {(["grid", "list"]).map((v) => (
                       <button
@@ -182,8 +183,8 @@ function Marketplace() {
                         title={v === "grid" ? "Grid view" : "List view"}
                       >
                         {v === "grid"
-                          ? <LayoutGrid  className="view-toggle-icon" />
-                          : <LayoutList  className="view-toggle-icon" />}
+                          ? <LayoutGrid className="view-toggle-icon" />
+                          : <LayoutList className="view-toggle-icon" />}
                       </button>
                     ))}
                   </div>

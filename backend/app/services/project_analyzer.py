@@ -794,34 +794,20 @@ class ProjectAnalyzer:
         Return ONLY valid JSON. Do not include markdown code block syntax (like ```json ... ```).
         """
 
-        # Check for Gemini API key
-        if settings.GEMINI_API_KEY:
+        # Try running analysis via ai_service (Gemini with Azure Fallback)
+        from app.services.ai_service import ai_service, robust_json_loads
+        if ai_service.client:
             try:
-                headers = {"Content-Type": "application/json"}
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.GEMINI_MODEL}:generateContent?key={settings.GEMINI_API_KEY}"
-                payload = {
-                    "contents": [{"parts": [{"text": prompt}]}],
-                    "generationConfig": {
-                        "responseMimeType": "application/json"
-                    }
-                }
-                async with httpx.AsyncClient() as client:
-                    response = await client.post(url, json=payload, headers=headers, timeout=60.0)
-                    if response.status_code == 200:
-                        data = response.json()
-                        text_response = data["contents"][0]["parts"][0]["text"].strip()
-                        # Clean up any potential markdown wrapper
-                        if text_response.startswith("```json"):
-                            text_response = text_response.replace("```json", "", 1)
-                        if text_response.endswith("```"):
-                            text_response = text_response[:-3]
-                        return json.loads(text_response.strip())
-                    else:
-                        logger.error(f"Gemini API returned status {response.status_code}: {response.text}")
+                response_text = await ai_service._generate_content(
+                    prompt,
+                    response_mime_type="application/json",
+                    feature_name="project_zip_analysis"
+                )
+                return robust_json_loads(response_text)
             except Exception as e:
-                logger.error(f"Gemini API call failed, trying fallback: {e}")
+                logger.error(f"AI analysis failed via ai_service: {e}")
 
-        # Check for OpenAI fallback
+        # Check for legacy OpenAI fallback (if configured directly)
         if settings.OPENAI_API_KEY and settings.OPENAI_API_KEY != "sk-...":
             try:
                 from openai import AsyncOpenAI
