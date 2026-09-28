@@ -54,26 +54,71 @@ def safe_print(*args, **kwargs):
 class PlanningAgent:
     """Agent 1: Analyzes prompt, determines business intent, and designs page breakdown."""
     async def execute(self, prompt: str, framework: str, industry: str) -> Dict[str, Any]:
+        from app.services.template_synthesizer import analyze_prompt_intent
+        profile = analyze_prompt_intent(prompt=prompt, industry_hint=industry if industry not in ("Auto-Detect from Prompt (Recommended)", "General") else "")
+        effective_industry = profile.domain_name if (not industry or industry in ("Auto-Detect from Prompt (Recommended)", "General") or (industry == "SaaS & Tech Platform" and profile.industry_key != "saas")) else industry
+
         planning_prompt = f"""You are the Lead Planning Agent for website architecture.
 Analyze this project prompt: "{prompt}"
-Target Industry: "{industry}"
+Target Industry: "{effective_industry}"
 Framework: "{framework}"
 
 Determine:
-1. Business Domain (e.g. Portfolio, Restaurant, E-Commerce, SaaS, Healthcare)
-2. Target Audience & Core Value Proposition
-3. Recommended Pages Breakdown (index.html, about.html, services.html, contact.html)
+1. Business Domain (e.g. Portfolio, Restaurant, E-Commerce, SaaS, Healthcare, Real Estate, Agency, Fitness)
+2. Brand or Business Name tailored specifically to this prompt (e.g. "{profile.business_title}")
+3. Target Audience & Core Value Proposition
+4. Tailored Multi-Page Architecture: Generate 5 to 8 deeply customized, authentic pages that directly serve this specific business concept.
+   CRITICAL: DO NOT just output generic "About" or "Contact" pages. The buyer expects specialized, highly functional pages tailored to their exact business.
+
+EXAMPLES OF DOMAIN-AUTHENTIC PAGES:
+- AI / SaaS / Tech Platform:
+  * "Home" (index.html) -> System overview & neural highlights
+  * "Studio Playground" (playground.html) -> Interactive AI agent playground & simulator
+  * "Workflow Canvas" (workflow.html) -> Visual node-based workflow builder
+  * "Integrations & API" (integrations.html) -> Webhook, SDK & API developer documentation
+  * "Pricing Matrix" (pricing.html) -> Tiered subscription plans with feature checklist
+  * "Live Telemetry" (telemetry.html) -> Real-time uptime, latency & system telemetry
+- E-Commerce / Fashion / Retail:
+  * "Storefront" (index.html) -> Featured collections, trending items, and hero drop
+  * "Catalog & Collections" (catalog.html) -> Filterable product grid with category tags
+  * "Lookbook & Editorial" (lookbook.html) -> High-fashion photography and seasonal styles
+  * "Product Showcase" (product-showcase.html) -> Deep-dive product specs and 360 viewer
+  * "Customer Reviews & Community" (reviews.html) -> Verified buyer reviews & rating metrics
+  * "Cart & Checkout" (checkout.html) -> Interactive bag overview & payment simulator
+- Restaurant / Cafe / Hospitality:
+  * "Home" (index.html) -> Culinary atmosphere & signature tastings
+  * "Chef's Tasting Menu" (menu.html) -> Categorized dishes, dietary tags & wine pairings
+  * "Table Reservations" (reservations.html) -> Interactive date, time, and table party booking
+  * "Culinary Heritage" (heritage.html) -> Farm-to-table sourcing and head chef story
+  * "Private Dining & Events" (events.html) -> Catering packages & private room booking
+- Real Estate / Luxury Architecture:
+  * "Home" (index.html) -> Curated luxury portfolio & market highlights
+  * "Property Listings" (listings.html) -> Interactive property grid with filters & pricing
+  * "3D Virtual Tours" (virtual-tours.html) -> Immersive walkthroughs & floorplans
+  * "Mortgage Calculator" (calculator.html) -> Interactive loan, rate, and equity estimator
+  * "Neighborhood Insights" (neighborhood.html) -> School districts, transit & lifestyle data
+- Healthcare / Clinic / Wellness:
+  * "Home" (index.html) -> Patient-first medical excellence & urgent alerts
+  * "Specialties & Treatments" (specialties.html) -> Clinical procedures & care programs
+  * "Physician Directory" (doctors.html) -> Board-certified doctors & credentials
+  * "Book Appointment" (appointment.html) -> Interactive department & doctor scheduling
+  * "Patient Portal & FAQs" (patient-portal.html) -> Insurance acceptance & pre-visit guide
+- Creative Agency / Media Studio:
+  * "Home" (index.html) -> Creative showreel & high-impact visual awards
+  * "Case Studies" (case-studies.html) -> In-depth client transformations & ROI metrics
+  * "Project Scope Estimator" (estimator.html) -> Interactive cost & timeline budget calculator
+  * "Design Systems" (design-systems.html) -> Typography, UI kits & component showcase
+  * "Client Accolades" (testimonials.html) -> Video testimonials & industry awards
 
 Return JSON only:
 {{
   "domain": "...",
+  "business_name": "...",
   "audience": "...",
   "value_prop": "...",
   "pages": [
-    {{"name": "Home Page", "filename": "index.html", "summary": "Hero banner, features grid, pricing, contact footer."}},
-    {{"name": "About Us", "filename": "about.html", "summary": "Company story, team bio, experience timeline."}},
-    {{"name": "Services", "filename": "services.html", "summary": "Core service offerings and interactive details."}},
-    {{"name": "Contact", "filename": "contact.html", "summary": "Interactive contact form connected to REST API."}}
+    {{"name": "Home", "filename": "index.html", "slug": "home", "summary": "Hero, core value proposition, key highlights, and overview.", "page_type": "home"}},
+    {{"name": "...", "filename": "...", "slug": "...", "summary": "...", "page_type": "..."}}
   ]
 }}"""
         try:
@@ -155,7 +200,52 @@ class FrontendAgent:
         secondary_hex = design.get("secondary_hex", "#8b5cf6")
         accent_hex = design.get("accent_hex", "#ec4899")
 
-        frontend_prompt = f"""You are the Senior Lead Frontend Developer Agent.
+        is_html = (framework or "").lower() in ("html", "vanilla", "static")
+        is_vue = (framework or "").lower() == "vue"
+
+        if is_html:
+            frontend_prompt = f"""You are the Senior Lead Frontend Developer Agent.
+Synthesize complete, production-ready, beautiful HTML5 source code for `index.html` tailored specifically to prompt: "{prompt}".
+
+PLAN & BRAND SPECIFICATIONS:
+- Business Plan: {json.dumps(plan)}
+- Custom Brand Design System:
+  * Primary Color: {primary_hex}
+  * Secondary Color: {secondary_hex}
+  * Accent Color: {accent_hex}
+  * Background Color: {bg_hex}
+  * Card Surface Color: {card_hex}
+  * Text Color: {text_hex}
+  * Font Family: {design.get("font_display", "Plus Jakarta Sans")}, {design.get("font_body", "Inter")}
+- Target Tech Stack: Pure HTML5 + Tailwind CSS (via Tailwind CDN: <script src="https://cdn.tailwindcss.com"></script>) + Lucide Icons / SVGs
+
+STRICT PRODUCTION REQUIREMENTS:
+1. FULL MULTI-PAGE NAVIGATION ARCHITECTURE:
+   - Provide complete navbar with functional relative links (href="index.html", href="about.html", href="services.html", href="contact.html").
+   - Highlight the Home nav item with active styling (border or pill in {primary_hex}).
+   - Include mobile responsive hamburger menu drawer with smooth toggle JavaScript.
+2. RICH CONTENT SECTIONS:
+   - Hero banner with headline, value prop, CTA buttons, and high-res Unsplash image.
+   - Core Features Grid with cards styled with surface {card_hex} and borders border-white/10.
+   - Signature Offerings / Menu / Services section with pricing and details.
+   - Testimonial cards with star ratings.
+   - Interactive Contact form with input validation and instant success confirmation card.
+   - Multi-column footer with newsletter signup, working links, copyright, and social icons.
+3. MANDATORY BRAND COLOR INTEGRATION:
+   - Use background {bg_hex}, card surface {card_hex}, text {text_hex}, accents {primary_hex} and {accent_hex}.
+4. ZERO PLACEHOLDERS:
+   - Return 100% valid HTML5 document starting with <!DOCTYPE html> and ending with </html>.
+   - NO markdown ticks, NO conversational commentary.
+"""
+        elif is_vue:
+            frontend_prompt = f"""You are the Senior Lead Frontend Developer Agent.
+Synthesize complete, production-ready source code for Vue 3 `src/App.vue` tailored specifically to prompt: "{prompt}".
+Plan: {json.dumps(plan)}
+Design: Primary {primary_hex}, Secondary {secondary_hex}, Accent {accent_hex}, BG {bg_hex}, Card {card_hex}, Text {text_hex}
+Output valid Vue Single File Component (<template>, <script>, <style>) code only without markdown.
+"""
+        else:
+            frontend_prompt = f"""You are the Senior Lead Frontend Developer Agent.
 Synthesize complete, production-ready source code for `src/App.jsx` tailored specifically to prompt: "{prompt}".
 
 PLAN & BRAND SPECIFICATIONS:
@@ -192,15 +282,23 @@ STRICT PRODUCTION REQUIREMENTS:
    - Return valid complete JSX code without markdown formatting or conversational text.
 """
         try:
-            from app.services.ai_service import clean_code_response, repair_truncated_jsx
+            from app.services.ai_service import clean_code_response, repair_truncated_jsx, repair_truncated_html
             raw = await ai_service._generate_content(
                 frontend_prompt,
                 response_mime_type="text/plain",
                 feature_name="code_assistant",
-                preferred_provider=getattr(settings, "AGENT_FRONTEND_PROVIDER", "kimi")
+                # Use Cline Autonomous Coding Engine (.clinerules + qwen2.5-coder:7b)
+                preferred_provider=getattr(settings, "AGENT_FRONTEND_PROVIDER", "cline")
             )
-            is_vue = (framework or "").lower() == "vue"
-            if is_vue:
+            if is_html:
+                cleaned = clean_code_response(raw, "html")
+                if not cleaned or "<html" not in cleaned:
+                    from app.services.template_synthesizer import analyze_prompt_intent, synthesize_standalone_html
+                    domain_hint = (plan.get("domain") if plan else "") or prompt
+                    profile = analyze_prompt_intent(prompt=prompt, industry_hint=domain_hint, plan=plan, design=design)
+                    cleaned = synthesize_standalone_html(profile, framework="html")
+                return repair_truncated_html(cleaned)
+            elif is_vue:
                 cleaned = clean_code_response(raw, "vue")
                 if not cleaned or "<template>" not in cleaned or "</template>" not in cleaned:
                     raise RuntimeError("Frontend Agent received invalid Vue response from AI.")
@@ -212,6 +310,21 @@ STRICT PRODUCTION REQUIREMENTS:
                 return repair_truncated_jsx(cleaned)
         except Exception as e:
             logger.error(f"Frontend Agent execution failed: {e}")
+            # For React: use synthesizer fallback to ensure a working component is always returned
+            if not is_html and not is_vue:
+                try:
+                    from app.services.template_synthesizer import analyze_prompt_intent, synthesize_react_application
+                    domain_hint = (plan.get("domain") if plan else "") or prompt
+                    profile = analyze_prompt_intent(prompt=prompt, industry_hint=domain_hint, plan=plan, design=design)
+                    if primary_hex: profile.primary_hex = primary_hex
+                    if secondary_hex: profile.secondary_hex = secondary_hex
+                    if bg_hex: profile.bg_hex = bg_hex
+                    if card_hex: profile.card_hex = card_hex
+                    if text_hex: profile.text_hex = text_hex
+                    safe_print(f"   [Frontend Agent] Using React synthesizer fallback due to AI failure: {e}")
+                    return synthesize_react_application(profile)
+                except Exception as fallback_err:
+                    logger.error(f"Frontend Agent synthesizer fallback also failed: {fallback_err}")
             raise RuntimeError(f"Frontend Agent failed: {e}") from e
 
 
@@ -234,7 +347,7 @@ Output valid Python code for `main.py` directly without markdown formatting.
                 backend_prompt,
                 response_mime_type="text/plain",
                 feature_name="code_assistant",
-                preferred_provider=getattr(settings, "AGENT_BACKEND_PROVIDER", "kimi")
+                preferred_provider=getattr(settings, "AGENT_BACKEND_PROVIDER", "cline")
             )
             raw = raw.strip()
             if raw.startswith("```python"):
@@ -267,7 +380,7 @@ Return valid Python script code for `seed.py`.
                 db_prompt,
                 response_mime_type="text/plain",
                 feature_name="code_assistant",
-                preferred_provider=getattr(settings, "AGENT_DATABASE_PROVIDER", "kimi")
+                preferred_provider=getattr(settings, "AGENT_DATABASE_PROVIDER", "cline")
             )
             raw = raw.strip()
             if raw.startswith("```python"):
@@ -286,19 +399,69 @@ Return valid Python script code for `seed.py`.
 
 
 class SEOAgent:
-    """Agent 6: Synthesizes Schema.org JSON-LD structured data and OpenGraph meta tags."""
-    async def execute(self, title: str, plan: Dict[str, Any]) -> Dict[str, Any]:
+    """Agent 6: Synthesizes Schema.org JSON-LD structured data, OpenGraph, Twitter, and SEO tags using Ollama Qwen."""
+    async def execute(self, title: str, plan: Dict[str, Any], hero_image: str = "") -> Dict[str, Any]:
+        domain_name = plan.get('domain', 'Business')
+        val_prop = plan.get('value_prop', f'Official website layout for {title}.')
+        pages_list = [p.get('name', p.get('filename', '')) for p in plan.get('pages', [])]
+
+        seo_prompt = f"""You are the Lead SEO and Structured Data Architect Agent.
+Analyze project: "{title}"
+Business Domain: "{domain_name}"
+Value Proposition: "{val_prop}"
+Pages: {json.dumps(pages_list)}
+Hero Image URL: "{hero_image}"
+
+Generate complete, production-ready SEO metadata in JSON format:
+1. "meta_title": Engaging, high-CTR SEO title (under 60 characters)
+2. "meta_description": Compelling meta description (under 160 characters)
+3. "keywords": Comma-separated string of 10-15 high-intent search keywords
+4. "canonical_url": "https://{re.sub(r'[^a-z0-9]', '', title.lower())}.com"
+5. "og_tags": {{"title": "...", "description": "...", "type": "website", "image": "{hero_image or 'https://images.unsplash.com/photo-1460925895917-afdab827c52f'}"}}
+6. "twitter_tags": {{"card": "summary_large_image", "title": "...", "description": "...", "image": "{hero_image or 'https://images.unsplash.com/photo-1460925895917-afdab827c52f'}"}}
+7. "schema_json_ld": Valid Schema.org JSON-LD dictionary (e.g. LocalBusiness, Restaurant, ProfessionalService, Organization, MedicalBusiness) tailored to {domain_name}.
+
+Return strictly valid JSON only:"""
+        try:
+            raw = await ai_service._generate_content(
+                seo_prompt,
+                response_mime_type="application/json",
+                feature_name="seo_agent",
+                preferred_provider=getattr(settings, "AGENT_SEO_PROVIDER", "ollama")
+            )
+            parsed = robust_json_loads(raw)
+            if isinstance(parsed, dict) and "meta_title" in parsed:
+                return parsed
+        except Exception as e:
+            logger.warning(f"SEO Agent Ollama/AI call fallback: {e}")
+
+        # Deterministic rich fallback ensuring SEO is NEVER empty
+        clean_slug = re.sub(r'[^a-z0-9]', '', title.lower()) or "template"
+        fallback_img = hero_image or "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80"
         return {
+            "meta_title": f"{title} — Official Website & {domain_name} Services",
+            "meta_description": val_prop[:155],
+            "keywords": f"{title.lower()}, {domain_name.lower()}, official website, responsive template, business, {', '.join([p.lower() for p in pages_list[:4]])}",
+            "canonical_url": f"https://{clean_slug}.com",
+            "og_tags": {
+                "title": f"{title} — {domain_name}",
+                "description": val_prop[:155],
+                "type": "website",
+                "image": fallback_img
+            },
+            "twitter_tags": {
+                "card": "summary_large_image",
+                "title": f"{title} — {domain_name}",
+                "description": val_prop[:155],
+                "image": fallback_img
+            },
             "schema_json_ld": {
                 "@context": "https://schema.org",
-                "@type": "Organization",
+                "@type": "LocalBusiness",
                 "name": title,
-                "description": plan.get("value_prop", "Production-ready website package.")
-            },
-            "meta_tags": {
-                "title": f"{title} | Official Website",
-                "description": plan.get("value_prop", "Official website layout."),
-                "og_type": "website"
+                "description": val_prop,
+                "url": f"https://{clean_slug}.com",
+                "image": fallback_img
             }
         }
 
@@ -326,17 +489,28 @@ class DeploymentAgent:
         backend_code: str,
         seed_code: str,
         seo_data: Dict[str, Any],
-        design: Optional[Dict[str, Any]] = None
+        design: Optional[Dict[str, Any]] = None,
+        prompt: str = "",
+        plan: Optional[Dict[str, Any]] = None
     ) -> bytes:
         from app.services.template_synthesizer import (
             analyze_prompt_intent,
             synthesize_react_application,
             synthesize_vue_application,
-            synthesize_standalone_html
+            synthesize_standalone_html,
+            synthesize_multipage_html_suite
         )
 
+        is_html = (framework or "").lower() in ("html", "vanilla", "static")
         is_vue = (framework or "").lower() == "vue"
-        profile = analyze_prompt_intent(prompt=title, industry_hint=title, business_title_hint=title)
+        domain_hint = (plan.get("domain") if plan else "") or title
+        profile = analyze_prompt_intent(
+            prompt=prompt or title,
+            industry_hint=domain_hint,
+            business_title_hint=title,
+            plan=plan,
+            design=design
+        )
         if isinstance(design, dict):
             if design.get("primary_hex"): profile.primary_hex = design["primary_hex"]
             if design.get("secondary_hex"): profile.secondary_hex = design["secondary_hex"]
@@ -345,7 +519,56 @@ class DeploymentAgent:
             if design.get("card_hex"): profile.card_hex = design["card_hex"]
             if design.get("text_hex"): profile.text_hex = design["text_hex"]
 
-        if is_vue:
+        if is_html:
+            # Generate multi-page suite
+            multipage_files = synthesize_multipage_html_suite(profile, seo_data=seo_data, plan=plan)
+            # Prioritize 100% bespoke AI-generated code for index.html if provided
+            if frontend_code and ("<html" in frontend_code.lower() or "<!doctype" in frontend_code.lower()):
+                from app.services.ai_service import repair_truncated_html
+                multipage_files["index.html"] = repair_truncated_html(frontend_code)
+                safe_print("   [Deployment Agent] Using 100% bespoke AI-generated index.html from scratch")
+            else:
+                safe_print("   [Deployment Agent] HTML suite: " + str(list(multipage_files.keys())) + " - " + str(sum(len(v) for v in multipage_files.values())) + " total chars")
+
+            readme = f"""# {title} — Multi-Agent Generated HTML5 Package
+
+Synthesized by 8 Specialized AI Agents (Planning, Designer, Frontend, Backend, Database, SEO, Testing, Deployment).
+
+## 🚀 How to Run
+
+### Method 1: Instant Browser Preview (Zero Dependencies)
+Simply double-click `index.html` to open it in any modern browser (Chrome, Edge, Firefox, Safari).
+All multi-page links (`index.html`, `about.html`, `services.html`, `contact.html`) are 100% physically delivered with active states and responsive layouts.
+
+### Method 2: Local HTTP Server
+```bash
+npx serve .
+# or
+python -m http.server 3000
+```
+"""
+            from app.services.backend_generator import generate_standalone_backend
+            backend_files = generate_standalone_backend("fastapi", title, profile.domain_name or "Business")
+
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+                if project_scope == "fullstack":
+                    for fname, fcontent in multipage_files.items():
+                        zip_file.writestr(f"frontend/{fname}", fcontent)
+                    zip_file.writestr("index.html", multipage_files["index.html"])
+
+                    for bpath, bcontent in backend_files.items():
+                        zip_file.writestr(f"backend/{bpath}", bcontent)
+                    zip_file.writestr("backend/seed.py", seed_code)
+                    zip_file.writestr("README.md", readme)
+                else:
+                    for fname, fcontent in multipage_files.items():
+                        zip_file.writestr(fname, fcontent)
+                    zip_file.writestr("README.md", readme)
+
+            return zip_buffer.getvalue()
+
+        elif is_vue:
             package_json = {
                 "name": "ai-generated-template",
                 "private": True,
@@ -381,10 +604,10 @@ createApp(App).mount('#root')
             main_rel = "src/main.js"
             app_rel = "src/App.vue"
             app_content = frontend_code if ("<template>" in frontend_code and "</template>" in frontend_code) else synthesize_vue_application(profile)
-            index_html = synthesize_standalone_html(profile, framework="vue")
+            index_html = synthesize_standalone_html(profile, framework="vue", seo_data=seo_data)
         else:
             package_json = {
-                "name": "ai-generated-template",
+                "name": re.sub(r'[^a-z0-9-]', '-', title.lower())[:30] or "ai-template",
                 "private": True,
                 "version": "1.0.0",
                 "type": "module",
@@ -394,15 +617,16 @@ createApp(App).mount('#root')
                     "preview": "vite preview"
                 },
                 "dependencies": {
-                    "react": "^18.2.0",
-                    "react-dom": "^18.2.0",
-                    "lucide-react": "^0.344.0"
+                    "react": "^18.3.1",
+                    "react-dom": "^18.3.1",
+                    "lucide-react": "^0.451.0"
                 },
                 "devDependencies": {
-                    "@types/react": "^18.2.66",
-                    "@types/react-dom": "^18.2.22",
-                    "@vitejs/plugin-react": "^4.2.1",
-                    "vite": "^5.1.6"
+                    "@vitejs/plugin-react": "^4.3.1",
+                    "vite": "^5.4.0",
+                    "tailwindcss": "^3.4.0",
+                    "autoprefixer": "^10.4.0",
+                    "postcss": "^8.4.0"
                 }
             }
             vite_config = """import { defineConfig } from 'vite'
@@ -412,6 +636,17 @@ export default defineConfig({
   base: './',
   plugins: [react()],
 })
+"""
+            tailwind_config = """/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  theme: { extend: {} },
+  plugins: [],
+}
+"""
+            postcss_config = """export default {
+  plugins: { tailwindcss: {}, autoprefixer: {} },
+}
 """
             main_code = """import React from 'react'
 import ReactDOM from 'react-dom/client'
@@ -424,66 +659,134 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>,
 )
 """
-            main_rel = "src/main.jsx"
-            app_rel = "src/App.jsx"
+            index_css = f"""@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {{
+  --primary: {profile.primary_hex};
+  --secondary: {profile.secondary_hex};
+  --accent: {profile.accent_hex};
+  --bg: {profile.bg_hex};
+  --card: {profile.card_hex};
+  --text: {profile.text_hex};
+}}
+
+body {{
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}}
+
+* {{
+  box-sizing: border-box;
+}}
+"""
             app_content = frontend_code if ("export default" in frontend_code and ("function" in frontend_code or "const" in frontend_code)) else synthesize_react_application(profile)
-            index_html = synthesize_standalone_html(profile, framework="react")
 
-        index_css = f"""body {{ margin: 0; background-color: {profile.bg_hex}; color: {profile.text_hex}; }}"""
+            # ── Root index.html: Standalone responsive HTML suite with Vite entry ──
+            index_html = synthesize_standalone_html(profile, framework="react", seo_data=seo_data)
 
-        readme = f"""# {title} — Multi-Agent Generated {framework.upper()} Package
+            # Scaffold modular multi-page React components with full domain archetypes
+            pages_list = plan.get("pages", []) if (plan and plan.get("pages")) else ["Home", "About", "Services", "Contact"]
 
-Synthesized by 8 Specialized AI Agents (Planning, Designer, Frontend, Backend, Database, SEO, Testing, Deployment).
+            from app.api.v1.routes.templates import scaffold_react_multipage_files
+            multipage_react = scaffold_react_multipage_files(
+                app_jsx_code=app_content,
+                pages=pages_list,
+                title=title,
+                color_scheme=f"Primary {profile.primary_hex}, Secondary {profile.secondary_hex}",
+                industry=profile.domain_name or "Business",
+                developer_avatar="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&h=200&q=80",
+                thumbnail_url=profile.hero_image,
+            )
 
-## 🚀 How to Run
+        readme = f"""# {title}
 
-### Method 1: Instant Preview (Zero Installation)
-Simply double-click `index.html` to open it in any modern browser (Chrome, Edge, Firefox, Safari).
-The full multi-page project with navigation, images, and interactive tabs will run immediately without any setup!
+Generated by **AI Site Studio** — 8 Specialized AI Agents.
 
-### Method 2: Modern Framework Development ({framework.upper()} + Vite)
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-2. Run development server:
-   ```bash
-   npm run dev
-   ```
-3. Build for production:
-   ```bash
-   npm run build
-   ```
+## 📁 Project Structure
+
+```
+{title}/
+├── index.html          ← Open this in any browser (no install needed!)
+├── src/
+│   ├── App.jsx         ← Main React component
+│   ├── main.jsx        ← Vite entry point
+│   ├── index.css       ← Global styles + Tailwind
+│   ├── components/     ← Navbar, Footer
+│   └── pages/          ← HomePage, AboutPage, ServicesPage, ContactPage
+├── package.json
+├── vite.config.js
+├── tailwind.config.js
+├── postcss.config.js
+├── backend/            ← FastAPI REST API
+│   ├── main.py
+│   ├── requirements.txt
+│   └── seed.py
+└── README.md
+```
+
+## 🚀 Quick Start
+
+### Method 1: Instant Browser Preview (Zero Install)
+Double-click **`index.html`** — opens immediately in Chrome, Edge, Firefox.
+Uses React 18 + Tailwind + Lucide via CDN. No npm required!
+
+### Method 2: Vite Dev Server (Full Hot-Reload)
+```bash
+npm install
+npm run dev
+```
+
+### Method 3: Production Build
+```bash
+npm install
+npm run build
+npm run preview
+```
+
+### Method 4: Run Backend API
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+```
 """
 
         from app.services.backend_generator import generate_standalone_backend
-        backend_files = generate_standalone_backend("fastapi", title, "Business")
+        backend_files = generate_standalone_backend("fastapi", title, profile.domain_name or "Business")
 
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+            # ── Folder 1: Root — index.html (standalone, browser-ready) ──
+            zip_file.writestr("index.html", index_html)
+            zip_file.writestr("package.json", json.dumps(package_json, indent=2))
+            zip_file.writestr("vite.config.js", vite_config)
+            zip_file.writestr("tailwind.config.js", tailwind_config)
+            zip_file.writestr("postcss.config.js", postcss_config)
+            zip_file.writestr("README.md", readme)
+
+            # ── Folder 2: src/ — React source files ──
+            if "src/App.jsx" in multipage_react:
+                zip_file.writestr("src/App.jsx", multipage_react["src/App.jsx"])
+            else:
+                zip_file.writestr("src/App.jsx", app_content)
+            zip_file.writestr("src/main.jsx", main_code)
+            zip_file.writestr("src/index.css", index_css)
+            for fpath, fcontent in multipage_react.items():
+                if fpath != "src/App.jsx":
+                    zip_file.writestr(fpath, fcontent)
+
+            # ── Folder 3: backend/ — FastAPI REST API ──
             if project_scope == "fullstack":
-                zip_file.writestr("frontend/package.json", json.dumps(package_json, indent=2))
-                zip_file.writestr("frontend/vite.config.js", vite_config)
-                zip_file.writestr("frontend/index.html", index_html)
-                zip_file.writestr(f"frontend/{main_rel}", main_code)
-                zip_file.writestr(f"frontend/{app_rel}", app_content)
-                zip_file.writestr("frontend/src/index.css", index_css)
-                
-                # Write full-fledged backend files (main.py, models.py, schemas.py, config.py, .env.example, requirements.txt, README.md)
                 for bpath, bcontent in backend_files.items():
                     zip_file.writestr(f"backend/{bpath}", bcontent)
                 zip_file.writestr("backend/seed.py", seed_code)
-                zip_file.writestr("README.md", readme)
-            else:
-                zip_file.writestr("package.json", json.dumps(package_json, indent=2))
-                zip_file.writestr("vite.config.js", vite_config)
-                zip_file.writestr("index.html", index_html)
-                zip_file.writestr(main_rel, main_code)
-                zip_file.writestr(app_rel, app_content)
-                zip_file.writestr("src/index.css", index_css)
-                zip_file.writestr("README.md", readme)
 
         return zip_buffer.getvalue()
+
 
 
 class MultiAgentOrchestrator:
@@ -520,13 +823,13 @@ class MultiAgentOrchestrator:
         safe_print(f"📋 Prompt         : \"{prompt}\"")
         safe_print(f"🏢 Target Industry : \"{industry}\"")
         safe_print(f"🎨 Tech Stack      : {framework.upper()} + {css_engine.upper()} ({project_scope.upper()})")
-        safe_print("🤖 Multi-Model Swarm Architecture (Kimi Moonshot Engine):")
-        safe_print(f"   ├── [1/8] Planning Agent     : {getattr(settings, 'AGENT_PLANNING_PROVIDER', 'kimi').upper()}")
-        safe_print(f"   ├── [2/8] UI Designer Agent  : {getattr(settings, 'AGENT_DESIGNER_PROVIDER', 'kimi').upper()}")
-        safe_print(f"   ├── [3/8] Frontend Dev Agent : {getattr(settings, 'AGENT_FRONTEND_PROVIDER', 'kimi').upper()}")
-        safe_print(f"   ├── [4/8] Backend Dev Agent  : {getattr(settings, 'AGENT_BACKEND_PROVIDER', 'kimi').upper()}")
-        safe_print(f"   ├── [5/8] Database Architect : {getattr(settings, 'AGENT_DATABASE_PROVIDER', 'kimi').upper()}")
-        safe_print(f"   ├── [6/8] SEO & A11y Agent   : {getattr(settings, 'AGENT_SEO_PROVIDER', 'kimi').upper()}")
+        safe_print("🤖 Multi-Model Swarm Architecture (Ollama Qwen + Gemini + Cline Engine):")
+        safe_print(f"   ├── [1/8] Planning Agent     : {getattr(settings, 'AGENT_PLANNING_PROVIDER', 'gemini').upper()}")
+        safe_print(f"   ├── [2/8] UI Designer Agent  : {getattr(settings, 'AGENT_DESIGNER_PROVIDER', 'ollama').upper()} ({getattr(settings, 'OLLAMA_MODEL_DESIGNER', 'qwen2.5:7b')})")
+        safe_print(f"   ├── [3/8] Frontend Dev Agent : {getattr(settings, 'AGENT_FRONTEND_PROVIDER', 'cline').upper()}")
+        safe_print(f"   ├── [4/8] Backend Dev Agent  : {getattr(settings, 'AGENT_BACKEND_PROVIDER', 'cline').upper()}")
+        safe_print(f"   ├── [5/8] Database Architect : {getattr(settings, 'AGENT_DATABASE_PROVIDER', 'cline').upper()}")
+        safe_print(f"   ├── [6/8] SEO & A11y Agent   : {getattr(settings, 'AGENT_SEO_PROVIDER', 'ollama').upper()} ({getattr(settings, 'OLLAMA_MODEL_SEO', 'qwen2.5:7b')})")
         safe_print(f"   └── [7/8] Testing & Audit    : {getattr(settings, 'AGENT_TESTING_PROVIDER', 'kimi').upper()}")
         safe_print("-" * 80)
 
@@ -536,6 +839,8 @@ class MultiAgentOrchestrator:
         safe_print(f"\n[1/8] 📋 PLANNING AGENT (Feature: planning_agent | Provider: {plan_provider})")
         safe_print("     Status: Analyzing prompt architecture & ordering multi-page breakdown...")
         plan = await self.planning_agent.execute(prompt, framework, industry)
+        if (not title or title == "AI Multi-Agent Template") and plan.get("business_name"):
+            title = plan["business_name"].strip()
         t1 = time.time()
         pages_str = ", ".join([p.get('filename', p.get('name', '')) for p in plan.get('pages', [])])
         safe_print(f"     -> Domain: {plan.get('domain', 'Business')} | Audience: {plan.get('audience', 'Clients')}")
@@ -546,7 +851,8 @@ class MultiAgentOrchestrator:
 
         # Step 2: UI Designer Agent
         t0 = time.time()
-        safe_print(f"\n[2/8] 🎨 UI DESIGNER AGENT (Feature: designer_agent | Model: {getattr(settings, 'KIMI_MODEL', 'moonshot-v1-32k')})")
+        designer_provider = getattr(settings, 'AGENT_DESIGNER_PROVIDER', 'ollama').upper()
+        safe_print(f"\n[2/8] 🎨 UI DESIGNER AGENT (Feature: designer_agent | Provider: {designer_provider})")
         safe_print("     Status: Establishing visual design tokens & Google Fonts typography...")
         design = await self.designer_agent.execute(plan, color_scheme)
         t1 = time.time()
@@ -556,34 +862,61 @@ class MultiAgentOrchestrator:
         if progress_callback:
             await progress_callback({"step": 2, "agent": "UI Designer Agent", "status": "completed", "details": f"Palette: Primary {design.get('primary_hex')}"})
 
-        # Parallel Execution Phase: Steps 3, 4, 5, and 6 run concurrently
-        safe_print(f"\n⚡ PARALLEL EXECUTION PHASE (Agents 3, 4, 5, 6 running concurrently via asyncio.gather)...")
-        t0_parallel = time.time()
-
-        frontend_task = self.frontend_agent.execute(prompt, plan, design, framework)
-        backend_task = self.backend_agent.execute(title, plan)
-        database_task = self.database_agent.execute(title, plan)
-        seo_task = self.seo_agent.execute(title, plan)
-
-        frontend_code, backend_code, seed_code, seo_data = await asyncio.gather(
-            frontend_task, backend_task, database_task, seo_task
-        )
-        t1_parallel = time.time()
+        # Sequential Execution Phase: Agents execute one by one with dedicated GPU/VRAM allocation
+        # Step 3: Frontend Developer Agent (Cline Engine)
+        t0 = time.time()
+        frontend_provider = getattr(settings, 'AGENT_FRONTEND_PROVIDER', 'cline').upper()
+        safe_print(f"\n[3/8] 💻 FRONTEND DEVELOPER AGENT (Feature: code_assistant | Provider: {frontend_provider})")
+        safe_print("     Status: Synthesizing multi-page high-fidelity UI components...")
+        frontend_code = await self.frontend_agent.execute(prompt, plan, design, framework)
+        t1 = time.time()
         safe_print(f"     -> Source Code Generated: {len(frontend_code)} characters")
-        safe_print(f"     -> FastAPI Backend & SQLite Schema Scaffolded")
-        safe_print(f"     -> SEO Meta Title: {seo_data['meta_tags']['title']}")
-        safe_print(f"     ✅ [Parallel Agents 3-6 Completed in {t1_parallel - t0_parallel:.2f}s]")
-
+        safe_print(f"     ✅ [Agent 3 Completed in {t1 - t0:.2f}s]")
         if progress_callback:
             await progress_callback({"step": 3, "agent": "Frontend Developer Agent", "status": "completed", "details": f"Code Length: {len(frontend_code)} chars"})
+
+        # Step 4: Backend Developer Agent (Cline Engine)
+        t0 = time.time()
+        backend_provider = getattr(settings, 'AGENT_BACKEND_PROVIDER', 'cline').upper()
+        safe_print(f"\n[4/8] ⚙️ BACKEND DEVELOPER AGENT (Feature: code_assistant | Provider: {backend_provider})")
+        safe_print("     Status: Synthesizing dedicated FastAPI REST API server...")
+        backend_code = await self.backend_agent.execute(title, plan)
+        t1 = time.time()
+        safe_print(f"     -> FastAPI Backend Server: {len(backend_code)} characters")
+        safe_print(f"     ✅ [Agent 4 Completed in {t1 - t0:.2f}s]")
+        if progress_callback:
             await progress_callback({"step": 4, "agent": "Backend Developer Agent", "status": "completed", "details": "FastAPI REST Server Scaffolded"})
+
+        # Step 5: Database Architect Agent (Cline Engine)
+        t0 = time.time()
+        database_provider = getattr(settings, 'AGENT_DATABASE_PROVIDER', 'cline').upper()
+        safe_print(f"\n[5/8] 🗄️ DATABASE ARCHITECT AGENT (Feature: code_assistant | Provider: {database_provider})")
+        safe_print("     Status: Synthesizing SQLite database schema & seed scripts...")
+        seed_code = await self.database_agent.execute(title, plan)
+        t1 = time.time()
+        safe_print(f"     -> SQLite Schema & Seed Script: {len(seed_code)} characters")
+        safe_print(f"     ✅ [Agent 5 Completed in {t1 - t0:.2f}s]")
+        if progress_callback:
             await progress_callback({"step": 5, "agent": "Database Architect Agent", "status": "completed", "details": "SQLite Schema & Seed Script OK"})
-            await progress_callback({"step": 6, "agent": "SEO & Accessibility Agent", "status": "completed", "details": f"SEO Title: {seo_data['meta_tags']['title']}"})
+
+        # Step 6: SEO & Accessibility Agent
+        t0 = time.time()
+        seo_provider = getattr(settings, 'AGENT_SEO_PROVIDER', 'groq').upper()
+        safe_print(f"\n[6/8] 🔍 SEO & ACCESSIBILITY AGENT (Feature: seo_generator | Provider: {seo_provider})")
+        safe_print("     Status: Generating Schema.org JSON-LD, OpenGraph, and meta descriptions...")
+        seo_data = await self.seo_agent.execute(title, plan)
+        t1 = time.time()
+        seo_display_title = seo_data.get('meta_title') or seo_data.get('meta_tags', {}).get('title', title)
+        safe_print(f"     -> SEO Meta Title: {seo_display_title}")
+        safe_print(f"     ✅ [Agent 6 Completed in {t1 - t0:.2f}s]")
+        if progress_callback:
+            await progress_callback({"step": 6, "agent": "SEO & Accessibility Agent", "status": "completed", "details": f"SEO Title: {seo_display_title}"})
 
         # Step 8: Deployment Agent (pre-pack bytes)
         t0 = time.time()
         zip_bytes = await self.deployment_agent.execute(
-            title, framework, css_engine, project_scope, frontend_code, backend_code, seed_code, seo_data, design
+            title, framework, css_engine, project_scope, frontend_code, backend_code, seed_code, seo_data, design,
+            prompt=prompt, plan=plan
         )
 
         # Step 7: Testing Agent
@@ -615,6 +948,7 @@ class MultiAgentOrchestrator:
         safe_print("="*80 + "\n")
 
         return {
+            "title": title,
             "zip_bytes": zip_bytes,
             "plan": plan,
             "design": design,

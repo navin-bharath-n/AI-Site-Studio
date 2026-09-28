@@ -2245,96 +2245,154 @@ async def serve_live_preview(
         app_jsx_content = None
         index_css_content = ""
         preview_dir_loc = os.path.join(tempfile.gettempdir(), "ai_site_studio", "live_previews", str(template_id))
-        
+
+        # Scan preview_dir (extracted filesystem) for App.jsx
         if os.path.isdir(preview_dir_loc):
             for root, _, files in os.walk(preview_dir_loc):
-                if any(d in root.replace("\\", "/").split("/") for d in ["dist", "build", ".output"]):
+                if any(d in root.replace("\\", "/").split("/") for d in ["dist", "build", ".output", "node_modules"]):
                     continue
                 if "App.jsx" in files:
                     try:
-                        with open(os.path.join(root, "App.jsx"), "r", encoding="utf-8", errors="ignore") as f:
-                            raw_app = f.read()
+                        with open(os.path.join(root, "App.jsx"), "r", encoding="utf-8", errors="ignore") as _f:
+                            raw_app = _f.read()
                             from app.services.ai_service import clean_code_response, repair_truncated_jsx
                             app_jsx_content = repair_truncated_jsx(clean_code_response(raw_app, "jsx"))
                     except Exception:
                         pass
                 if "index.css" in files:
                     try:
-                        with open(os.path.join(root, "index.css"), "r", encoding="utf-8", errors="ignore") as f:
-                            index_css_content = f.read()
+                        with open(os.path.join(root, "index.css"), "r", encoding="utf-8", errors="ignore") as _cf:
+                            index_css_content = _cf.read()
                     except Exception:
                         pass
+                if app_jsx_content:
+                    break
+
+        # If preview_dir is empty/missing, also try reading App.jsx from the DB-stored ZIP
+        if not app_jsx_content:
+            try:
+                d_assets = template.download_assets or {}
+                z_url = d_assets.get("zip")
+                if z_url:
+                    uuid_m = re.search(r"([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})", str(z_url))
+                    if uuid_m:
+                        from app.models import StoredFile
+                        sf_res = await db.execute(select(StoredFile).where(StoredFile.id == uuid.UUID(uuid_m.group(1))))
+                        stored_f = sf_res.scalar_one_or_none()
+                        if stored_f and stored_f.data and zipfile.is_zipfile(io.BytesIO(stored_f.data)):
+                            with zipfile.ZipFile(io.BytesIO(stored_f.data), "r") as zf:
+                                names = zf.namelist()
+                                jsx_candidates = sorted(
+                                    [n for n in names if n.endswith("App.jsx") and "node_modules" not in n],
+                                    key=len
+                                )
+                                if jsx_candidates:
+                                    raw_app = zf.read(jsx_candidates[0]).decode("utf-8", errors="ignore")
+                                    from app.services.ai_service import clean_code_response, repair_truncated_jsx
+                                    app_jsx_content = repair_truncated_jsx(clean_code_response(raw_app, "jsx"))
+                                css_cands = [n for n in names if n.endswith("index.css") and "node_modules" not in n]
+                                if css_cands:
+                                    index_css_content = zf.read(css_cands[0]).decode("utf-8", errors="ignore")
+            except Exception as e_zip_read:
+                logger.warning(f"serve_fallback: Could not read App.jsx from DB ZIP: {e_zip_read}")
 
         if app_jsx_content:
             try:
-                # Clean imports/exports for in-browser standalone execution
+                # Safely strip ES module imports (handles multi-line destructured imports)
                 cleaned_jsx = app_jsx_content
-                cleaned_jsx = re.sub(r'import\s+.*?from\s+[\'"].*?[\'"];?', '', cleaned_jsx)
-                cleaned_jsx = re.sub(r'import\s+[\'"].*?[\'"];?', '', cleaned_jsx)
-                cleaned_jsx = re.sub(r'export\s+default\s+[A-Za-z0-9_]+\s*;?', '', cleaned_jsx)
-                cleaned_jsx = re.sub(r'export\s+', '', cleaned_jsx)
+                cleaned_jsx = re.sub(r"import\s+[\s\S]*?from\s+['\"].*?['\"]; *\n?", "", cleaned_jsx)
+                cleaned_jsx = re.sub(r"import\s+['\"].*?['\"]; *\n?", "", cleaned_jsx)
+                cleaned_jsx = re.sub(r"^\s*export\s+default\s+[A-Za-z0-9_]+\s*;\s*$", "", cleaned_jsx, flags=re.MULTILINE)
+                cleaned_jsx = re.sub(r"\bexport\s+default\s+(?=function|class|const|let|var|\()", "", cleaned_jsx)
+                cleaned_jsx = re.sub(r"\bexport\s+(?=function|class|const|let|var)", "", cleaned_jsx)
 
                 comp_name = "App"
-                if "function App" not in cleaned_jsx and "const App" not in cleaned_jsx and "let App" not in cleaned_jsx:
-                    func_m = re.search(r'function\s+([A-Za-z0-9_]+)', cleaned_jsx)
+                if "function App" not in cleaned_jsx and "const App" not in cleaned_jsx:
+                    func_m = re.search(r"(?:export\s+default\s+)?function\s+([A-Z][A-Za-z0-9_]+)", cleaned_jsx)
+                    const_m = re.search(r"const\s+([A-Z][A-Za-z0-9_]+)\s*=\s*(?:\([^)]*\)|[A-Za-z_]+)\s*=>", cleaned_jsx)
                     if func_m:
                         comp_name = func_m.group(1)
+                    elif const_m:
+                        comp_name = const_m.group(1)
 
-                react_runner_html = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{template.title} - Live Preview</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone@7.24.0/babel.min.js"></script>
-  <script src="https://unpkg.com/lucide-react@0.344.0/dist/umd/lucide-react.js"></script>
-  <style>
-    body {{ margin: 0; background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }}
-    {index_css_content}
-  </style>
-</head>
-<body>
-  <div id="root"></div>
-  <script type="text/babel">
-    const LucideIcons = window.lucide || window.LucideReact || {{}};
-    const {{ 
-      Sparkles = () => null, ArrowLeft = () => null, ArrowRight = () => null, 
-      Loader2 = () => null, CheckCircle2 = () => null, CheckCircle = () => null, 
-      Cpu = () => null, Globe = () => null, Layers = () => null, FileText = () => null, 
-      Plus = () => null, Trash2 = () => null, Info = () => null, Building2 = () => null, 
-      Palette = () => null, Phone = () => null, Mail = () => null, MapPin = () => null, 
-      Share2 = () => null, Wand2 = () => null, Edit3 = () => null, Check = () => null, 
-      RefreshCw = () => null, Eye = () => null, Upload = () => null, ShoppingBag = () => null, 
-      ShoppingCart = () => null, Folder = () => null, ExternalLink = () => null, 
-      Sliders = () => null, Bot = () => null, User = () => null, Zap = () => null, 
-      Heart = () => null, Star = () => null, Code = () => null, Play = () => null, 
-      AlertCircle = () => null, Shield = () => null, Award = () => null,
-      TrendingUp = () => null, DollarSign = () => null, Database = () => null, 
-      Server = () => null, Terminal = () => null, Lock = () => null, Key = () => null
-    }} = LucideIcons;
+                _title = template.title
+                _css = index_css_content
 
-    const useState = React.useState;
-    const useEffect = React.useEffect;
-    const useRef = React.useRef;
-    const useMemo = React.useMemo;
-    const useCallback = React.useCallback;
-
-    {cleaned_jsx}
-
-    try {{
-      const container = document.getElementById('root');
-      const root = ReactDOM.createRoot(container);
-      root.render(React.createElement({comp_name}));
-    }} catch (e) {{
-      console.error("Mount error:", e);
-      document.getElementById('root').innerHTML = '<div style="padding:2rem;color:#f87171;">Runtime Preview Error: ' + e.message + '</div>';
-    }}
-  </script>
-</body>
-</html>"""
+                react_runner_html = (
+                    "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n"
+                    "  <meta charset=\"UTF-8\">\n"
+                    "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
+                    f"  <title>{_title} - Live Preview</title>\n"
+                    "  <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n"
+                    "  <link href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap\" rel=\"stylesheet\">\n"
+                    "  <script src=\"https://cdn.tailwindcss.com\"></script>\n"
+                    "  <script src=\"https://unpkg.com/react@18/umd/react.production.min.js\"></script>\n"
+                    "  <script src=\"https://unpkg.com/react-dom@18/umd/react-dom.production.min.js\"></script>\n"
+                    "  <script src=\"https://unpkg.com/@babel/standalone@7.24.0/babel.min.js\"></script>\n"
+                    "  <script src=\"https://unpkg.com/lucide-react@0.451.0/dist/umd/lucide-react.js\"></script>\n"
+                    "  <style>\n"
+                    "    *, *::before, *::after { box-sizing: border-box; }\n"
+                    "    body { margin: 0; font-family: \'Inter\', system-ui, sans-serif; }\n"
+                    f"    {_css}\n"
+                    "  </style>\n"
+                    "</head>\n<body>\n"
+                    "  <div id=\"root\"></div>\n"
+                    "  <script type=\"text/babel\" data-presets=\"react\">\n"
+                    "    const _lucide = window.lucide || {};\n"
+                    "    const {\n"
+                    "      Sparkles=()=>null,ArrowLeft=()=>null,ArrowRight=()=>null,ArrowUp=()=>null,ArrowDown=()=>null,\n"
+                    "      Loader=()=>null,Loader2=()=>null,CheckCircle=()=>null,CheckCircle2=()=>null,Check=()=>null,\n"
+                    "      XCircle=()=>null,X=()=>null,Cpu=()=>null,Globe=()=>null,Layers=()=>null,\n"
+                    "      FileText=()=>null,File=()=>null,Folder=()=>null,Plus=()=>null,Minus=()=>null,\n"
+                    "      Trash=()=>null,Trash2=()=>null,Edit=()=>null,Edit2=()=>null,Edit3=()=>null,\n"
+                    "      Info=()=>null,AlertCircle=()=>null,AlertTriangle=()=>null,Bell=()=>null,\n"
+                    "      Building=()=>null,Building2=()=>null,Home=()=>null,Map=()=>null,MapPin=()=>null,\n"
+                    "      Palette=()=>null,Paintbrush=()=>null,Wand=()=>null,Wand2=()=>null,\n"
+                    "      Phone=()=>null,Mail=()=>null,MessageCircle=()=>null,MessageSquare=()=>null,Send=()=>null,\n"
+                    "      Share=()=>null,Share2=()=>null,Link=()=>null,ExternalLink=()=>null,Copy=()=>null,\n"
+                    "      Download=()=>null,Upload=()=>null,Eye=()=>null,EyeOff=()=>null,\n"
+                    "      Lock=()=>null,Unlock=()=>null,Key=()=>null,Shield=()=>null,ShieldCheck=()=>null,\n"
+                    "      User=()=>null,Users=()=>null,UserPlus=()=>null,\n"
+                    "      Zap=()=>null,Flame=()=>null,Rocket=()=>null,Star=()=>null,\n"
+                    "      Heart=()=>null,ThumbsUp=()=>null,ThumbsDown=()=>null,\n"
+                    "      ShoppingBag=()=>null,ShoppingCart=()=>null,Package=()=>null,Tag=()=>null,Gift=()=>null,Store=()=>null,\n"
+                    "      Coffee=()=>null,Leaf=()=>null,Apple=()=>null,Sun=()=>null,Moon=()=>null,Cloud=()=>null,\n"
+                    "      Menu=()=>null,MoreHorizontal=()=>null,MoreVertical=()=>null,\n"
+                    "      ChevronUp=()=>null,ChevronDown=()=>null,ChevronLeft=()=>null,ChevronRight=()=>null,\n"
+                    "      Sliders=()=>null,Settings=()=>null,Settings2=()=>null,\n"
+                    "      Bot=()=>null,Code=()=>null,Code2=()=>null,Terminal=()=>null,\n"
+                    "      Server=()=>null,Database=()=>null,Wifi=()=>null,\n"
+                    "      Play=()=>null,Pause=()=>null,Circle=()=>null,\n"
+                    "      TrendingUp=()=>null,TrendingDown=()=>null,BarChart=()=>null,BarChart2=()=>null,\n"
+                    "      DollarSign=()=>null,CreditCard=()=>null,Banknote=()=>null,Wallet=()=>null,\n"
+                    "      Award=()=>null,Trophy=()=>null,Crown=()=>null,Flag=()=>null,\n"
+                    "      Calendar=()=>null,Clock=()=>null,Timer=()=>null,\n"
+                    "      Search=()=>null,Filter=()=>null,\n"
+                    "      RefreshCw=()=>null,RotateCw=()=>null,\n"
+                    "      Camera=()=>null,Image=()=>null,Video=()=>null,Music=()=>null,Mic=()=>null,Volume2=()=>null,\n"
+                    "      Lightbulb=()=>null,Brain=()=>null,Network=()=>null,\n"
+                    "      Monitor=()=>null,Laptop=()=>null,Tablet=()=>null,Smartphone=()=>null,\n"
+                    "    } = _lucide;\n"
+                    "    const useState=React.useState;\n"
+                    "    const useEffect=React.useEffect;\n"
+                    "    const useRef=React.useRef;\n"
+                    "    const useMemo=React.useMemo;\n"
+                    "    const useCallback=React.useCallback;\n"
+                    "    const useContext=React.useContext;\n"
+                    "    const createContext=React.createContext;\n"
+                    "    const useReducer=React.useReducer;\n"
+                    f"    {cleaned_jsx}\n"
+                    "    try {\n"
+                    f"      const container = document.getElementById('root');\n"
+                    f"      const reactRoot = ReactDOM.createRoot(container);\n"
+                    f"      reactRoot.render(React.createElement({comp_name}));\n"
+                    "    } catch (e) {\n"
+                    "      console.error('React mount error:', e);\n"
+                    "      document.getElementById('root').innerHTML = '<div style=\"display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0f172a;color:#f8fafc;font-family:system-ui;padding:2rem;\"><div style=\"text-align:center;\"><h2 style=\"color:#f87171;\">Preview Error</h2><p>' + e.message + '</p></div></div>';\n"
+                    "    }\n"
+                    "  </script>\n"
+                    "</body>\n</html>"
+                )
                 return Response(content=react_runner_html.encode("utf-8"), media_type="text/html")
             except Exception as e_runner:
                 logger.warning(f"In-browser React runner fallback failed: {e_runner}")
@@ -2354,7 +2412,8 @@ async def serve_live_preview(
         c_sub = request.query_params.get("subtitle") or template.short_description
         c_cta = request.query_params.get("ctaText") or "Get Started"
         from app.services.template_synthesizer import analyze_prompt_intent
-        domain_profile = analyze_prompt_intent(prompt=c_title, industry_hint=b_name)
+        domain_prompt_hint = f"{c_title} {template.short_description or ''} {template.description or ''} {template.industry or ''}"
+        domain_profile = analyze_prompt_intent(prompt=domain_prompt_hint, industry_hint=template.industry or b_name, business_title_hint=b_name)
         hero_bg_url = domain_profile.hero_image
         gallery_1 = domain_profile.gallery_images[0] if len(domain_profile.gallery_images) > 0 else domain_profile.hero_image
         gallery_2 = domain_profile.gallery_images[1] if len(domain_profile.gallery_images) > 1 else domain_profile.hero_image
@@ -2844,6 +2903,18 @@ async def serve_live_preview(
             serve_root = preview_dir
             build_dir = None
 
+            # Detect if this template is pure HTML / static
+            template_fw_str = (template.framework.value if template.framework else "").lower()
+            is_html_template = template_fw_str in ("html", "vanilla", "static")
+
+            if is_html_template:
+                # Pure HTML templates run instantly in browser without Node/Vite compilation
+                package_json_path = None
+                if os.path.exists(os.path.join(preview_dir, "frontend", "index.html")):
+                    serve_root = os.path.join(preview_dir, "frontend")
+                else:
+                    serve_root = preview_dir
+
             if package_json_path:
                 project_root = os.path.dirname(package_json_path)
 
@@ -3063,12 +3134,9 @@ async def serve_live_preview(
                                         src_dir = os.path.join(project_root, "src")
                                         if os.path.isdir(src_dir):
                                             src_files = os.listdir(src_dir)
-                                            for entry_cand in ["main.js", "main.jsx", "main.ts", "main.tsx", "index.js", "index.jsx", "index.ts", "index.tsx"]:
+                                            for entry_cand in ["main.jsx", "main.tsx", "main.js", "main.ts", "index.jsx", "index.tsx", "index.js", "index.ts"]:
                                                 if entry_cand in src_files:
-                                                    for other_cand in ["main.js", "main.jsx", "main.ts", "main.tsx"]:
-                                                        if f"/src/{other_cand}" in h_c and other_cand != entry_cand and other_cand not in src_files:
-                                                            h_c = h_c.replace(f"/src/{other_cand}", f"/src/{entry_cand}")
-                                                            break
+                                                    h_c = re.sub(r'src=["\'](?:\./)?(?:src/)?(?:main|index)\.[a-zA-Z0-9]+["\']', f'src="./src/{entry_cand}"', h_c)
                                                     break
 
                                         repaired_c = repair_truncated_html(h_c)
@@ -3156,6 +3224,10 @@ async def serve_live_preview(
 
             if build_dir:
                 serve_root = build_dir
+            elif os.path.exists(os.path.join(project_root, "index.html")):
+                # The generator crafted a complete standalone responsive HTML with Tailwind CDN & full domain content in project_root.
+                # Serve this actual generated user template instead of falling back to a generic template!
+                serve_root = project_root
             elif package_json_path:
                 return await serve_fallback("Preview compilation fallback")
             else:

@@ -168,7 +168,8 @@ DEBUGGING & REPAIR INSTRUCTIONS:
             response = await self.ai_service._generate_content(
                 prompt=prompt,
                 response_mime_type="text/plain",
-                feature_name="code_debugging_agent"
+                feature_name="code_debugging_agent",
+                preferred_provider=getattr(settings, "AGENT_CODE_DEBUGGING_AGENT_PROVIDER", "gemini")
             )
             repaired_code = clean_code_response(response, ext)
 
@@ -308,12 +309,9 @@ DEBUGGING & REPAIR INSTRUCTIONS:
                     src_p = os.path.join(project_root, "src")
                     if os.path.isdir(src_p):
                         src_files = os.listdir(src_p)
-                        for entry_cand in ["main.js", "main.jsx", "main.ts", "main.tsx", "index.js", "index.jsx", "index.ts", "index.tsx"]:
+                        for entry_cand in ["main.jsx", "main.tsx", "main.js", "main.ts", "index.jsx", "index.tsx", "index.js", "index.ts"]:
                             if entry_cand in src_files:
-                                for other_cand in ["main.js", "main.jsx", "main.ts", "main.tsx"]:
-                                    if f"/src/{other_cand}" in h_content and other_cand != entry_cand and other_cand not in src_files:
-                                        h_content = h_content.replace(f"/src/{other_cand}", f"/src/{entry_cand}")
-                                        break
+                                h_content = re.sub(r'src=["\'](?:\./)?(?:src/)?(?:main|index)\.[a-zA-Z0-9]+["\']', f'src="./src/{entry_cand}"', h_content)
                                 break
 
                     if h_content != orig_h:
@@ -327,6 +325,41 @@ DEBUGGING & REPAIR INSTRUCTIONS:
             failing_files = self.extract_failing_files_from_error(project_root, current_error_log, framework=framework)
             logger.info(f"🔍 [AI Debugger] Identified {len(failing_files)} potentially failing file(s): {failing_files}")
 
+            def run_build_check():
+                return subprocess.run(
+                    build_cmd,
+                    cwd=project_root,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+
+            # Step 1: Fast Heuristic AST Repair pass (instant syntax healing without LLM latency)
+            heuristic_repaired = False
+            for fpath in failing_files:
+                try:
+                    if not os.path.exists(fpath) or os.path.isdir(fpath):
+                        continue
+                    with open(fpath, "r", encoding="utf-8", errors="ignore") as f:
+                        original_code = f.read()
+                    f_ext = os.path.splitext(fpath)[1].lower()
+                    quick_fix = self.sanitize_code_heuristics(original_code, f_ext, framework)
+                    if quick_fix and quick_fix != original_code:
+                        with open(fpath, "w", encoding="utf-8") as f:
+                            f.write(quick_fix)
+                        rel_name = os.path.relpath(fpath, project_root)
+                        repaired_files[rel_name] = quick_fix
+                        heuristic_repaired = True
+                        logger.info(f"⚡ [AI Debugger] Applied instant AST heuristic repair to {rel_name}")
+                except Exception as e_heur:
+                    logger.warning(f"AST heuristic pass skipped for {fpath}: {e_heur}")
+
+            if heuristic_repaired:
+                build_res = await loop.run_in_executor(None, run_build_check)
+                if build_res.returncode == 0:
+                    logger.info(f"🎉 [AI Debugger] Build SUCCEEDED via instant AST heuristic healing!")
+                    return True, "Build succeeded after instant AST syntax self-repair.", repaired_files
+
+            # Step 2: Full AI-driven Debugging Agent pass for remaining issues
             for fpath in failing_files:
                 try:
                     if not os.path.exists(fpath) or os.path.isdir(fpath):
@@ -335,7 +368,6 @@ DEBUGGING & REPAIR INSTRUCTIONS:
                     with open(fpath, "r", encoding="utf-8", errors="ignore") as f:
                         original_code = f.read()
 
-                    # 1. Run AI Debugger on the file with framework context
                     rel_name = os.path.relpath(fpath, project_root)
                     fixed_code = await self.debug_code_with_ai(
                         code=original_code,

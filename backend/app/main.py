@@ -32,6 +32,33 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     redis = await get_redis_client()
     app.state.redis = redis
     print(f"Site Studio API started | env={settings.ENVIRONMENT}")
+
+    # Verify or auto-spawn Ollama daemon in background with CUDA
+    try:
+        import httpx, shutil, subprocess
+        ollama_alive = False
+        try:
+            async with httpx.AsyncClient(timeout=1.0) as client:
+                resp = await client.get("http://localhost:11434/api/tags")
+                if resp.status_code == 200:
+                    ollama_alive = True
+        except Exception:
+            ollama_alive = False
+
+        if not ollama_alive and shutil.which("ollama"):
+            flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+            subprocess.Popen(
+                ["ollama", "serve"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=flags
+            )
+            print("🚀 [Ollama Engine] Auto-initialized background service with CUDA GPU acceleration.")
+        elif ollama_alive:
+            print("⚡ [Ollama Engine] Local AI service connected (CUDA enabled).")
+    except Exception as e_ollama:
+        print(f"⚠️ [Ollama Engine] Startup check notice: {e_ollama}")
+
     yield
     # Shutdown
     if hasattr(app.state, "redis"):

@@ -110,15 +110,23 @@ class Settings(BaseSettings):
 
     # ── Multi-Model Swarm Provider Assignments ────────────────────────────────
     # Primary AI provider across all features & agents:
-    # Set to 'kimi' for full Kimi (Moonshot) pipeline execution
+    # Set to 'kimi', 'gemini', 'ollama', or 'openrouter'
     AI_PRIMARY_PROVIDER: str = "kimi"
-    AGENT_PLANNING_PROVIDER: str = "kimi"
-    AGENT_DESIGNER_PROVIDER: str = "kimi"
-    AGENT_FRONTEND_PROVIDER: str = "kimi"
-    AGENT_BACKEND_PROVIDER: str = "kimi"
-    AGENT_DATABASE_PROVIDER: str = "kimi"
-    AGENT_SEO_PROVIDER: str = "kimi"
-    AGENT_TESTING_PROVIDER: str = "kimi"
+    AGENT_PLANNING_PROVIDER: str = "gemini"
+    AGENT_DESIGNER_PROVIDER: str = "ollama"
+    AGENT_FRONTEND_PROVIDER: str = "gemini"  # gemini is most reliable for JSX/HTML code gen
+    AGENT_BACKEND_PROVIDER: str = "gemini"   # gemini fallback (cline=Ollama which may be offline)
+    AGENT_DATABASE_PROVIDER: str = "gemini"  # gemini fallback
+    AGENT_SEO_PROVIDER: str = "ollama"
+    AGENT_TESTING_PROVIDER: str = "gemini"
+    AGENT_CODE_DEBUGGING_AGENT_PROVIDER: str = "gemini"
+
+    # ── Ollama (Local AI Engine - Qwen / DeepSeek) ────────────────────────────
+    OLLAMA_BASE_URL: str = "http://localhost:11434/v1"
+    OLLAMA_MODEL: str = "qwen2.5:latest"
+    OLLAMA_MODEL_DESIGNER: str = "qwen2.5:latest"
+    OLLAMA_MODEL_SEO: str = "qwen2.5:latest"
+    OLLAMA_MODEL_CODE: str = "qwen2.5-coder:7b"  # coding-specialized model for better code gen
 
     # ── OpenRouter (Free and Paid community & flagship models) ────────────────
     OPENROUTER_API_KEY: str = ""

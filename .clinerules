@@ -1,0 +1,65 @@
+# ==============================================================================
+# AI SITE STUDIO — CLINE AGENT RULES (.clinerules)
+# Architecture: 8-Stage Specialized AI Agents Swarm
+# Engines: Ollama (Qwen 2.5:7b, Qwen 2.5-Coder:7b) + Google Gemini
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. CORE ARCHITECTURAL DIRECTIVES & ROLE
+# ------------------------------------------------------------------------------
+You are acting as a Senior AI Architect, Senior AI Engineer, and Lead Full-Stack Developer for AI Site Studio.
+When generating, refactoring, or auditing code:
+1. NEVER output truncated placeholders (e.g. `// TODO: add remaining items`, `...rest of code`).
+2. Always write 100% complete, runnable, production-ready code.
+3. Keep tokens optimized by making targeted line edits rather than rewriting large unaffected files.
+
+# ------------------------------------------------------------------------------
+# 2. 8-STAGE SPECIALIZED AI AGENTS SWARM PROTOCOL
+# ------------------------------------------------------------------------------
+All template synthesis and code generation must strictly comply with the 8-stage swarm pipeline:
+- [1/8] Planning Agent: Business domain, value proposition, and ordered pages list.
+- [2/8] UI Designer Agent: Design tokens, primary/secondary/accent hex palette, Google Fonts pairing.
+- [3/8] Frontend Developer Agent: Multi-page high-fidelity React (or Vue/HTML5) UI components.
+- [4/8] Backend Developer Agent: Dedicated standalone FastAPI/Express REST API (`main.py` with CORS).
+- [5/8] Database Architect Agent: SQLite table schemas and realistic `seed.py` data.
+- [6/8] SEO & Accessibility Agent: Dynamic meta tags, OpenGraph, Twitter cards, and Schema.org JSON-LD.
+- [7/8] Testing & Audit Agent: Automated syntax validation and ZIP tech stack audit.
+- [8/8] Deployment Agent: Packaging into `frontend/`, `backend/`, and `README.md` archive.
+
+# ------------------------------------------------------------------------------
+# 3. OLLAMA & MODEL ROUTING CONFIGURATION
+# ------------------------------------------------------------------------------
+- Local Engine: Ollama OpenAI-compatible endpoint at `http://localhost:11434/v1`.
+- Designer & UI Tokens: `qwen2.5:7b` (High creative variance, strict JSON compliance).
+- SEO & Structured Data: `qwen2.5:7b` (Schema.org JSON-LD, OpenGraph, high-ranking meta keywords).
+- Code Synthesis & Refactoring: `qwen2.5-coder:7b` or `qwen2.5-coder:14b` via Cline.
+- Planning & Long Context: Google Gemini (`gemini-1.5-flash` / `gemini-2.5-flash`).
+
+# ------------------------------------------------------------------------------
+# 4. TEMPLATE QUALITY & FULL-STACK RULES (ZERO FAILS)
+# ------------------------------------------------------------------------------
+1. COMPLETE PAGE DELIVERY (ZERO MISSING PAGES):
+   - Every page referenced in navigation, drawers, or footers (`index.html`, `about.html`, `services.html`, `contact.html`, `portfolio.html`, etc.) MUST physically exist and contain rich, domain-authentic content.
+2. 100% WORKING RELATIVE LINKS:
+   - Navigation links and CTA buttons must link directly to target pages (`href="services.html"`). Never use broken anchor `#` tags.
+   - The active navigation tab must have a visual glow or active border.
+3. COMPLETE STANDALONE BACKEND INTEGRATION:
+   - Always include a working standalone REST API (`backend/main.py`) with:
+     * CORS middleware enabled (`allow_origins=["*"]`).
+     * `GET /api/health` -> `{"status": "ok"}`
+     * `POST /api/contact` -> accepts `name`, `email`, `message`, saves to SQLite `app.db`.
+     * `POST /api/newsletter` -> email subscription handler.
+4. RICH REAL-WORLD PHOTOGRAPHY:
+   - Use high-resolution Unsplash CDN URLs (`https://images.unsplash.com/photo-...`). Never leave `src=""` empty or use broken placeholders.
+
+# ------------------------------------------------------------------------------
+# 5. FRONTEND & REPOSITORY CONVENTIONS
+# ------------------------------------------------------------------------------
+1. REACT ROUTER v8 IMPORT RULE:
+   - ALWAYS import React Router hooks and components from `"react-router-dom"`:
+     `import { useNavigate, useLocation, Link } from "react-router-dom";`
+   - Never import from `"react-router"` directly, as Vite is aliased to `"react-router-dom"`.
+2. PATHS:
+   - Frontend pages live in `frontend/src/app/<route>/page.jsx`.
+   - Backend routes live in `backend/app/api/v1/routes/`.
+   - Python virtual environment is located at `backend/.venv/Scripts/python.exe`.

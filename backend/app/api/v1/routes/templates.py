@@ -712,7 +712,7 @@ async def generate_template_by_prompt(
 
 def scaffold_react_multipage_files(
     app_jsx_code: str,
-    pages: List[str],
+    pages: Any,
     title: str,
     color_scheme: str,
     industry: str,
@@ -720,24 +720,53 @@ def scaffold_react_multipage_files(
     thumbnail_url: str = "",
 ) -> Dict[str, str]:
     """
-    Ensures that every page listed in `pages` physically exists as an individual
-    React component file in `src/pages/<PageName>.jsx`, along with `src/components/Navbar.jsx`,
-    `src/components/Footer.jsx`, and a master `src/App.jsx` router.
+    Ensures that every page listed in `pages` physically exists as an individual,
+    richly styled React component in `src/pages/<PageName>.jsx`, along with
+    `src/components/Navbar.jsx`, `src/components/Footer.jsx`, and master `src/App.jsx` router.
+    Tailors components to 12+ specialized page archetypes (Dashboard, Canvas, Catalog, Pricing,
+    Menu, Reservations, Docs, Estimator, Case Studies, etc.) based on user intent.
     """
     import re
     files = {}
-    
-    # 1. Navbar component
+
+    parsed_pages = []
+    for p in (pages or []):
+        if isinstance(p, dict):
+            p_name = p.get("name") or p.get("title") or "Page"
+            p_summary = p.get("summary", "")
+            p_type = p.get("page_type", "")
+        else:
+            p_name = str(p)
+            p_summary = ""
+            p_type = ""
+        clean_slug = re.sub(r'[^a-zA-Z0-9]+', '-', p_name.lower()).strip("-") or "page"
+        parsed_pages.append({
+            "name": p_name,
+            "summary": p_summary,
+            "type": p_type,
+            "slug": clean_slug
+        })
+
+    if not parsed_pages:
+        parsed_pages = [
+            {"name": "Home", "summary": "Overview and hero", "type": "home", "slug": "home"},
+            {"name": "Capabilities", "summary": "Core features and solutions", "type": "features", "slug": "capabilities"},
+            {"name": "Pricing", "summary": "Plans and subscriptions", "type": "pricing", "slug": "pricing"},
+            {"name": "Contact", "summary": "Inquiries and support", "type": "contact", "slug": "contact"}
+        ]
+
+    # 1. Navbar component with dynamic links for all planned pages
     nav_links = []
-    for p in pages:
-        state_key = p.lower().replace(" ", "-")
+    for pg in parsed_pages:
+        slug = pg["slug"]
+        name = pg["name"]
         nav_links.append(f"""          <button
-            onClick={{() => setCurrentPage('{state_key}')}}
+            onClick={{() => setCurrentPage('{slug}')}}
             className={{`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all ${{
-              currentPage === '{state_key}' ? 'text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 font-bold' : 'text-slate-300 hover:text-white'
+              currentPage === '{slug}' ? 'text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 font-bold' : 'text-slate-300 hover:text-white'
             }}`}}
           >
-            {p}
+            {name}
           </button>""")
     nav_links_str = "\n".join(nav_links)
 
@@ -750,18 +779,18 @@ export default function Navbar({{ currentPage, setCurrentPage }}) {{
   return (
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-slate-950/85 border-b border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-3 cursor-pointer" onClick={{() => setCurrentPage('home')}}>
+        <div className="flex items-center gap-3 cursor-pointer" onClick={{() => setCurrentPage('{parsed_pages[0]["slug"]}')}}>
           {f'<img src="{developer_avatar}" alt="{title}" className="w-8 h-8 rounded-lg object-cover" />' if developer_avatar else '<div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-indigo-500 flex items-center justify-center font-bold text-white text-sm">AI</div>'}
           <span className="font-extrabold tracking-wide text-base text-white">{title}</span>
         </div>
 
-        <nav className="hidden md:flex items-center gap-2">
+        <nav className="hidden md:flex items-center gap-1.5 overflow-x-auto max-w-2xl py-1">
 {nav_links_str}
         </nav>
 
-        <div className="hidden md:flex items-center">
+        <div className="hidden lg:flex items-center">
           <button
-            onClick={{() => setCurrentPage('contact')}}
+            onClick={{() => setCurrentPage('{parsed_pages[-1]["slug"]}')}}
             className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 transition-all flex items-center gap-1.5"
           >
             <span>Get Started</span>
@@ -795,7 +824,7 @@ export default function Footer({{ currentPage, setCurrentPage }}) {{
         <div>
           <h4 className="text-white font-bold text-base mb-3">{title}</h4>
           <p className="text-xs text-slate-400 leading-relaxed">
-            Engineered with modern full-stack performance, responsive styling, and robust architecture.
+            Engineered with high performance, verified domain design, and modern component architecture.
           </p>
         </div>
         <div>
@@ -813,9 +842,9 @@ export default function Footer({{ currentPage, setCurrentPage }}) {{
           </div>
         </div>
         <div>
-          <h5 className="text-white font-semibold text-xs uppercase tracking-wider mb-3">Newsletter</h5>
+          <h5 className="text-white font-semibold text-xs uppercase tracking-wider mb-3">Stay Updated</h5>
           <div className="flex gap-2">
-            <input placeholder="Enter email..." className="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-xs text-white" />
+            <input placeholder="Enter work email..." className="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-xs text-white" />
             <button className="px-3 py-2 bg-cyan-500 text-slate-950 font-bold rounded-lg text-xs">Join</button>
           </div>
         </div>
@@ -831,218 +860,384 @@ export default function Footer({{ currentPage, setCurrentPage }}) {{
     # 3. Individual Page Components in src/pages/
     page_imports = []
     page_switches = []
-    
-    for p in pages:
-        p_clean = re.sub(r'[^a-zA-Z0-9]+', '', p.title())
+
+    for pg in parsed_pages:
+        p_name = pg["name"]
+        p_summary = pg["summary"] or f"Production-grade {p_name} interface engineered for {industry}."
+        p_type = pg["type"]
+        state_key = pg["slug"]
+        p_clean = re.sub(r'[^a-zA-Z0-9]+', '', p_name.title())
         comp_name = f"{p_clean}Page"
-        state_key = p.lower().replace(" ", "-")
         page_file = f"src/pages/{comp_name}.jsx"
+
         page_imports.append(f"import {comp_name} from './pages/{comp_name}.jsx';")
         page_switches.append(f"        {{currentPage === '{state_key}' && <{comp_name} setCurrentPage={{setCurrentPage}} />}}")
 
-        # Create distinct, rich page component tailored to the specific page type
-        p_name_lower = p.lower()
-        if "about" in p_name_lower:
-            page_body_jsx = f"""      <!-- About Page Hero & Vision -->
-      <div className="text-center max-w-3xl mx-auto mb-16">
+        match_str = f"{p_name.lower()} {p_type.lower()} {p_summary.lower()}"
+
+        # Archetype A: Canvas / Workflow / Studio / Playground / Node Builder
+        if any(w in match_str for w in ["canvas", "workflow", "studio", "playground", "pipeline", "builder", "node"]):
+            page_body_jsx = f"""      <!-- Workflow & Canvas Studio -->
+      <div className="text-center max-w-3xl mx-auto mb-12">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono mb-4">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>Our Journey & Vision</span>
+          <Cpu className="w-3.5 h-3.5" />
+          <span>Interactive Visual Engine</span>
         </div>
         <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">
-          About {title}
+          {p_name}
         </h1>
         <p className="text-sm sm:text-base text-slate-400 leading-relaxed">
-          Pioneering innovation in {industry}. Building world-class solutions with passionate engineers, designers, and domain specialists.
+          {p_summary}
         </p>
       </div>
 
-      <!-- Leadership Team Grid -->
-      <div className="mb-20">
-        <h2 className="text-2xl font-bold text-white mb-8 text-center">Meet Our Leadership Team</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-white/10 text-center hover:border-cyan-500/40 transition-all">
-            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80" alt="CEO" className="w-20 h-20 rounded-full mx-auto mb-4 object-cover border-2 border-cyan-500/40" />
-            <h3 className="text-lg font-bold text-white">Alex Rivera</h3>
-            <p className="text-xs text-cyan-400 font-mono mb-2">Founder & Executive Director</p>
-            <p className="text-xs text-slate-400">10+ years driving strategy, platform growth, and technical architecture.</p>
+      <!-- Node Graph Simulator -->
+      <div className="p-8 rounded-3xl bg-slate-900/80 border border-white/10 mb-12 shadow-2xl">
+        <div className="flex items-center justify-between pb-6 mb-8 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <span className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="text-xs font-mono text-slate-300">Cluster: Active (Low Latency)</span>
           </div>
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-white/10 text-center hover:border-cyan-500/40 transition-all">
-            <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80" alt="CTO" className="w-20 h-20 rounded-full mx-auto mb-4 object-cover border-2 border-cyan-500/40" />
-            <h3 className="text-lg font-bold text-white">Elena Rostova</h3>
-            <p className="text-xs text-cyan-400 font-mono mb-2">VP of Product & Design</p>
-            <p className="text-xs text-slate-400">Specializing in high-converting interactive UX and design systems.</p>
+          <div className="flex items-center gap-2">
+            <button className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-slate-300 hover:text-white">Auto Layout</button>
+            <button className="px-4 py-1.5 rounded-lg bg-cyan-500 text-slate-950 font-bold text-xs hover:bg-cyan-400">Run Flow</button>
           </div>
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-white/10 text-center hover:border-cyan-500/40 transition-all">
-            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80" alt="Lead Engineer" className="w-20 h-20 rounded-full mx-auto mb-4 object-cover border-2 border-cyan-500/40" />
-            <h3 className="text-lg font-bold text-white">Marcus Vance</h3>
-            <p className="text-xs text-cyan-400 font-mono mb-2">Head of Infrastructure</p>
-            <p className="text-xs text-slate-400">Architecting cloud resilience, API speed, and enterprise reliability.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
+          <div className="p-5 rounded-2xl bg-slate-950 border border-cyan-500/40 text-center shadow-lg shadow-cyan-500/5">
+            <span className="text-[10px] font-mono text-cyan-400 uppercase font-semibold">Step 01: Ingestion</span>
+            <h4 className="text-sm font-bold text-white mt-1 mb-2">Event Source</h4>
+            <p className="text-xs text-slate-400">REST API / Webhook payload intake</p>
+          </div>
+          <div className="text-center text-cyan-400 font-bold text-xl hidden md:block">&rarr;</div>
+          <div className="p-5 rounded-2xl bg-slate-950 border border-indigo-500/40 text-center shadow-lg shadow-indigo-500/5">
+            <span className="text-[10px] font-mono text-indigo-400 uppercase font-semibold">Step 02: Processing</span>
+            <h4 className="text-sm font-bold text-white mt-1 mb-2">Neural Engine</h4>
+            <p className="text-xs text-slate-400">Multi-agent context synthesis</p>
+          </div>
+          <div className="text-center text-cyan-400 font-bold text-xl hidden md:block">&rarr;</div>
+          <div className="p-5 rounded-2xl bg-slate-950 border border-emerald-500/40 text-center shadow-lg shadow-emerald-500/5">
+            <span className="text-[10px] font-mono text-emerald-400 uppercase font-semibold">Step 03: Delivery</span>
+            <h4 className="text-sm font-bold text-white mt-1 mb-2">Execution Output</h4>
+            <p className="text-xs text-slate-400">Dispatched in 14ms</p>
           </div>
         </div>
       </div>"""
-        elif "service" in p_name_lower or "offering" in p_name_lower:
-            page_body_jsx = f"""      <!-- Services Page -->
-      <div className="text-center max-w-3xl mx-auto mb-16">
+
+        # Archetype B: Dashboard / Telemetry / Analytics / Metrics / Status
+        elif any(w in match_str for w in ["dashboard", "telemetry", "analytics", "status", "metrics", "monitor", "logs"]):
+            page_body_jsx = f"""      <!-- Real-Time Telemetry & Status -->
+      <div className="text-center max-w-3xl mx-auto mb-12">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono mb-4">
-          <Zap className="w-3.5 h-3.5" />
-          <span>Our Solutions & Services</span>
+          <Activity className="w-3.5 h-3.5" />
+          <span>Real-Time System Telemetry</span>
         </div>
         <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">
-          Services Offered by {title}
+          {p_name}
         </h1>
         <p className="text-sm sm:text-base text-slate-400 leading-relaxed">
-          Tailored offerings for {industry} organizations seeking speed, scalability, and measurable ROI.
+          {p_summary}
+        </p>
+      </div>
+
+      <!-- Metrics KPI Grid -->
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div className="p-6 rounded-2xl bg-slate-900/60 border border-white/10">
+          <span className="text-xs font-mono text-slate-400">Operational Uptime</span>
+          <h3 className="text-3xl font-extrabold text-white mt-2 mb-1">99.99%</h3>
+          <span className="text-xs text-emerald-400 flex items-center gap-1 font-semibold">&uarr; Past 90 days verified</span>
+        </div>
+        <div className="p-6 rounded-2xl bg-slate-900/60 border border-white/10">
+          <span className="text-xs font-mono text-slate-400">Processed Invocations</span>
+          <h3 className="text-3xl font-extrabold text-white mt-2 mb-1">18.4M</h3>
+          <span className="text-xs text-cyan-400 flex items-center gap-1 font-semibold">&uarr; +24% this week</span>
+        </div>
+        <div className="p-6 rounded-2xl bg-slate-900/60 border border-white/10">
+          <span className="text-xs font-mono text-slate-400">P99 Response Latency</span>
+          <h3 className="text-3xl font-extrabold text-white mt-2 mb-1">14ms</h3>
+          <span className="text-xs text-emerald-400 flex items-center gap-1 font-semibold">&radic; Sub-millisecond edge</span>
+        </div>
+        <div className="p-6 rounded-2xl bg-slate-900/60 border border-white/10">
+          <span className="text-xs font-mono text-slate-400">Active Node Instances</span>
+          <h3 className="text-3xl font-extrabold text-white mt-2 mb-1">128</h3>
+          <span className="text-xs text-indigo-400 flex items-center gap-1 font-semibold">Globally distributed</span>
+        </div>
+      </div>
+
+      <!-- Live Activity Stream -->
+      <div className="p-6 rounded-2xl bg-slate-900/60 border border-white/10 font-mono text-xs">
+        <h4 className="text-white font-bold mb-4 font-sans text-sm">Live System Stream</h4>
+        <div className="space-y-2 text-slate-400">
+          <div className="flex items-center justify-between border-b border-white/5 py-1.5"><span className="text-emerald-400">[SUCCESS] Neural pipeline synchronized</span><span>0.4s ago</span></div>
+          <div className="flex items-center justify-between border-b border-white/5 py-1.5"><span className="text-cyan-400">[TELEMETRY] Edge gateway routing 12.4k req/sec</span><span>1.2s ago</span></div>
+          <div className="flex items-center justify-between py-1.5"><span className="text-indigo-400">[HEALTH] Global cluster verification 100% nominal</span><span>2.8s ago</span></div>
+        </div>
+      </div>"""
+
+        # Archetype C: Pricing / Plans / Tiers / Subscriptions
+        elif any(w in match_str for w in ["pricing", "plan", "tier", "subscription", "membership"]):
+            page_body_jsx = f"""      <!-- Pricing Matrix -->
+      <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono mb-4">
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>Transparent & Scalable Plans</span>
+        </div>
+        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">
+          {p_name}
+        </h1>
+        <p className="text-sm sm:text-base text-slate-400 leading-relaxed">
+          {p_summary}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+        <div className="p-8 rounded-3xl bg-slate-900/60 border border-white/10 flex flex-col justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-white mb-2">Starter Tier</h3>
+            <p className="text-xs text-slate-400 mb-6">Ideal for independent founders & early exploration.</p>
+            <div className="text-4xl font-extrabold text-white mb-6">$29<span className="text-sm font-normal text-slate-400">/mo</span></div>
+            <ul className="space-y-3 text-xs text-slate-300">
+              <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400" /> Up to 5 Active Workspaces</li>
+              <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400" /> Standard Latency Queue</li>
+              <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400" /> Community Discord Support</li>
+            </ul>
+          </div>
+          <button className="mt-8 w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-all">Get Started</button>
+        </div>
+
+        <div className="p-8 rounded-3xl bg-slate-900/90 border-2 border-cyan-500 shadow-2xl shadow-cyan-500/10 flex flex-col justify-between relative">
+          <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-cyan-500 text-slate-950 font-bold text-[10px] tracking-wider uppercase">Most Popular</span>
+          <div>
+            <h3 className="text-lg font-bold text-white mb-2">Professional</h3>
+            <p className="text-xs text-slate-400 mb-6">Engineered for scaling teams and high-traffic workloads.</p>
+            <div className="text-4xl font-extrabold text-white mb-6">$89<span className="text-sm font-normal text-slate-400">/mo</span></div>
+            <ul className="space-y-3 text-xs text-slate-300">
+              <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400" /> Unlimited Workspaces</li>
+              <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400" /> Dedicated High-Throughput Cluster</li>
+              <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400" /> 24/7 Priority SLA Response</li>
+              <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400" /> Custom Domain & Webhooks</li>
+            </ul>
+          </div>
+          <button className="mt-8 w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/25 transition-all">Start 14-Day Trial</button>
+        </div>
+
+        <div className="p-8 rounded-3xl bg-slate-900/60 border border-white/10 flex flex-col justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-white mb-2">Enterprise</h3>
+            <p className="text-xs text-slate-400 mb-6">Custom deployment, VPC peering, and enterprise compliance.</p>
+            <div className="text-4xl font-extrabold text-white mb-6">Custom</div>
+            <ul className="space-y-3 text-xs text-slate-300">
+              <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400" /> Air-gapped on-prem deployment</li>
+              <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400" /> SOC2 Type II Certified</li>
+              <li className="flex items-center gap-2"><Check className="w-4 h-4 text-cyan-400" /> Dedicated Solutions Architect</li>
+            </ul>
+          </div>
+          <button className="mt-8 w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-all">Talk to Sales</button>
+        </div>
+      </div>"""
+
+        # Archetype D: Catalog / Products / Storefront / Goods
+        elif any(w in match_str for w in ["catalog", "product", "shop", "store", "collection", "goods"]):
+            page_body_jsx = f"""      <!-- Store & Catalog Showcase -->
+      <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono mb-4">
+          <ShoppingBag className="w-3.5 h-3.5" />
+          <span>Curated Signature Collection</span>
+        </div>
+        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">
+          {p_name}
+        </h1>
+        <p className="text-sm sm:text-base text-slate-400 leading-relaxed">
+          {p_summary}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+        <div className="rounded-2xl bg-slate-900/60 border border-white/10 overflow-hidden group hover:border-cyan-500/40 transition-all">
+          <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80" alt="Item 1" className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500" />
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs font-mono text-cyan-400">Limited Reserve</span>
+              <span className="text-sm font-bold text-white">$149.00</span>
+            </div>
+            <h3 className="text-base font-bold text-white mb-2">Signature Edition</h3>
+            <p className="text-xs text-slate-400 mb-4">Handcrafted precision with verified materials.</p>
+            <button className="w-full py-2.5 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs hover:bg-cyan-400">Add to Cart</button>
+          </div>
+        </div>
+        <div className="rounded-2xl bg-slate-900/60 border border-white/10 overflow-hidden group hover:border-cyan-500/40 transition-all">
+          <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80" alt="Item 2" className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500" />
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs font-mono text-cyan-400">Flagship</span>
+              <span className="text-sm font-bold text-white">$219.00</span>
+            </div>
+            <h3 className="text-base font-bold text-white mb-2">Acoustic Master</h3>
+            <p className="text-xs text-slate-400 mb-4">Pure fidelity with lossless acoustic transmission.</p>
+            <button className="w-full py-2.5 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs hover:bg-cyan-400">Add to Cart</button>
+          </div>
+        </div>
+        <div className="rounded-2xl bg-slate-900/60 border border-white/10 overflow-hidden group hover:border-cyan-500/40 transition-all">
+          <img src="https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=600&q=80" alt="Item 3" className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500" />
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs font-mono text-cyan-400">Exclusive</span>
+              <span className="text-sm font-bold text-white">$189.00</span>
+            </div>
+            <h3 className="text-base font-bold text-white mb-2">Kinetic Chrono</h3>
+            <p className="text-xs text-slate-400 mb-4">Aerospace alloy casing with sapphire glass.</p>
+            <button className="w-full py-2.5 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs hover:bg-cyan-400">Add to Cart</button>
+          </div>
+        </div>
+      </div>"""
+
+        # Archetype E: Menu / Dining / Dishes / Food / Beverages
+        elif any(w in match_str for w in ["menu", "dining", "dish", "food", "tasting", "cellar", "beverage"]):
+            page_body_jsx = f"""      <!-- Dining & Menu Offerings -->
+      <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono mb-4">
+          <Coffee className="w-3.5 h-3.5" />
+          <span>Artisanal Flavor Profiles</span>
+        </div>
+        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">
+          {p_name}
+        </h1>
+        <p className="text-sm sm:text-base text-slate-400 leading-relaxed">
+          {p_summary}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+        <div className="p-6 rounded-2xl bg-slate-900/60 border border-white/10 flex justify-between items-start">
+          <div>
+            <h3 className="text-base font-bold text-white">Chef's Seasonal Tasting Flight</h3>
+            <p className="text-xs text-slate-400 mt-1">Four distinct estate-curated courses paired with vintage preserves.</p>
+            <span className="inline-block mt-3 px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Organic &middot; Farm Direct</span>
+          </div>
+          <span className="text-base font-bold text-amber-400">$65</span>
+        </div>
+        <div className="p-6 rounded-2xl bg-slate-900/60 border border-white/10 flex justify-between items-start">
+          <div>
+            <h3 className="text-base font-bold text-white">Single-Origin Reserve Pour</h3>
+            <p className="text-xs text-slate-400 mt-1">High-altitude micro-lot with notes of jasmine, stone fruit, and dark cocoa.</p>
+            <span className="inline-block mt-3 px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/10 text-amber-400 border border-amber-500/20">Rare Micro-Lot</span>
+          </div>
+          <span className="text-base font-bold text-amber-400">$22</span>
+        </div>
+      </div>"""
+
+        # Archetype F: Booking / Reservation / Appointment / Schedule
+        elif any(w in match_str for w in ["reservation", "booking", "appointment", "schedule", "calendar"]):
+            page_body_jsx = f"""      <!-- Interactive Booking Engine -->
+      <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono mb-4">
+          <Calendar className="w-3.5 h-3.5" />
+          <span>Instant Confirmation Booking</span>
+        </div>
+        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">
+          {p_name}
+        </h1>
+        <p className="text-sm sm:text-base text-slate-400 leading-relaxed">
+          {p_summary}
+        </p>
+      </div>
+
+      <div className="max-w-2xl mx-auto p-8 rounded-3xl bg-slate-900/80 border border-white/10 shadow-2xl">
+        <form onSubmit={{(e) => {{ e.preventDefault(); alert('Booking confirmed! A notification has been sent.'); }}}} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Preferred Date</label>
+              <input required type="date" className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Time Slot</label>
+              <select className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 outline-none">
+                <option>10:00 AM - 11:30 AM</option>
+                <option>02:00 PM - 03:30 PM</option>
+                <option>06:00 PM - 08:00 PM</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name</label>
+            <input required placeholder="Your Name" className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 outline-none" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Contact Email</label>
+            <input required type="email" placeholder="name@example.com" className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 outline-none" />
+          </div>
+          <button type="submit" className="w-full py-3.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm shadow-lg shadow-cyan-500/20 transition-all mt-4">Confirm Reservation</button>
+        </form>
+      </div>"""
+
+        # Archetype G: Docs / API / Developers / Integrations
+        elif any(w in match_str for w in ["doc", "api", "integration", "developer", "sdk", "webhook"]):
+            page_body_jsx = f"""      <!-- Developer Documentation & API -->
+      <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono mb-4">
+          <Code className="w-3.5 h-3.5" />
+          <span>Developer SDK & API</span>
+        </div>
+        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">
+          {p_name}
+        </h1>
+        <p className="text-sm sm:text-base text-slate-400 leading-relaxed">
+          {p_summary}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
+        <div className="lg:col-span-1 space-y-2 font-mono text-xs">
+          <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-bold">POST /v1/agents/execute</div>
+          <div className="p-3 rounded-xl bg-slate-900 border border-white/10 text-slate-300 hover:text-white cursor-pointer">GET /v1/telemetry/stream</div>
+          <div className="p-3 rounded-xl bg-slate-900 border border-white/10 text-slate-300 hover:text-white cursor-pointer">POST /v1/webhooks/subscribe</div>
+        </div>
+        <div className="lg:col-span-2 p-6 rounded-2xl bg-slate-950 border border-white/10 font-mono text-xs text-slate-300 overflow-x-auto shadow-2xl">
+          <div className="text-slate-500 mb-2">// Sample Request in cURL</div>
+          <pre className="text-cyan-400">curl -X POST https://api.{title.lower().replace(' ', '')}.com/v1/agents/execute \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{{"prompt": "Analyze market anomalies", "model": "neural-v4"}}'</pre>
+        </div>
+      </div>"""
+
+        # Archetype H: Default Bespoke Domain-Specific Page
+        else:
+            page_body_jsx = f"""      <!-- {p_name} Page -->
+      <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono mb-4">
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>{p_name} &middot; {industry}</span>
+        </div>
+        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">
+          {p_name}
+        </h1>
+        <p className="text-sm sm:text-base text-slate-400 leading-relaxed">
+          {p_summary}
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
         <div className="p-6 rounded-2xl bg-slate-900/60 border border-white/10 hover:border-cyan-500/40 transition-all">
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-4"><Zap className="w-5 h-5" /></div>
-          <h3 className="text-lg font-bold text-white mb-2">Custom Strategy & Consulting</h3>
-          <p className="text-xs text-slate-400 leading-relaxed mb-4">In-depth technical analysis, system audit, and roadmap development.</p>
-          <span className="text-xs font-bold text-cyan-400 cursor-pointer flex items-center gap-1 hover:gap-2 transition-all">Learn More <ArrowRight className="w-3.5 h-3.5" /></span>
-        </div>
-        <div className="p-6 rounded-2xl bg-slate-900/60 border border-white/10 hover:border-cyan-500/40 transition-all">
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-4"><Shield className="w-5 h-5" /></div>
-          <h3 className="text-lg font-bold text-white mb-2">Enterprise Implementation</h3>
-          <p className="text-xs text-slate-400 leading-relaxed mb-4">Full lifecycle build, integration, and security deployment for your workflows.</p>
-          <span className="text-xs font-bold text-cyan-400 cursor-pointer flex items-center gap-1 hover:gap-2 transition-all">Learn More <ArrowRight className="w-3.5 h-3.5" /></span>
-        </div>
-        <div className="p-6 rounded-2xl bg-slate-900/60 border border-white/10 hover:border-cyan-500/40 transition-all">
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-4"><Globe className="w-5 h-5" /></div>
-          <h3 className="text-lg font-bold text-white mb-2">24/7 Managed Operations</h3>
-          <p className="text-xs text-slate-400 leading-relaxed mb-4">Continuous monitoring, optimization updates, and dedicated SLA support.</p>
-          <span className="text-xs font-bold text-cyan-400 cursor-pointer flex items-center gap-1 hover:gap-2 transition-all">Learn More <ArrowRight className="w-3.5 h-3.5" /></span>
-        </div>
-      </div>"""
-        elif "contact" in p_name_lower or "inquir" in p_name_lower:
-            clean_domain = re.sub(r'[^a-z0-9]', '', title.lower())
-            page_body_jsx = f"""      <!-- Contact Page -->
-      <div className="text-center max-w-3xl mx-auto mb-16">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono mb-4">
-          <Mail className="w-3.5 h-3.5" />
-          <span>Get in Touch</span>
-        </div>
-        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">
-          Contact {title}
-        </h1>
-        <p className="text-sm sm:text-base text-slate-400 leading-relaxed">
-          Have a project in mind or need technical support? Send us a message and our team will respond within 24 hours.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-16">
-        <div className="p-8 rounded-3xl bg-slate-900/60 border border-white/10">
-          <h3 className="text-xl font-bold text-white mb-6">Send Us a Message</h3>
-          <form onSubmit={{(e) => {{ e.preventDefault(); alert('Message sent successfully!'); }}}} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Your Name</label>
-              <input required placeholder="Alex Smith" className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 outline-none" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Email Address</label>
-              <input required type="email" placeholder="alex@company.com" className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 outline-none" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Message</label>
-              <textarea required rows={{"4"}} placeholder="Tell us about your project requirements..." className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 outline-none"></textarea>
-            </div>
-            <button type="submit" className="w-full py-3.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm shadow-lg shadow-cyan-500/20 transition-all">Submit Inquiry</button>
-          </form>
-        </div>
-
-        <div className="space-y-6">
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-white/10 flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0"><Mail className="w-5 h-5" /></div>
-            <div>
-              <h4 className="text-white font-bold text-sm">Direct Email</h4>
-              <p className="text-xs text-slate-400 mt-1">support@{clean_domain}.com</p>
-            </div>
-          </div>
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-white/10 flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0"><Phone className="w-5 h-5" /></div>
-            <div>
-              <h4 className="text-white font-bold text-sm">Phone Support</h4>
-              <p className="text-xs text-slate-400 mt-1">+1 (800) 555-0199 (Mon - Fri, 9am - 6pm EST)</p>
-            </div>
-          </div>
-          <div className="p-6 rounded-2xl bg-slate-900/60 border border-white/10 flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0"><MapPin className="w-5 h-5" /></div>
-            <div>
-              <h4 className="text-white font-bold text-sm">Headquarters</h4>
-              <p className="text-xs text-slate-400 mt-1">100 Tech Plaza, Suite 400, San Francisco, CA 94105</p>
-            </div>
-          </div>
-        </div>
-      </div>"""
-        elif "portfolio" in p_name_lower or "project" in p_name_lower or "showcase" in p_name_lower or "work" in p_name_lower:
-            page_body_jsx = f"""      <!-- Portfolio & Showcase Page -->
-      <div className="text-center max-w-3xl mx-auto mb-16">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono mb-4">
-          <Layers className="w-3.5 h-3.5" />
-          <span>Featured Projects & Case Studies</span>
-        </div>
-        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">
-          {title} Portfolio Showcase
-        </h1>
-        <p className="text-sm sm:text-base text-slate-400 leading-relaxed">
-          Explore production implementations engineered for high performance, conversion rate optimization, and scalability.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
-        <div className="group rounded-3xl bg-slate-900/60 border border-white/10 overflow-hidden hover:border-cyan-500/40 transition-all">
-          <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80" alt="Project 1" className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500" />
-          <div className="p-6">
-            <span className="text-xs font-mono text-cyan-400 font-semibold">SaaS Platform</span>
-            <h3 className="text-xl font-bold text-white mt-1 mb-2">CloudOps Analytics Dashboard</h3>
-            <p className="text-xs text-slate-400 leading-relaxed mb-4">Real-time metrics tracking engine processing over 10M events per day.</p>
-          </div>
-        </div>
-        <div className="group rounded-3xl bg-slate-900/60 border border-white/10 overflow-hidden hover:border-cyan-500/40 transition-all">
-          <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80" alt="Project 2" className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500" />
-          <div className="p-6">
-            <span className="text-xs font-mono text-cyan-400 font-semibold">E-Commerce Architecture</span>
-            <h3 className="text-xl font-bold text-white mt-1 mb-2">Aura Luxe Global Store</h3>
-            <p className="text-xs text-slate-400 leading-relaxed mb-4">Headless storefront with 99.99% uptime and sub-second page loading speed.</p>
-          </div>
-        </div>
-      </div>"""
-        else:
-            page_body_jsx = f"""      <div className="text-center max-w-3xl mx-auto mb-16">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono mb-4">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>{p} Details</span>
-        </div>
-        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">
-          {p} — {title}
-        </h1>
-        <p className="text-sm sm:text-base text-slate-400 leading-relaxed">
-          Comprehensive, production-ready {p.lower()} layout tailored for {industry} industry.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="p-6 rounded-2xl bg-slate-900/60 border border-white/10 hover:border-cyan-500/40 transition-all">
           <Zap className="w-6 h-6 text-cyan-400 mb-3" />
-          <h3 className="text-lg font-bold text-white mb-2">High Performance</h3>
-          <p className="text-xs text-slate-400">Optimized component rendering with responsive layouts.</p>
+          <h3 className="text-lg font-bold text-white mb-2">High Efficiency</h3>
+          <p className="text-xs text-slate-400 leading-relaxed">Engineered with low-latency responsiveness and optimized rendering.</p>
         </div>
         <div className="p-6 rounded-2xl bg-slate-900/60 border border-white/10 hover:border-cyan-500/40 transition-all">
           <Shield className="w-6 h-6 text-cyan-400 mb-3" />
-          <h3 className="text-lg font-bold text-white mb-2">Secure Architecture</h3>
-          <p className="text-xs text-slate-400">Enterprise grade reliability and isolated REST API endpoints.</p>
+          <h3 className="text-lg font-bold text-white mb-2">Enterprise Security</h3>
+          <p className="text-xs text-slate-400 leading-relaxed">Rigorous cryptographic verification and isolated session handling.</p>
         </div>
         <div className="p-6 rounded-2xl bg-slate-900/60 border border-white/10 hover:border-cyan-500/40 transition-all">
           <Globe className="w-6 h-6 text-cyan-400 mb-3" />
-          <h3 className="text-lg font-bold text-white mb-2">Global Scale</h3>
-          <p className="text-xs text-slate-400">Deployable instantly with modern Vite bundler.</p>
+          <h3 className="text-lg font-bold text-white mb-2">Global Scalability</h3>
+          <p className="text-xs text-slate-400 leading-relaxed">Distributed CDN edge delivery with sub-second page hydration.</p>
         </div>
       </div>"""
 
         page_code = f"""import React, {{ useState }} from 'react';
-import {{ Sparkles, Check, ArrowRight, Shield, Zap, Globe, Layers, Mail, Phone, MapPin }} from 'lucide-react';
+import {{ Sparkles, Check, ArrowRight, Shield, Zap, Globe, Layers, Mail, Phone, MapPin, Activity, Cpu, ShoppingBag, Coffee, Calendar, Code }} from 'lucide-react';
 
 export default function {comp_name}({{ setCurrentPage }}) {{
   return (
@@ -1056,7 +1251,7 @@ export default function {comp_name}({{ setCurrentPage }}) {{
     # 4. Master App.jsx router
     imports_str = "\n".join(page_imports)
     switches_str = "\n".join(page_switches)
-    first_state = pages[0].lower().replace(" ", "-") if pages else "home"
+    first_state = parsed_pages[0]["slug"] if parsed_pages else "home"
 
     master_app_jsx = f"""import React, {{ useState }} from 'react';
 import Navbar from './components/Navbar.jsx';
@@ -1077,14 +1272,14 @@ export default function App() {{
   );
 }}"""
 
+    files["src/App.jsx"] = master_app_jsx
     if app_jsx_code and len(app_jsx_code) > 400:
-        files["src/App.jsx"] = app_jsx_code
-        files["src/pages/HomePage.jsx"] = app_jsx_code
-    else:
-        files["src/App.jsx"] = master_app_jsx
+        first_page_comp = f"{re.sub(r'[^a-zA-Z0-9]+', '', parsed_pages[0]['name'].title())}Page"
+        adapted = re.sub(r'export\s+default\s+function\s+App\b', f'export default function {first_page_comp}', app_jsx_code)
+        adapted = re.sub(r'const\s+App\s*=', f'const {first_page_comp} =', adapted)
+        files[f"src/pages/{first_page_comp}.jsx"] = adapted
 
     return files
-
 
 def scaffold_vue_multipage_files(
     pages: List[str],
@@ -1348,15 +1543,27 @@ async def _generate_template_by_prompt_impl(
         
     categories_list = [{"id": str(c.id), "name": c.name, "slug": c.slug} for c in categories]
     
+    # Resolve domain & authentic industry intent from prompt
+    from app.services.template_synthesizer import analyze_prompt_intent
+    initial_profile = analyze_prompt_intent(prompt=request.prompt, industry_hint=request.business_type or "")
+
+    raw_btype = (request.business_type or "").strip()
+    if not raw_btype or raw_btype in ("Auto-Detect from Prompt (Recommended)", "General") or (raw_btype == "SaaS & Tech Platform" and initial_profile.industry_key != "saas"):
+        resolved_industry = initial_profile.domain_name
+    else:
+        resolved_industry = raw_btype
+
+    resolved_title = request.business_name or initial_profile.business_title or "AI Custom Template"
+
     # Execute 8 Sequential Agents Swarm Pipeline
     agent_result = await multi_agent_orchestrator.run_pipeline(
         prompt=request.prompt,
         framework=framework_lower,
         css_engine=css_engine_str,
         project_scope=request.project_scope or "fullstack",
-        industry=request.business_type or "General",
+        industry=resolved_industry,
         color_scheme=color_scheme_raw if 'color_scheme_raw' in locals() else "Modern Glassmorphism",
-        title=request.business_name or "AI Multi-Agent Template"
+        title=resolved_title
     )
 
     zip_bytes = agent_result["zip_bytes"]
@@ -1364,22 +1571,42 @@ async def _generate_template_by_prompt_impl(
     design = agent_result["design"]
     seo_data = agent_result["seo_data"]
 
-    title = request.business_name or "AI Multi-Agent Template"
+    title = request.business_name or agent_result.get("title") or plan.get("business_name") or initial_profile.business_title or "AI Custom Template"
     title = title[:255]
     short_desc = f"Multi-agent generated full-stack template package for {title}."
-    desc = plan.get("value_prop", "Custom multi-page website package synthesized by 8 specialized AI agents.")
+    desc = plan.get("value_prop", f"Custom multi-page website package for {title} synthesized by 8 specialized AI agents.")
     price = decimal.Decimal("49.00")
-    tags = ["ai-generated", "multi-agent", framework_lower, css_engine_str]
-    industry = request.business_type or plan.get("domain", "Business")
+    tags = ["ai-generated", "multi-agent", framework_lower, css_engine_str, initial_profile.industry_key]
+    industry = resolved_industry or plan.get("domain", "Business")
     color_scheme = f"Primary {design.get('primary_hex', '#6366f1')}, Secondary {design.get('secondary_hex', '#8b5cf6')}"
     included_pages = [p.get("name", p.get("filename", "")) for p in plan.get("pages", [])] or ["Home", "About", "Services", "Contact"]
     pages_count = len(included_pages)
     seo_keywords = [title.lower(), industry.lower(), "website"]
     has_dark_mode = True
-    category_uuid = categories[0].id
-    chosen_cat_name = categories[0].name
-    from app.services.template_synthesizer import analyze_prompt_intent
-    domain_profile = analyze_prompt_intent(prompt=request.prompt, industry_hint=request.business_type or "", business_title_hint=title)
+
+    # Find best matching category from database
+    cat_match = None
+    target_ind_lower = f"{initial_profile.industry_key} {industry.lower()}"
+    for c in categories:
+        c_slug = c.slug.lower()
+        if c_slug in target_ind_lower or any(k in target_ind_lower for k in [c_slug, c.name.lower()]):
+            cat_match = c
+            break
+    if not cat_match:
+        if any(w in target_ind_lower for w in ["tea", "coffee", "boulangerie", "bakery", "food", "dining", "cafe", "restaurant"]):
+            cat_match = next((c for c in categories if c.slug in ["restaurant", "ecommerce"]), None)
+        elif any(w in target_ind_lower for w in ["shop", "store", "commerce", "retail"]):
+            cat_match = next((c for c in categories if c.slug == "ecommerce"), None)
+        elif any(w in target_ind_lower for w in ["tech", "software", "saas", "platform"]):
+            cat_match = next((c for c in categories if c.slug == "technology"), None)
+        elif any(w in target_ind_lower for w in ["health", "clinic", "dental", "doctor", "wellness"]):
+            cat_match = next((c for c in categories if c.slug == "healthcare"), None)
+        elif any(w in target_ind_lower for w in ["estate", "realty", "villa", "property"]):
+            cat_match = next((c for c in categories if c.slug == "real-estate"), None)
+
+    category_uuid = cat_match.id if cat_match else categories[0].id
+    chosen_cat_name = cat_match.name if cat_match else categories[0].name
+    domain_profile = analyze_prompt_intent(prompt=request.prompt, industry_hint=resolved_industry, business_title_hint=title)
     developer_avatar = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&h=200&q=80"
     thumbnail_url = domain_profile.hero_image
     gallery_images = domain_profile.gallery_images if domain_profile.gallery_images else [
