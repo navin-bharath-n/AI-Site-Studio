@@ -51,6 +51,14 @@ class Settings(BaseSettings):
                 raise ValueError("Insecure SECRET_KEY configured in a non-local environment.")
         return self
 
+    @model_validator(mode="after")
+    def validate_database_url(self) -> "Settings":
+        if self.DATABASE_URL.startswith("postgres://"):
+            self.DATABASE_URL = self.DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif self.DATABASE_URL.startswith("postgresql://") and not self.DATABASE_URL.startswith("postgresql+asyncpg://"):
+            self.DATABASE_URL = self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return self
+
 
     # ── OAuth (Google / Facebook) ─────────────────────────────────────────────
     GOOGLE_CLIENT_ID: str = ""

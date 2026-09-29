@@ -29,9 +29,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan: startup → yield → shutdown."""
     # Startup
     await init_db()
-    redis = await get_redis_client()
-    app.state.redis = redis
-    print(f"Site Studio API started | env={settings.ENVIRONMENT}")
+    try:
+        redis = await get_redis_client()
+        app.state.redis = redis
+        if redis is not None:
+            print(f"Site Studio API started | Redis connected | env={settings.ENVIRONMENT}")
+        else:
+            print(f"Site Studio API started | Redis disabled (fallback active) | env={settings.ENVIRONMENT}")
+    except Exception as e_redis:
+        app.state.redis = None
+        print(f"Site Studio API started | Redis skipped: {e_redis} | env={settings.ENVIRONMENT}")
 
     # Verify or auto-spawn Ollama daemon in background with CUDA
     try:
@@ -61,8 +68,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     yield
     # Shutdown
-    if hasattr(app.state, "redis"):
-        await app.state.redis.aclose()
+    if getattr(app.state, "redis", None) is not None:
+        try:
+            await app.state.redis.aclose()
+        except Exception:
+            pass
     print("🛑 Site Studio API shutting down")
 
 
@@ -97,7 +107,7 @@ def create_application() -> FastAPI:
     if settings.ENVIRONMENT == "production":
         app.add_middleware(
             TrustedHostMiddleware,
-            allowed_hosts=["*.aisitestudio.com", "localhost"],
+            allowed_hosts=["*.aisitestudio.com", "*.railway.app", "*.up.railway.app", "localhost", "127.0.0.1", "*"],
         )
 
     @app.middleware("http")

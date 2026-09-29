@@ -21,16 +21,24 @@ logger = logging.getLogger("cache.redis")
 _redis_client: Optional[aioredis.Redis] = None
 
 
-async def get_redis_client() -> aioredis.Redis:
-    """Return the shared async Redis client (singleton)."""
+async def get_redis_client() -> Optional[aioredis.Redis]:
+    """Return the shared async Redis client (singleton) or None if unavailable."""
     global _redis_client
     if _redis_client is None:
-        _redis_client = aioredis.from_url(
-            settings.REDIS_URL,
-            encoding="utf-8",
-            decode_responses=True,
-            max_connections=20,
-        )
+        url = (settings.REDIS_URL or "").strip()
+        if not url or not any(url.startswith(scheme) for scheme in ("redis://", "rediss://", "unix://")):
+            logger.info(f"[Redis Cache] REDIS_URL not configured or invalid scheme. Running without Redis cache.")
+            return None
+        try:
+            _redis_client = aioredis.from_url(
+                url,
+                encoding="utf-8",
+                decode_responses=True,
+                max_connections=20,
+            )
+        except Exception as e:
+            logger.warning(f"[Redis Cache] Failed to initialize Redis from URL: {e}. Running without Redis.")
+            _redis_client = None
     return _redis_client
 
 
@@ -61,6 +69,8 @@ async def cache_get(key: str) -> Optional[Any]:
     """
     try:
         client = await get_redis_client()
+        if not client:
+            return None
         raw = await client.get(key)
         if raw is not None:
             return json.loads(raw)
@@ -76,6 +86,8 @@ async def cache_set(key: str, value: Any, ttl: int = 300) -> bool:
     """
     try:
         client = await get_redis_client()
+        if not client:
+            return False
         payload = json.dumps(value, default=_json_serial)
         await client.set(key, payload, ex=ttl)
         return True
@@ -90,6 +102,8 @@ async def cache_delete(key: str) -> bool:
     """
     try:
         client = await get_redis_client()
+        if not client:
+            return False
         await client.delete(key)
         return True
     except Exception as e:
@@ -103,6 +117,8 @@ async def cache_delete_pattern(pattern: str) -> bool:
     """
     try:
         client = await get_redis_client()
+        if not client:
+            return False
         keys = await client.keys(pattern)
         if keys:
             await client.delete(*keys)
