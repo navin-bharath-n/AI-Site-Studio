@@ -259,6 +259,95 @@ function Checkout() {
     mutationFn: (payload) => api.post("/payment/verify", payload, authToken ?? undefined),
   });
 
+  // Load Razorpay Checkout SDK dynamically
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (typeof window !== "undefined" && window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.async = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleOpenRazorpay = async (order, payInfo) => {
+    const targetOrder = order || initiatedOrder;
+    const targetPay = payInfo || initiatedPayment;
+    if (!targetOrder || !targetPay) return;
+
+    setIsProcessing(true);
+    const loaded = await loadRazorpayScript();
+    if (!loaded) {
+      alert("Failed to load Razorpay SDK. Please check your internet connection.");
+      setIsProcessing(false);
+      return;
+    }
+
+    const options = {
+      key: targetPay.key_id,
+      amount: targetPay.amount,
+      currency: targetPay.currency || "INR",
+      name: "AI Site Studio",
+      description: `Order #${targetOrder.id?.slice(0, 8)}`,
+      order_id: targetPay.gateway_order_id,
+      prefill: {
+        name: user?.name || user?.email?.split("@")[0] || "",
+        email: user?.email || "",
+      },
+      theme: {
+        color: "#6366f1",
+      },
+      handler: async function (response) {
+        setIsProcessing(true);
+        try {
+          await verifyPaymentMutation.mutateAsync({
+            order_id: targetOrder.id,
+            gateway: "razorpay",
+            gateway_payment_id: response.razorpay_payment_id,
+            gateway_order_id: response.razorpay_order_id,
+            gateway_signature: response.razorpay_signature,
+          });
+          await handleCompleteSuccessFlow(targetOrder);
+        } catch (err) {
+          console.error("Payment verification failed:", err);
+          alert(
+            err?.response?.data?.detail ||
+            "Payment verification failed. Please try again or contact support."
+          );
+        } finally {
+          setIsProcessing(false);
+        }
+      },
+      modal: {
+        ondismiss: function () {
+          setIsProcessing(false);
+        },
+      },
+    };
+
+    try {
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", function (response) {
+        alert(
+          `Payment Failed: ${
+            response.error?.description || response.error?.reason || "Transaction failed"
+          }`
+        );
+        setIsProcessing(false);
+      });
+      rzp.open();
+    } catch (e) {
+      console.error("Razorpay initialization error:", e);
+      setIsProcessing(false);
+      alert("Could not launch Razorpay checkout modal.");
+    }
+  };
+
   const handleCheckout = async () => {
     if (items.length === 0 || !authToken) return;
     setIsProcessing(true);
@@ -275,8 +364,17 @@ function Checkout() {
       });
       setInitiatedPayment(payInfo);
 
-      // 3. Move to Payment Input step
+      const isRealRazorpay =
+        paymentGateway === "razorpay" &&
+        payInfo?.gateway_order_id &&
+        !payInfo.gateway_order_id.startsWith("rzp_mock_");
+
       setPaymentStep("paying");
+
+      // 3. If real Razorpay order, trigger Razorpay popup directly
+      if (isRealRazorpay) {
+        await handleOpenRazorpay(order, payInfo);
+      }
     } catch (err) {
       console.error(err);
       alert("Checkout initialization failed. Please try again.");
@@ -352,7 +450,13 @@ function Checkout() {
   const minutesLeft = Math.floor(qrTimerSeconds / 60);
   const secondsLeft = qrTimerSeconds % 60;
   const timerFormatted = `${String(minutesLeft).padStart(2, '0')}:${String(secondsLeft).padStart(2, '0')}`;
-  const defaultUpiUri = initiatedPayment?.upi_uri || `upi://pay?pa=aisitestudio@upi&pn=AI%20Site%20Studio&am=${inrAmountVal.toFixed(2)}&cu=INR&tn=Order%20${initiatedOrder?.id?.slice(0, 8) || "ASS"}&nonce=${qrNonce}`;
+  const merchantVpa = initiatedPayment?.vpa || "aisitestudio@upi";
+  const merchantName = initiatedPayment?.merchant_name || "AI Site Studio";
+  const defaultUpiUri = initiatedPayment?.upi_uri || `upi://pay?pa=${encodeURIComponent(merchantVpa)}&pn=${encodeURIComponent(merchantName)}&am=${inrAmountVal.toFixed(2)}&cu=INR&tn=Order%20${initiatedOrder?.id?.slice(0, 8) || "ASS"}&nonce=${qrNonce}`;
+  const isRealRazorpay =
+    paymentGateway === "razorpay" &&
+    initiatedPayment?.gateway_order_id &&
+    !initiatedPayment.gateway_order_id.startsWith("rzp_mock_");
 
   return (
     <>
@@ -438,10 +542,10 @@ function Checkout() {
                     <div className="w-full p-3 bg-card border border-border/60 rounded-xl flex items-center justify-between gap-2">
                       <div className="text-left text-xs">
                         <span className="text-muted-foreground block text-[10px] uppercase font-semibold">UPI ID / VPA</span>
-                        <span className="font-mono font-bold text-foreground">aisitestudio@upi</span>
+                        <span className="font-mono font-bold text-foreground">{merchantVpa}</span>
                       </div>
                       <button
-                        onClick={() => copyVpaToClipboard("aisitestudio@upi")}
+                        onClick={() => copyVpaToClipboard(merchantVpa)}
                         className="px-3 py-1.5 bg-muted/50 hover:bg-muted text-xs font-semibold rounded-lg flex items-center gap-1 border border-border/40 transition-all"
                       >
                         {vpaCopied ? <><Check className="w-3.5 h-3.5 text-emerald-500" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy VPA</>}
@@ -504,6 +608,51 @@ function Checkout() {
                         ) : (
                           <><CheckCircle2 className="w-4 h-4" /> Approve Payment & Download</>
                         )}
+                      </button>
+                    </div>
+                  </div>
+                ) : isRealRazorpay ? (
+                  <div className="checkout-card" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                    <div className="flex items-center justify-between border-b border-border/50 pb-4">
+                      <h3 className="font-bold text-lg flex items-center gap-2">
+                        <CreditCard className="w-5 h-5 text-primary" /> Razorpay Official Checkout
+                      </h3>
+                      <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-500 font-bold uppercase border border-emerald-500/30">
+                        Live Gateway
+                      </span>
+                    </div>
+
+                    <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-3">
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Pay securely using <strong>UPI, Credit/Debit Cards, NetBanking, or Wallets</strong> via the official Razorpay checkout popup.
+                      </p>
+                      <div className="flex items-center justify-between pt-2 border-t border-primary/10 text-xs">
+                        <span className="text-muted-foreground">Order ID:</span>
+                        <span className="font-mono font-semibold">{initiatedOrder?.id?.slice(0, 13)}...</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Amount Payable:</span>
+                        <span className="font-bold text-primary text-sm">{inrAmountString}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3">
+                      <button
+                        onClick={() => handleOpenRazorpay(initiatedOrder, initiatedPayment)}
+                        disabled={isProcessing}
+                        className="w-full py-3 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-primary/95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 cursor-pointer"
+                      >
+                        {isProcessing ? (
+                          <><Loader2 className="w-4 h-4 animate-spin" /> Launching Razorpay...</>
+                        ) : (
+                          <><ShieldCheck className="w-4 h-4" /> Open Razorpay Payment Window ({inrAmountString})</>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => setPaymentStep("cart")}
+                        className="py-2.5 px-4 border border-border hover:border-slate-500 rounded-xl text-xs font-semibold transition-all text-muted-foreground hover:text-foreground"
+                      >
+                        Back to Cart / Change Gateway
                       </button>
                     </div>
                   </div>

@@ -155,7 +155,9 @@ async def initiate_payment(
             existing_payment.amount = inr_amount
             await db.commit()
             upi_order_id = existing_payment.gateway_order_id or f"upi_qr_{uuid.uuid4().hex[:12]}"
-            upi_uri = f"upi://pay?pa=aisitestudio@upi&pn=AI%20Site%20Studio&am={inr_amount}&cu=INR&tn=Order%20{str(order.id)[:8]}&tr={upi_order_id}"
+            merchant_vpa = getattr(settings, "UPI_MERCHANT_VPA", "aisitestudio@upi")
+            merchant_name = getattr(settings, "UPI_MERCHANT_NAME", "AI Site Studio")
+            upi_uri = f"upi://pay?pa={merchant_vpa}&pn={merchant_name}&am={inr_amount}&cu=INR&tn=Order%20{str(order.id)[:8]}&tr={upi_order_id}"
             return PaymentInitResponse(
                 gateway=PaymentGateway.UPI,
                 gateway_order_id=upi_order_id,
@@ -164,8 +166,8 @@ async def initiate_payment(
                 key_id="upi_qr_key",
                 order_id=str(order.id),
                 upi_uri=upi_uri,
-                vpa="aisitestudio@upi",
-                merchant_name="AI Site Studio",
+                vpa=merchant_vpa,
+                merchant_name=merchant_name,
             )
         if data.gateway == PaymentGateway.RAZORPAY:
             inr_amount = (order.total * Decimal(str(usd_to_inr_rate))).quantize(Decimal("0.01"))
@@ -218,7 +220,9 @@ async def initiate_payment(
         inr_amount = (order.total * Decimal(str(usd_to_inr_rate))).quantize(Decimal("0.01"))
         amount_in_paise = int(inr_amount * 100)
         upi_order_id = f"upi_qr_{uuid.uuid4().hex[:12]}"
-        upi_uri = f"upi://pay?pa=aisitestudio@upi&pn=AI%20Site%20Studio&am={inr_amount}&cu=INR&tn=Order%20{str(order.id)[:8]}&tr={upi_order_id}"
+        merchant_vpa = getattr(settings, "UPI_MERCHANT_VPA", "aisitestudio@upi")
+        merchant_name = getattr(settings, "UPI_MERCHANT_NAME", "AI Site Studio")
+        upi_uri = f"upi://pay?pa={merchant_vpa}&pn={merchant_name}&am={inr_amount}&cu=INR&tn=Order%20{str(order.id)[:8]}&tr={upi_order_id}"
 
         payment = Payment(
             order_id=order.id,
@@ -239,8 +243,8 @@ async def initiate_payment(
             key_id="upi_qr_key",
             order_id=str(order.id),
             upi_uri=upi_uri,
-            vpa="aisitestudio@upi",
-            merchant_name="AI Site Studio",
+            vpa=merchant_vpa,
+            merchant_name=merchant_name,
         )
 
     if data.gateway == PaymentGateway.RAZORPAY:

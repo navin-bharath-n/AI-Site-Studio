@@ -202,6 +202,10 @@ class Settings(BaseSettings):
     STRIPE_WEBHOOK_SECRET: str = ""
     STRIPE_PUBLISHABLE_KEY: str = ""
 
+    # ── UPI Direct Payment ────────────────────────────────────────────────────
+    UPI_MERCHANT_VPA: str = "aisitestudio@upi"
+    UPI_MERCHANT_NAME: str = "AI Site Studio"
+
     # ── SMTP & Email Provider Settings ─────────────────────────────────────────
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
