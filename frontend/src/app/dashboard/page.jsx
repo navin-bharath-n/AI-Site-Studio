@@ -3917,9 +3917,18 @@ function Dashboard() {
               {/* === BUYER FOLLOWING === */}
               {activeTab === "buyer-following" && (
                 <div className="glass border border-border/40 rounded-2xl p-8 space-y-6">
-                  <div>
-                    <h3 className="font-bold text-lg">Following Sellers</h3>
-                    <p className="text-sm text-muted-foreground">Manage and view updates from the sellers you follow.</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/40 pb-5">
+                    <div>
+                      <div className="flex items-center gap-2.5">
+                        <h3 className="font-bold text-lg text-foreground">Following Sellers</h3>
+                        {Array.isArray(following) && following.length > 0 && (
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
+                            {following.length}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">Manage and view updates from the sellers you follow.</p>
+                    </div>
                   </div>
                   {followingLoading ? (
                     <div className="text-center py-8">
@@ -3930,25 +3939,55 @@ function Dashboard() {
                       You are not following any sellers yet.
                     </div>
                   ) : (
-                    <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      {following.map((seller) => (
-                        <div key={seller.id} className="p-4 rounded-xl border border-border/40 bg-card/10 flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <img src={seller.avatar_url || "https://picsum.photos/seed/avatar/100/100"} alt="" className="w-10 h-10 rounded-full object-cover bg-muted" />
-                            <div>
-                              <div className="font-bold text-sm text-foreground">{seller.full_name || seller.username}</div>
-                              <span className="text-[10px] text-muted-foreground">@{seller.username || "seller"}</span>
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {following.map((seller) => {
+                        const avatarSrc = resolveMediaUrl(seller.avatar_url);
+                        const displayName = seller.full_name || seller.username || "Seller Profile";
+                        const initial = (seller.full_name || seller.username || "S").charAt(0).toUpperCase();
+
+                        return (
+                          <div key={seller.id} className="follower-card">
+                            <div className="flex items-center gap-3.5 min-w-0">
+                              <div className="follower-avatar-wrap">
+                                {avatarSrc ? (
+                                  <img
+                                    src={avatarSrc}
+                                    alt={displayName}
+                                    className="follower-avatar-img"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = "none";
+                                      if (e.currentTarget.nextSibling) {
+                                        e.currentTarget.nextSibling.style.display = "flex";
+                                      }
+                                    }}
+                                  />
+                                ) : null}
+                                <span
+                                  className="follower-avatar-fallback"
+                                  style={{ display: avatarSrc ? "none" : "flex" }}
+                                >
+                                  {initial}
+                                </span>
+                              </div>
+                              <div className="space-y-0.5 min-w-0">
+                                <div className="font-bold text-sm text-foreground truncate">{displayName}</div>
+                                <span className="text-xs text-muted-foreground truncate block">@{seller.username || "seller"}</span>
+                              </div>
                             </div>
+                            <Link
+                              to={`/marketplace?developer=${encodeURIComponent(seller.full_name || seller.username || "")}`}
+                              className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold rounded-lg text-decoration-none shrink-0 transition-colors"
+                            >
+                              View Items
+                            </Link>
                           </div>
-                          <Link href={`/marketplace?developer=${seller.full_name || seller.username}`} className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold rounded-lg text-decoration-none">
-                            View Items
-                          </Link>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
               )}
+
 
               {/* === ORDERS === */}
               {activeTab === "orders" && (
@@ -5631,15 +5670,15 @@ function Dashboard() {
                         <div key={review.id} className="p-5 border border-slate-200 rounded-2xl space-y-4 bg-white shadow-2xs">
                           <div className="flex justify-between items-start gap-4">
                             <div className="flex items-center gap-3.5">
-                              <div className="w-11 h-11 rounded-full bg-slate-100 overflow-hidden flex items-center justify-center border border-slate-200 shrink-0">
+                              <div className="follower-avatar-wrap">
                                 {review.user?.avatar_url ? (
                                   <img
-                                    src={review.user.avatar_url}
+                                    src={resolveMediaUrl(review.user.avatar_url)}
                                     alt=""
-                                    className="w-full h-full object-cover"
+                                    className="follower-avatar-img"
                                   />
                                 ) : (
-                                  <span className="font-extrabold text-sm text-slate-700">
+                                  <span className="follower-avatar-fallback">
                                     {review.user?.fullName?.[0] ?? review.user?.username?.[0] ?? "U"}
                                   </span>
                                 )}
@@ -5730,14 +5769,25 @@ function Dashboard() {
 
               {/* === SELLER FOLLOWERS === */}
               {activeTab === "seller-followers" && (
-                <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs">
-                  <div className="space-y-1">
-                    <h3 className="font-extrabold text-xl text-slate-900">Seller Followers</h3>
-                    <p className="text-xs text-slate-500 font-medium">Track profiles and users who follow your updates.</p>
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2.5">
+                        <h3 className="font-extrabold text-xl text-slate-900 dark:text-white">Seller Followers</h3>
+                        {Array.isArray(followers) && followers.length > 0 && (
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                            {followers.length}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Track profiles and users who follow your updates.</p>
+                    </div>
                   </div>
+
                   {followersLoading ? (
-                    <div className="text-center py-10">
+                    <div className="text-center py-12">
                       <Loader2 className="w-8 h-8 animate-spin mx-auto text-indigo-600" />
+                      <p className="text-xs text-slate-400 mt-2 font-medium">Loading followers...</p>
                     </div>
                   ) : !followers || followers.length === 0 ? (
                     <div className="mt-empty-card">
@@ -5750,20 +5800,59 @@ function Dashboard() {
                       </p>
                     </div>
                   ) : (
-                    <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      {followers.map((follower) => (
-                        <div key={follower.id} className="p-4 rounded-xl border border-slate-200 bg-white flex items-center gap-3.5 shadow-2xs hover:border-slate-300 transition-all">
-                          <img src={follower.avatar_url || "https://picsum.photos/seed/avatar/100/100"} alt="" className="w-11 h-11 rounded-full object-cover bg-slate-100 border border-slate-200 shadow-2xs" />
-                          <div className="space-y-0.5">
-                            <div className="font-extrabold text-sm text-slate-900">{follower.full_name || follower.username || "Community Member"}</div>
-                            <span className="text-xs text-slate-500 font-medium">@{follower.username || "user"}</span>
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {followers.map((follower) => {
+                        const avatarSrc = resolveMediaUrl(follower.avatar_url);
+                        const displayName = follower.full_name || follower.username || "Community Member";
+                        const initial = (follower.full_name || follower.username || "U").charAt(0).toUpperCase();
+
+                        return (
+                          <div key={follower.id} className="follower-card">
+                            <div className="flex items-center gap-3.5 min-w-0">
+                              <div className="follower-avatar-wrap">
+                                {avatarSrc ? (
+                                  <img
+                                    src={avatarSrc}
+                                    alt={displayName}
+                                    className="follower-avatar-img"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = "none";
+                                      if (e.currentTarget.nextSibling) {
+                                        e.currentTarget.nextSibling.style.display = "flex";
+                                      }
+                                    }}
+                                  />
+                                ) : null}
+                                <span
+                                  className="follower-avatar-fallback"
+                                  style={{ display: avatarSrc ? "none" : "flex" }}
+                                >
+                                  {initial}
+                                </span>
+                              </div>
+                              <div className="space-y-0.5 min-w-0">
+                                <div className="font-extrabold text-sm text-slate-900 dark:text-white truncate">
+                                  {displayName}
+                                </div>
+                                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate block">
+                                  @{follower.username || "user"}
+                                </span>
+                              </div>
+                            </div>
+                            <Link
+                              to={`/marketplace?developer=${encodeURIComponent(follower.full_name || follower.username || "")}`}
+                              className="px-3 py-1.5 rounded-lg text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800 text-decoration-none shrink-0 transition-colors"
+                            >
+                              Profile
+                            </Link>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
               )}
+
 
               {/* === SELLER CUSTOMER MESSAGES === */}
               {activeTab === "seller-messages" && (
