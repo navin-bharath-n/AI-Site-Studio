@@ -6,7 +6,7 @@ import HeroSection from "@/components/landing/HeroSection";
 import FeaturesSection from "@/components/landing/FeaturesSection";
 import PricingSection from "@/components/landing/PricingSection";
 import TestimonialsSection from "@/components/landing/TestimonialsSection";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import "./Page.css";
 
 export default function HomePage() {
@@ -43,7 +43,6 @@ export default function HomePage() {
           <div className="container-xl">
             <div className="cta-banner glass">
               <div className="cta-banner-bg" />
-              <Sparkles className="cta-icon" />
               <h2 className="cta-title">
                 Ready to build your next website?
               </h2>
@@ -54,7 +53,6 @@ export default function HomePage() {
               >
                 Browse Templates
                 <ArrowRight className="cta-btn-arrow" />
-                <span className="cta-btn-shine" />
               </Link>
             </div>
           </div>
@@ -107,6 +105,13 @@ export default function HomePage() {
                   { name: "Contact", path: "/contact" }
                 ]
               },
+              {
+                title: "Legal",
+                links: [
+                  { name: "Privacy Policy", path: "/privacy" },
+                  { name: "Terms & Conditions", path: "/terms" }
+                ]
+              },
             ].map(({ title, links }) => (
               <div key={title}>
                 <h4 className="footer-col-title">{title}</h4>
@@ -124,7 +129,7 @@ export default function HomePage() {
           </div>
           <div className="footer-bottom">
             <p>&copy; {new Date().getFullYear()} Site Studio. All rights reserved.</p>
-            <p>Made with ❤️ for creators and developers</p>
+            <p>A free, open-source template marketplace for developers and designers.</p>
           </div>
         </div>
       </footer>

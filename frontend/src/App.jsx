@@ -32,6 +32,8 @@ import VerifyOTPPage from './app/verify-otp/page.jsx'
 import ForgotPasswordPage from './app/forgot-password/page.jsx'
 import ReceiptPage from './app/dashboard/receipt/page.jsx'
 import PayoutReceiptPage from './app/dashboard/payout-receipt/page.jsx'
+import PrivacyPolicyPage from './app/privacy/page.jsx'
+import TermsPage from './app/terms/page.jsx'
 
 
 import SupportButton from './components/support/SupportButton.jsx';
@@ -81,10 +83,6 @@ function App() {
     <BrowserRouter>
       <OAuthRedirectHandler />
       <div className="app-root-container">
-        {/* Premium Dark Background glow effects */}
-        <div className="app-bg-glow app-bg-glow-top-left" />
-        <div className="app-bg-glow app-bg-glow-bottom-right" />
-        <div className="app-bg-glow app-bg-glow-center-right" />
 
         <ErrorBoundary>
           <Routes>
@@ -109,6 +107,8 @@ function App() {
             <Route path="/dashboard/receipt/:orderId" element={<ProtectedRoute><ReceiptPage /></ProtectedRoute>} />
             <Route path="/dashboard/payout-receipt/:withdrawalId" element={<ProtectedRoute><PayoutReceiptPage /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminPanel /></ProtectedRoute>} />
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
           </Routes>
         </ErrorBoundary>
         <SupportButton />

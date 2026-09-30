@@ -51,36 +51,15 @@ export default function FeaturesSection() {
       <div className="container-xl">
         {/* Header */}
         <div className="section-header">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="section-badge"
-          >
-            <Zap className="section-badge-icon" />
-            Studio Platform Features
-          </motion.div>
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="section-title"
-          >
-            Everything you need to{" "}
-            <span className="gradient-text">launch faster</span>
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="section-subtitle"
-          >
-            Site Studio is not just a template marketplace — it's a complete
-            modern website launch platform.
-          </motion.p>
+          <p className="section-eyebrow">Platform Features</p>
+          <h2 className="section-title">
+            What Site Studio gives you
+          </h2>
+          <p className="section-subtitle">
+            A complete toolset for finding, customising, and deploying
+            professional website templates — without extra subscriptions or
+            locked features.
+          </p>
         </div>
 
         {/* Feature grid */}

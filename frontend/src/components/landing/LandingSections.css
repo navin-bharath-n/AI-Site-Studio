@@ -11,13 +11,24 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  border-radius: 9999px;
+  border-radius: 0.5rem;
   font-size: 0.875rem;
   font-weight: 600;
   margin-bottom: 1rem;
   background: hsl(var(--primary) / 0.07);
   border: 1px solid hsl(var(--primary) / 0.2);
   color: hsl(var(--primary));
+}
+
+/* Plain eyebrow label — replaces pill badges */
+.section-eyebrow {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: hsl(var(--primary));
+  margin-bottom: 1rem;
 }
 
 .section-title {
@@ -316,12 +327,12 @@
 }
 
 .pricing-cta.popular {
-  background: linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
+  background: hsl(var(--primary));
   color: #ffffff;
   border: none;
 }
 
 .pricing-cta.popular:hover {
-  opacity: 0.9;
-  box-shadow: 0 4px 20px hsl(var(--primary) / 0.3);
+  background: hsl(231 58% 50%);
+  box-shadow: 0 4px 16px hsl(var(--primary) / 0.28);
 }

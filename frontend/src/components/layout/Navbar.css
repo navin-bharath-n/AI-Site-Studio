@@ -140,16 +140,16 @@
   font-size: 0.875rem;
   font-weight: 600;
   border-radius: var(--radius);
-  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(231 58% 62%) 100%);
+  background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
-  box-shadow: 0 2px 12px hsl(var(--primary) / 0.25);
-  transition: background-color 0.15s, box-shadow 0.15s, transform 0.15s;
+  box-shadow: 0 1px 6px hsl(var(--primary) / 0.2);
+  transition: background-color 0.15s, box-shadow 0.15s;
   text-decoration: none;
 }
 
 .btn-getstarted:hover {
-  box-shadow: 0 4px 20px hsl(var(--primary) / 0.35);
-  transform: translateY(-1px);
+  background: hsl(231 58% 50%);
+  box-shadow: 0 3px 12px hsl(var(--primary) / 0.3);
 }
 
 /* Mobile responsive menu */
