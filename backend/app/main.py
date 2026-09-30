@@ -194,7 +194,7 @@ def create_application() -> FastAPI:
     os.makedirs("static", exist_ok=True)
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
-    @app.get("/", tags=["Root"])
+    @app.api_route("/", methods=["GET", "HEAD"], tags=["Root"])
     async def root() -> dict:
         return {
             "message": "Welcome to Site Studio API",
@@ -202,7 +202,7 @@ def create_application() -> FastAPI:
             "health": "/health"
         }
 
-    @app.get("/health", tags=["Health"])
+    @app.api_route("/health", methods=["GET", "HEAD"], tags=["Health"])
     async def health_check() -> dict:
         return {
             "status": "ok",
