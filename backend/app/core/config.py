@@ -211,6 +211,7 @@ class Settings(BaseSettings):
     ENABLE_EMAIL_DELIVERY: bool = True
     RESEND_API_KEY: str = ""
     RESEND_FROM: str = "Site Studio <onboarding@resend.dev>"
+    BREVO_API_KEY: str = ""
 
     # ── CORS ──────────────────────────────────────────────────────────────────
     FRONTEND_URL: str = "http://localhost:3000"

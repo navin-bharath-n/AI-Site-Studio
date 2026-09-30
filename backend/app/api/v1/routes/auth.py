@@ -134,7 +134,33 @@ async def send_otp_email(to_email: str, otp: str):
     </html>
     """
 
-    # 2. If RESEND_API_KEY is configured, send via Resend REST API (HTTPS port 443 — never blocked on Render)
+    # 2. If BREVO_API_KEY is configured, send via Brevo REST API (HTTPS port 443 — free 300 emails/day to ANY email worldwide)
+    if getattr(settings, "BREVO_API_KEY", ""):
+        try:
+            import httpx
+            sender_email = settings.SMTP_FROM or settings.SMTP_USER or "navinbharath917@gmail.com"
+            headers = {
+                "api-key": settings.BREVO_API_KEY,
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+            payload = {
+                "sender": {"name": "Site Studio", "email": sender_email},
+                "to": [{"email": to_email}],
+                "subject": subject,
+                "htmlContent": body,
+            }
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post("https://api.brevo.com/v3/smtp/email", headers=headers, json=payload)
+                if resp.status_code in (200, 201):
+                    print(f"\n[EMAIL SENT] OTP successfully sent via Brevo API to {to_email}\n", flush=True)
+                    return
+                else:
+                    print(f"\n[EMAIL ERROR] Brevo API error ({resp.status_code}): {resp.text}\n", flush=True)
+        except Exception as err:
+            print(f"\n[EMAIL ERROR] Brevo API exception: {err}\n", flush=True)
+
+    # 3. If RESEND_API_KEY is configured, send via Resend REST API (HTTPS port 443 — never blocked on Render)
     if getattr(settings, "RESEND_API_KEY", ""):
         try:
             import httpx
