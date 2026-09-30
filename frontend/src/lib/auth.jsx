@@ -4,7 +4,7 @@
  */
 
 import React, { createContext, useContext, useEffect } from "react";
-import { useAuthStore } from "@/store/authStore";
+import { useAuthStore, resolveMediaUrl } from "@/store/authStore";
 
 const AuthContext = createContext(null);
 
@@ -77,7 +77,7 @@ export function AppUserButton() {
   return (
     <div className="flex items-center gap-2">
       <img
-        src={user.imageUrl}
+        src={resolveMediaUrl(user.imageUrl)}
         alt={user.fullName}
         className="w-8 h-8 rounded-full object-cover border-2 border-indigo-500/50"
       />

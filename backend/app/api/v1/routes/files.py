@@ -1,10 +1,11 @@
 import uuid
 import io
+import os
 import mimetypes
 from typing import Optional
 from PIL import Image
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Response, Query
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Response, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -122,6 +123,7 @@ async def get_stored_file(
 
 @router.post("/upload")
 async def upload_file(
+    request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -208,9 +210,22 @@ async def upload_file(
         content_type=detected_mime,
     )
     
-    # 5. Generate a signed URL for secure subsequent file retrieval (valid for 1 hour)
     file_id = url.split("/")[-1]
-    expires = int(datetime.now(timezone.utc).timestamp()) + 3600
+    
+    # Ensure public domain is used when accessed through production proxy
+    forwarded_host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+    forwarded_proto = request.headers.get("x-forwarded-proto") or request.url.scheme or "https"
+    if forwarded_host and "localhost" not in forwarded_host and "127.0.0.1" not in forwarded_host:
+        url = f"{forwarded_proto}://{forwarded_host}/api/v1/files/{file_id}"
+    elif "localhost" in url and (str(settings.ENVIRONMENT).lower() in ("production", "prod") or os.getenv("RENDER")):
+        url = f"https://ai-site-studio.onrender.com/api/v1/files/{file_id}"
+
+    # Non-zip assets (avatars, thumbnails, screenshots, videos) are public
+    if detected_mime != "application/zip":
+        return {"url": url}
+
+    # ZIP template packages use signed URLs valid for 7 days
+    expires = int(datetime.now(timezone.utc).timestamp()) + 86400 * 7
     signature = generate_file_signature(file_id, expires)
     signed_url = f"{url}?expires={expires}&signature={signature}"
 

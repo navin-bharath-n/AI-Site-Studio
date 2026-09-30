@@ -6,7 +6,9 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
+import re
+from app.core.config import settings
 
 from app.models.user import UserRole
 
@@ -17,6 +19,14 @@ class UserBase(BaseModel):
     full_name: Optional[str] = None
     avatar_url: Optional[str] = None
     bio: Optional[str] = None
+
+    @field_validator("avatar_url", mode="before")
+    @classmethod
+    def normalize_avatar_url(cls, v: Optional[str]) -> Optional[str]:
+        if not v:
+            return v
+        base = settings.RESOLVED_STORAGE_BASE_URL
+        return re.sub(r"^https?://(localhost|127\.0\.0\.1):8000/api/v1/files", base, str(v))
 
 
 class UserCreate(UserBase):

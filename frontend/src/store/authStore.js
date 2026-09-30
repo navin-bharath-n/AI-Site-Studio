@@ -9,6 +9,15 @@ import { persist } from "zustand/middleware";
 const SESSION_KEY = "aisitestudio_auth";
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
+export const resolveMediaUrl = (url) => {
+  if (!url || typeof url !== "string") return "";
+  if (url.includes("localhost:8000/api/v1/files") || url.includes("127.0.0.1:8000/api/v1/files")) {
+    const backendBase = API_BASE.replace(/\/api\/v1\/?$/, "");
+    return url.replace(/^https?:\/\/(localhost|127\.0\.0\.1):8000\/api\/v1\/files/, `${backendBase}/api/v1/files`);
+  }
+  return url;
+};
+
 // Tab-isolated dual storage adapter to support simultaneous multi-account login per tab & browser
 const tabIsolatedStorage = {
   getItem: (name) => {
@@ -129,7 +138,7 @@ export const useAuthStore = create(
               ...dbUser,
               firstName: dbUser.full_name ? dbUser.full_name.split(" ")[0] : "User",
               fullName: dbUser.full_name || "User",
-              imageUrl: dbUser.avatar_url || "https://picsum.photos/seed/default/100/100",
+              imageUrl: resolveMediaUrl(dbUser.avatar_url) || "https://picsum.photos/seed/default/100/100",
               primaryEmailAddress: { emailAddress: dbUser.email }
             };
             set({ user: mappedUser, isSignedIn: true });
@@ -160,7 +169,7 @@ export const useAuthStore = create(
               ...dbUser,
               firstName: dbUser.full_name ? dbUser.full_name.split(" ")[0] : "User",
               fullName: dbUser.full_name || "User",
-              imageUrl: dbUser.avatar_url || "https://picsum.photos/seed/default/100/100",
+              imageUrl: resolveMediaUrl(dbUser.avatar_url) || "https://picsum.photos/seed/default/100/100",
               primaryEmailAddress: { emailAddress: dbUser.email }
             };
             set({ user: mappedUser });
@@ -360,7 +369,7 @@ export const useAuthStore = create(
               ...updatedUser,
               firstName: updatedUser.full_name ? updatedUser.full_name.split(" ")[0] : "User",
               fullName: updatedUser.full_name || "User",
-              imageUrl: updatedUser.avatar_url || "https://picsum.photos/seed/default/100/100",
+              imageUrl: resolveMediaUrl(updatedUser.avatar_url) || "https://picsum.photos/seed/default/100/100",
               primaryEmailAddress: { emailAddress: updatedUser.email }
             };
             set({ user: mappedUser });

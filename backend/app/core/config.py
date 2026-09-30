@@ -4,6 +4,7 @@ Application configuration via Pydantic Settings.
 All values are read from environment variables (or .env file).
 """
 
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import List
@@ -247,6 +248,19 @@ class Settings(BaseSettings):
     @property
     def MAX_UPLOAD_SIZE_BYTES(self) -> int:
         return self.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+
+    @property
+    def RESOLVED_STORAGE_BASE_URL(self) -> str:
+        # 1. Check if Render or container provided the public external URL
+        render_url = os.getenv("RENDER_EXTERNAL_URL", "").strip().rstrip("/")
+        if render_url:
+            return f"{render_url}/api/v1/files"
+        # 2. Check STORAGE_BASE_URL setting
+        url = (self.STORAGE_BASE_URL or "").strip().rstrip("/")
+        if not url or "localhost" in url or "127.0.0.1" in url:
+            if str(self.ENVIRONMENT).lower() in ("production", "prod") or os.getenv("RENDER"):
+                return "https://ai-site-studio.onrender.com/api/v1/files"
+        return url or "http://localhost:8000/api/v1/files"
 
 
 @lru_cache

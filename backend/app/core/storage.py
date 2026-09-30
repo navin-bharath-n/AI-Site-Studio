@@ -85,7 +85,7 @@ class StorageService:
 
     @property
     def public_url(self) -> str:
-        return settings.STORAGE_BASE_URL.rstrip("/")
+        return settings.RESOLVED_STORAGE_BASE_URL.rstrip("/")
 
     def build_url(self, file_id: uuid.UUID) -> str:
         return f"{self.public_url}/{file_id}"

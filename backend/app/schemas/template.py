@@ -3,12 +3,14 @@ Pydantic schemas for Template entity.
 """
 
 import uuid
+import re
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional, List, Dict, Any
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.core.config import settings
 from app.models.template import TemplateFramework, TemplateLicense, TemplateStatus
 from app.schemas.category import CategoryResponse
 
@@ -57,6 +59,25 @@ class TemplateBase(BaseModel):
         if "extended" in s or "unlimited" in s:
             return TemplateLicense.EXTENDED
         return TemplateLicense.REGULAR
+
+    @field_validator("thumbnail_url", "developer_avatar", "preview_url", mode="before")
+    @classmethod
+    def normalize_template_urls(cls, v):
+        if not v or not isinstance(v, str):
+            return v
+        base = settings.RESOLVED_STORAGE_BASE_URL
+        return re.sub(r"^https?://(localhost|127\.0\.0\.1):8000/api/v1/files", base, v)
+
+    @field_validator("gallery_images", mode="before")
+    @classmethod
+    def normalize_gallery_images(cls, v):
+        if not v or not isinstance(v, list):
+            return v
+        base = settings.RESOLVED_STORAGE_BASE_URL
+        return [
+            re.sub(r"^https?://(localhost|127\.0\.0\.1):8000/api/v1/files", base, img) if isinstance(img, str) else img
+            for img in v
+        ]
 
 
 class TemplateCreate(TemplateBase):

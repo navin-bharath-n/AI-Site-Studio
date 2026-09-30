@@ -86,8 +86,16 @@ import DeploymentFixConsole from "@/components/dashboard/DeploymentFixConsole";
 import "./Page.css";
 
 // Env-aware API base — reads VITE_API_URL from .env, falls back to localhost for development
-const API_BASE = import.meta.env.VITE_API_URL ?? `${API_BASE}`;
+const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 const BACKEND_BASE = API_BASE.replace(/\/api\/v1\/?$/, "");
+
+export const resolveMediaUrl = (url) => {
+  if (!url || typeof url !== "string") return "";
+  if (url.includes("localhost:8000/api/v1/files") || url.includes("127.0.0.1:8000/api/v1/files")) {
+    return url.replace(/^https?:\/\/(localhost|127\.0\.0\.1):8000\/api\/v1\/files/, `${BACKEND_BASE}/api/v1/files`);
+  }
+  return url;
+};
 
 const DASHBOARD_SUB_CATEGORIES = {
   business: ["Corporate", "Startup", "Small Business", "Enterprise", "Consulting", "Finance", "Insurance", "Accounting", "Manufacturing", "Logistics"],
@@ -847,7 +855,7 @@ function Dashboard() {
       }
 
       const data = await res.json();
-      setAvatarUrl(data.url);
+      setAvatarUrl(resolveMediaUrl(data.url));
       alert("Avatar uploaded successfully! Click 'Save Changes' to update your profile.");
     } catch (err) {
       console.error(err);
@@ -1094,7 +1102,7 @@ function Dashboard() {
       throw new Error(errData.detail || `Failed to upload ${name}`);
     }
     const data = await res.json();
-    return data.url;
+    return resolveMediaUrl(data.url);
   };
 
   const handleZipAnalysis = async (file) => {
@@ -2724,7 +2732,7 @@ function Dashboard() {
             <div className="db-user-info-flex">
               <div className="db-user-avatar relative w-16 h-16 rounded-full overflow-hidden border border-border bg-muted flex shrink-0 items-center justify-center">
                 {user?.imageUrl ? (
-                  <img src={user.imageUrl} alt="Avatar" className="w-full h-full object-cover rounded-full" />
+                  <img src={resolveMediaUrl(user.imageUrl)} alt="Avatar" className="w-full h-full object-cover rounded-full" />
                 ) : (
                   <div className="db-user-avatar-text font-bold text-xl text-primary">
                     {user?.firstName?.[0] ?? user?.fullName?.[0] ?? "U"}
@@ -6332,7 +6340,7 @@ function Dashboard() {
                       <div className="flex flex-col sm:flex-row items-center gap-5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 mb-2">
                         <div className="relative w-16 h-16 rounded-full overflow-hidden bg-indigo-50 dark:bg-indigo-950 border-2 border-indigo-200 dark:border-indigo-800 flex items-center justify-center shrink-0 shadow-sm">
                           {avatarUrl ? (
-                            <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                            <img src={resolveMediaUrl(avatarUrl)} alt="Avatar" className="w-full h-full object-cover" />
                           ) : (
                             <span className="text-xl font-extrabold text-indigo-600 dark:text-indigo-400">
                               {fullName?.[0] || username?.[0] || "?"}
