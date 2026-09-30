@@ -76,7 +76,7 @@ export function formatPrice(price, currency = "USD", locale = "en-US") {
 }
 
 /**
- * Format price in USD ($) for marketplace and cart.
+ * Format price converting between fromCurrency and targetCurrency.
  */
 export function formatConvertedPrice(
   price,
@@ -86,7 +86,22 @@ export function formatConvertedPrice(
 ) {
   if (price === 0 || price === "0") return "Free";
   const numPrice = Number(price) || 0;
-  return formatPrice(numPrice, "USD");
+  const src = (fromCurrency || "USD").toUpperCase();
+  const tgt = (targetCurrency || "USD").toUpperCase();
+
+  if (src === tgt) {
+    return formatPrice(numPrice, tgt);
+  }
+
+  const activeRates = rates || CURRENCY_RATES_TO_USD;
+  const srcRate = activeRates[src] || (CURRENCY_RATES_TO_USD[src] || 1.0);
+  const tgtRate = activeRates[tgt] || (CURRENCY_RATES_TO_USD[tgt] || 1.0);
+
+  // Convert src -> USD -> tgt
+  const inUsd = src === "USD" ? numPrice : numPrice / srcRate;
+  const inTgt = tgt === "USD" ? inUsd : inUsd * tgtRate;
+
+  return formatPrice(inTgt, tgt);
 }
 
 /**

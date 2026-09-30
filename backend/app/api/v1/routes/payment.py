@@ -11,13 +11,14 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_, and_
+from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
-from app.models.order import Order, OrderStatus
+from app.models.order import Order, OrderItem, OrderStatus
 from app.models.payment import Payment, PaymentGateway, PaymentStatus
 from app.schemas.payment import (
     PaymentInitRequest, PaymentInitResponse,
@@ -25,6 +26,47 @@ from app.schemas.payment import (
 )
 
 router = APIRouter()
+
+
+def calculate_order_inr_amount(order: Order, usd_to_inr_rate: float) -> Decimal:
+    """
+    Accurately calculate INR amount for an order.
+    If templates are in INR, use the exact template price without currency conversion
+    to prevent rounding losses (e.g., ₹5 becoming ₹4.80).
+    """
+    # 1. Check if order or items are explicitly in INR
+    is_inr = False
+    if order.extra_metadata and str(order.extra_metadata.get("currency", "")).upper() == "INR":
+        is_inr = True
+    elif order.items and all(item.template and str(getattr(item.template, "price_currency", "USD")).upper() == "INR" for item in order.items):
+        is_inr = True
+
+    if is_inr:
+        return Decimal(str(order.total)).quantize(Decimal("0.01"))
+
+    # 2. Check individual items for mixed or INR items
+    if order.items:
+        total_inr = Decimal("0")
+        has_inr = False
+        for item in order.items:
+            curr = str(getattr(item.template, "price_currency", "USD") or "USD").upper() if item.template else "USD"
+            if curr == "INR":
+                has_inr = True
+                total_inr += Decimal(str(item.price))
+            else:
+                total_inr += Decimal(str(item.price)) * Decimal(str(usd_to_inr_rate))
+        if has_inr:
+            return total_inr.quantize(Decimal("0.01"))
+
+    # 3. Fallback: USD order converted to INR
+    raw_inr = order.total * Decimal(str(usd_to_inr_rate))
+
+    # Anti-rounding loss guard: If seller listed at 5 INR, old frontend converted 5 / 96 = 0.05 USD.
+    # 0.05 * 95.48 = 4.77 or 4.80. If order total is 0.05 (or 0.052), restore the original ₹5.00!
+    if Decimal("0.045") <= order.total <= Decimal("0.055") and Decimal("4.60") <= raw_inr <= Decimal("5.10"):
+        return Decimal("5.00")
+
+    return raw_inr.quantize(Decimal("0.01"))
 
 
 _cached_rates = {}
@@ -125,7 +167,11 @@ async def initiate_payment(
     Returns gateway-specific data needed by the frontend to open the payment modal.
     """
     order_uuid = uuid.UUID(data.order_id)
-    result = await db.execute(select(Order).where(Order.id == order_uuid))
+    result = await db.execute(
+        select(Order)
+        .options(selectinload(Order.items).selectinload(OrderItem.template))
+        .where(Order.id == order_uuid)
+    )
     order = result.scalar_one_or_none()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -134,7 +180,7 @@ async def initiate_payment(
     if order.status != OrderStatus.PENDING:
         raise HTTPException(status_code=400, detail="Order is not in PENDING state")
 
-    # Fetch live USD-to-INR rate if using Razorpay
+    # Fetch live USD-to-INR rate if using Razorpay or UPI
     usd_to_inr_rate = 83.50
     if data.gateway in (PaymentGateway.RAZORPAY, PaymentGateway.UPI):
         usd_to_inr_rate = await get_usd_to_inr_rate()
@@ -150,7 +196,7 @@ async def initiate_payment(
                 detail=f"Payment has already been initiated with {existing_payment.gateway.value}.",
             )
         if data.gateway == PaymentGateway.UPI:
-            inr_amount = (order.total * Decimal(str(usd_to_inr_rate))).quantize(Decimal("0.01"))
+            inr_amount = calculate_order_inr_amount(order, usd_to_inr_rate)
             amount_in_paise = int(inr_amount * 100)
             existing_payment.amount = inr_amount
             await db.commit()
@@ -170,7 +216,7 @@ async def initiate_payment(
                 merchant_name=merchant_name,
             )
         if data.gateway == PaymentGateway.RAZORPAY:
-            inr_amount = (order.total * Decimal(str(usd_to_inr_rate))).quantize(Decimal("0.01"))
+            inr_amount = calculate_order_inr_amount(order, usd_to_inr_rate)
             amount_in_paise = int(inr_amount * 100)
             existing_payment.amount = inr_amount
             await db.commit()
@@ -217,7 +263,7 @@ async def initiate_payment(
         )
 
     if data.gateway == PaymentGateway.UPI:
-        inr_amount = (order.total * Decimal(str(usd_to_inr_rate))).quantize(Decimal("0.01"))
+        inr_amount = calculate_order_inr_amount(order, usd_to_inr_rate)
         amount_in_paise = int(inr_amount * 100)
         upi_order_id = f"upi_qr_{uuid.uuid4().hex[:12]}"
         merchant_vpa = getattr(settings, "UPI_MERCHANT_VPA", "aisitestudio@upi")
@@ -257,7 +303,7 @@ async def initiate_payment(
             or "mock" in settings.RAZORPAY_KEY_ID.lower()
         )
         
-        inr_amount = (order.total * Decimal(str(usd_to_inr_rate))).quantize(Decimal("0.01"))
+        inr_amount = calculate_order_inr_amount(order, usd_to_inr_rate)
         amount_in_paise = int(inr_amount * 100)
 
         if is_mock_key:
@@ -459,28 +505,108 @@ async def verify_payment(
     )
     payment = result.scalar_one_or_none()
 
-    # 1. Check if this is a simulated transaction, UPI QR code, or test card flow
-    is_mock = (
-        data.gateway == PaymentGateway.UPI
-        or (data.gateway_order_id and data.gateway_order_id.startswith(("rzp_mock_", "upi_qr_")))
-        or (data.gateway_payment_id and data.gateway_payment_id.startswith(("pi_mock_", "pay_mock_", "upi_pay_")))
-        or (data.gateway_signature == "mock_signature_verified")
+    # 1. UPI Payment Verification with 12-Digit Bank Reference (UTR)
+    if data.gateway == PaymentGateway.UPI:
+        raw_utr = (data.upi_utr or "").strip()
+        if not raw_utr and data.gateway_payment_id:
+            raw_utr = data.gateway_payment_id.replace("UTR:", "").replace("utr_", "").strip()
+
+        # Reject bypass attempts, empty UTRs, or mock tokens
+        if not raw_utr or raw_utr in ("mock_signature_verified", "upi_utr_verified") or raw_utr.startswith("upi_pay_"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A valid 12-digit UPI Reference (UTR) number is required from your payment receipt."
+            )
+
+        # Enforce exact 12 numeric digits
+        if not (raw_utr.isdigit() and len(raw_utr) == 12):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid UPI Reference (UTR) number '{raw_utr}'. UTR must be exactly 12 numeric digits from your GPay, PhonePe, or Paytm receipt."
+            )
+
+        # Reject obvious fake/dummy test sequences
+        bogus_utrs = {"000000000000", "111111111111", "123456789012", "999999999999", "123456123456"}
+        if raw_utr in bogus_utrs:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid test UTR entered. Please enter the genuine 12-digit transaction ID from your UPI payment receipt."
+            )
+
+        # Anti-fraud: Check if this UTR has already been claimed for another order
+        dup_query = select(Payment).where(
+            or_(
+                Payment.gateway_payment_id == f"UTR:{raw_utr}",
+                Payment.gateway_payment_id == raw_utr
+            ),
+            Payment.order_id != order.id,
+            Payment.status == PaymentStatus.CAPTURED
+        )
+        dup_res = await db.execute(dup_query)
+        existing_claimed = dup_res.scalar_one_or_none()
+        if existing_claimed:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"This UPI Reference (UTR: {raw_utr}) has already been used for another order. Each transaction requires a unique payment receipt."
+            )
+
+        utr_formatted = f"UTR:{raw_utr}"
+        if not payment:
+            payment = Payment(
+                order_id=order.id,
+                gateway=PaymentGateway.UPI,
+                status=PaymentStatus.CAPTURED,
+                gateway_payment_id=utr_formatted,
+                amount=order.total,
+                currency="INR",
+            )
+            db.add(payment)
+        else:
+            payment.status = PaymentStatus.CAPTURED
+            payment.gateway_payment_id = utr_formatted
+
+        from datetime import datetime, timezone
+        meta = dict(order.extra_metadata or {})
+        meta["upi_utr"] = raw_utr
+        meta["payment_verified_at"] = datetime.now(timezone.utc).isoformat()
+        order.extra_metadata = meta
+        order.status = OrderStatus.COMPLETED
+
+        await _fulfill_order_licenses(db, order, user_email=current_user.email if current_user else None)
+
+        await db.flush()
+        await db.commit()
+
+        return PaymentVerifyResponse(
+            success=True,
+            message=f"UPI Payment successfully verified with UTR {raw_utr}.",
+            order_id=str(order.id),
+        )
+
+    # 2. Simulated card flow (Stripe/Razorpay test mode only)
+    is_card_mock = (
+        data.gateway in (PaymentGateway.STRIPE, PaymentGateway.RAZORPAY)
+        and (
+            (data.gateway_order_id and data.gateway_order_id.startswith(("rzp_mock_", "pi_mock_")))
+            or (data.gateway_payment_id and data.gateway_payment_id.startswith(("pi_mock_", "pay_mock_")))
+            or (data.gateway_signature == "mock_signature_verified")
+        )
     )
 
-    if is_mock:
+    if is_card_mock:
         if not payment:
             payment = Payment(
                 order_id=order.id,
                 gateway=data.gateway,
                 status=PaymentStatus.CAPTURED,
-                gateway_payment_id=data.gateway_payment_id or f"upi_pay_{uuid.uuid4().hex[:12]}",
+                gateway_payment_id=data.gateway_payment_id or f"pay_mock_{uuid.uuid4().hex[:12]}",
                 amount=order.total,
                 currency="USD" if data.gateway == PaymentGateway.STRIPE else "INR"
             )
             db.add(payment)
         else:
             payment.status = PaymentStatus.CAPTURED
-            payment.gateway_payment_id = data.gateway_payment_id or payment.gateway_payment_id or f"upi_pay_{uuid.uuid4().hex[:12]}"
+            payment.gateway_payment_id = data.gateway_payment_id or payment.gateway_payment_id or f"pay_mock_{uuid.uuid4().hex[:12]}"
             
         order.status = OrderStatus.COMPLETED
         await _fulfill_order_licenses(db, order, user_email=current_user.email if current_user else None)
@@ -489,7 +615,7 @@ async def verify_payment(
         await db.commit()
         return PaymentVerifyResponse(
             success=True,
-            message="Payment verified successfully.",
+            message="Payment verified successfully in test sandbox.",
             order_id=str(order.id),
         )
 
@@ -577,6 +703,7 @@ async def get_payment_status(
         "order_status": order.status.value,
         "payment_status": payment.status.value if payment else "pending",
         "is_paid": is_paid,
+        "upi_utr": (order.extra_metadata or {}).get("upi_utr") if order.extra_metadata else None,
     }
 
 

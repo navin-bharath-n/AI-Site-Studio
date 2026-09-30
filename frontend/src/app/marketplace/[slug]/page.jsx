@@ -313,7 +313,8 @@ export default function TemplateDetailsPage({ slug: propSlug }) {
     }
     setIsSavingEdit(true);
     try {
-      const finalUsdPrice = convertToUSD(editForm.price, editForm.price_currency, rates);
+      const isINR = (editForm.price_currency || "").toUpperCase() === "INR";
+      const finalPrice = isINR ? Number(editForm.price) : Number(convertToUSD(editForm.price, editForm.price_currency, rates));
       const cleanTags = editForm.tags 
         ? Array.from(new Set(editForm.tags.split(",").map(t => t.trim().replace(/^#/, "")).filter(Boolean)))
         : [];
@@ -322,8 +323,8 @@ export default function TemplateDetailsPage({ slug: propSlug }) {
         title: editForm.title,
         short_description: editForm.short_description,
         description: editForm.description,
-        price: finalUsdPrice,
-        price_currency: "USD",
+        price: finalPrice,
+        price_currency: isINR ? "INR" : "USD",
         license_type: mapLicenseToBackend(editForm.license_type),
         category_id: editForm.category_id || undefined,
         industry: editForm.industry || undefined,
@@ -549,6 +550,7 @@ export default function TemplateDetailsPage({ slug: propSlug }) {
           templateId: template.id,
           title: template.title,
           price: Number(template.price),
+          price_currency: template.price_currency || "USD",
           thumbnail: template.thumbnail_url || template.gallery_images?.[0] || "",
           licenseType: "regular",
         });
@@ -563,6 +565,7 @@ export default function TemplateDetailsPage({ slug: propSlug }) {
       templateId: template.id,
       title: template.title,
       price: Number(template.price),
+      price_currency: template.price_currency || "USD",
       thumbnail: template.thumbnail_url,
       licenseType: "regular",
     });
@@ -576,6 +579,7 @@ export default function TemplateDetailsPage({ slug: propSlug }) {
         templateId: template.id,
         title: template.title,
         price: Number(template.price),
+        price_currency: template.price_currency || "USD",
         thumbnail: template.thumbnail_url,
         licenseType: "regular",
       });
@@ -1861,11 +1865,11 @@ npm run build`;
                 <div>
                   <div className="details-price-row flex items-baseline justify-between mb-1">
                     <span className="details-price-value text-3xl font-extrabold text-foreground">
-                      {template.is_free ? "Free" : formatPrice(template.price, "USD")}
+                      {template.is_free ? "Free" : formatConvertedPrice(template.price, template.price_currency || "USD", userCurrency, rates)}
                     </span>
                     {template.original_price && template.original_price > template.price && (
                       <span className="details-price-original text-sm line-through text-muted-foreground">
-                        {formatPrice(template.original_price, "USD")}
+                        {formatConvertedPrice(template.original_price, template.price_currency || "USD", userCurrency, rates)}
                       </span>
                     )}
                   </div>

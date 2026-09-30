@@ -64,6 +64,7 @@ export default function TemplateCard({
       templateId: template.id,
       title: template.title,
       price: template.price,
+      price_currency: template.price_currency || "USD",
       thumbnail: template.thumbnail_url,
       licenseType: "regular",
     });

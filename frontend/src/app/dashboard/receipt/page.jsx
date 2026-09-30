@@ -152,6 +152,11 @@ export default function ReceiptPage() {
             <p className="receipt-meta-text">
               Date: {new Date(order.created_at || Date.now()).toLocaleDateString(undefined, { dateStyle: "medium" })}
             </p>
+            {order.extra_metadata?.upi_utr && (
+              <p className="receipt-meta-text" style={{ color: "#059669", fontWeight: 700, fontFamily: "monospace" }}>
+                UTR: {order.extra_metadata.upi_utr}
+              </p>
+            )}
           </div>
         </div>
 

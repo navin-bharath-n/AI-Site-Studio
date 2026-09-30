@@ -93,3 +93,7 @@ class OrderItem(UUIDMixin, TimestampMixin, Base):
     @property
     def preview_url(self) -> Optional[str]:
         return self.template.preview_url if self.template else None
+
+    @property
+    def price_currency(self) -> Optional[str]:
+        return getattr(self.template, "price_currency", "USD") if self.template else "USD"

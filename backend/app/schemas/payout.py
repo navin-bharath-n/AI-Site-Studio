@@ -15,6 +15,7 @@ class SaleItemResponse(BaseModel):
     date: datetime
     order_number: str
     license_type: str
+    upi_utr: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

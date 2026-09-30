@@ -28,6 +28,7 @@ class OrderItemResponse(BaseModel):
     template_id: uuid.UUID
     quantity: int
     price: Decimal
+    price_currency: Optional[str] = "USD"
     title: Optional[str] = None
     thumbnail_url: Optional[str] = None
     slug: Optional[str] = None
@@ -54,6 +55,7 @@ class OrderResponse(BaseModel):
     tax: Decimal
     total: Decimal
     coupon_code: Optional[str] = None
+    extra_metadata: Optional[dict] = None
     items: List[OrderItemResponse] = []
     user: Optional[OrderUserResponse] = None
     created_at: datetime

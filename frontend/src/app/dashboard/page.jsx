@@ -1597,19 +1597,22 @@ function Dashboard() {
       }
       finalTagsList = Array.from(new Set(finalTagsList.filter(Boolean)));
 
-      const usdPrice = convertToUSD(price, priceCurrency, rates);
-      const usdOriginalPrice = salePrice ? convertToUSD(salePrice, priceCurrency, rates) : null;
+      const isINR = (priceCurrency || "").toUpperCase() === "INR";
+      const finalPrice = isINR ? Number(price) : Number(convertToUSD(price, priceCurrency, rates));
+      const finalOriginalPrice = salePrice 
+        ? (isINR ? Number(salePrice) : Number(convertToUSD(salePrice, priceCurrency, rates)))
+        : null;
 
       const payload = {
         title,
         slug: slug || title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
         short_description: shortDesc || "Template short description",
         description: desc || "Template full description",
-        price: Number(usdPrice),
-        price_currency: "USD",
-        original_price: usdOriginalPrice,
-        is_free: Number(usdPrice) === 0,
-        is_on_sale: !!usdOriginalPrice,
+        price: finalPrice,
+        price_currency: isINR ? "INR" : "USD",
+        original_price: finalOriginalPrice,
+        is_free: finalPrice === 0,
+        is_on_sale: !!finalOriginalPrice,
         thumbnail_url: finalThumbnailUrl,
         preview_url: demoUrl || null,
         video_url: finalVideoUrl,
@@ -5602,7 +5605,14 @@ function Dashboard() {
                         {earningsSummary.sales && earningsSummary.sales.length > 0 ? (
                           earningsSummary.sales.map((sale, idx) => (
                             <tr key={idx} className="hover:bg-slate-50 transition-colors text-slate-800 font-medium">
-                              <td className="p-3 font-mono font-extrabold text-slate-900">#{sale.order_number}</td>
+                              <td className="p-3">
+                                <div className="font-mono font-extrabold text-slate-900">#{sale.order_number}</div>
+                                {sale.upi_utr && (
+                                  <div className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded mt-0.5">
+                                    UTR: {sale.upi_utr}
+                                  </div>
+                                )}
+                              </td>
                               <td className="p-3 font-bold text-slate-900">{sale.template_title}</td>
                               <td className="p-3 text-slate-600">{sale.purchaser_email}</td>
                               <td className="p-3">
@@ -7315,14 +7325,15 @@ function Dashboard() {
                     <form
                       onSubmit={(e) => {
                         e.preventDefault();
-                        const finalUsdPrice = convertToUSD(editPrice, editCurrency, rates);
+                        const isINR = (editCurrency || "").toUpperCase() === "INR";
+                        const finalPrice = isINR ? Number(editPrice) : Number(convertToUSD(editPrice, editCurrency, rates));
                         updateTemplateMutation.mutate({
                           templateId: editingTemplate.id,
                           data: {
                             title: editTitle.trim(),
                             description: editDescription.trim(),
-                            price: finalUsdPrice,
-                            price_currency: "USD",
+                            price: finalPrice,
+                            price_currency: isINR ? "INR" : "USD",
                             framework: editFramework.toLowerCase(),
                             version: editVersion.trim() || "1.0.0",
                             category: editCategory,

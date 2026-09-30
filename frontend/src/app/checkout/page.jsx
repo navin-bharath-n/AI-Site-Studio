@@ -60,6 +60,8 @@ function Checkout() {
   const [initiatedOrder, setInitiatedOrder] = useState(null);
   const [initiatedPayment, setInitiatedPayment] = useState(null);
   const [vpaCopied, setVpaCopied] = useState(false);
+  const [upiUtr, setUpiUtr] = useState("");
+  const [utrError, setUtrError] = useState("");
 
   // 5-minute QR Code timer & auto-refresh state
   const [qrTimerSeconds, setQrTimerSeconds] = useState(300); // 5 mins = 300s
@@ -390,6 +392,46 @@ function Checkout() {
     }
   };
 
+  const handleUtrChange = (val) => {
+    const cleaned = val.replace(/\D/g, "").slice(0, 12);
+    setUpiUtr(cleaned);
+    if (cleaned.length === 12) {
+      setUtrError("");
+    }
+  };
+
+  const handleVerifyUpiPayment = async () => {
+    if (!initiatedOrder || !initiatedPayment) return;
+    if (upiUtr.length !== 12) {
+      setUtrError("Please enter the complete 12-digit UPI Reference (UTR) number from your payment receipt.");
+      return;
+    }
+
+    setIsProcessing(true);
+    setUtrError("");
+    try {
+      await verifyPaymentMutation.mutateAsync({
+        order_id: initiatedOrder.id,
+        gateway: "upi",
+        gateway_payment_id: "UTR:" + upiUtr,
+        gateway_order_id: initiatedPayment.gateway_order_id,
+        gateway_signature: "upi_utr_verified",
+        upi_utr: upiUtr,
+      });
+
+      await handleCompleteSuccessFlow(initiatedOrder);
+    } catch (err) {
+      console.error("UPI verification error:", err);
+      const errorMsg =
+        err?.response?.data?.detail ||
+        err?.message ||
+        "Verification failed. Please check the 12-digit UTR and retry.";
+      setUtrError(errorMsg);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleVerifyMockPayment = async () => {
     if (!initiatedOrder || !initiatedPayment) return;
 
@@ -434,9 +476,7 @@ function Checkout() {
       await verifyPaymentMutation.mutateAsync({
         order_id: initiatedOrder.id,
         gateway: paymentGateway,
-        gateway_payment_id: paymentGateway === "upi"
-          ? "upi_pay_" + Math.random().toString(36).substring(7)
-          : paymentGateway === "stripe"
+        gateway_payment_id: paymentGateway === "stripe"
           ? "pi_mock_" + Math.random().toString(36).substring(7)
           : "pay_mock_" + Math.random().toString(36).substring(7),
         gateway_order_id: initiatedPayment.gateway_order_id,
@@ -452,7 +492,12 @@ function Checkout() {
     }
   };
 
-  const inrAmountVal = initiatedPayment?.amount ? (initiatedPayment.amount / 100) : (total() * liveRate);
+  const hasInrItems = items.some(i => (i.price_currency || "").toUpperCase() === "INR");
+  const inrAmountVal = initiatedPayment?.amount
+    ? (initiatedPayment.amount / 100)
+    : hasInrItems
+    ? total()
+    : (total() * liveRate);
   const inrAmountString = `₹${inrAmountVal.toFixed(2)}`;
   const minutesLeft = Math.floor(qrTimerSeconds / 60);
   const secondsLeft = qrTimerSeconds % 60;
@@ -479,10 +524,15 @@ function Checkout() {
               <p className="text-sm text-muted-foreground">
                 Your order <strong>#{initiatedOrder?.order_number || "ASS-ORDER"}</strong> has been processed successfully.
               </p>
-              <div className="p-4 bg-muted/20 border border-border/50 rounded-xl text-xs space-y-1 text-left w-full">
+              <div className="p-4 bg-muted/20 border border-border/50 rounded-xl text-xs space-y-1.5 text-left w-full">
                 <div className="flex justify-between"><strong>Status:</strong> <span className="text-emerald-500 font-bold">COMPLETED</span></div>
                 <div className="flex justify-between"><strong>Gateway:</strong> <span className="font-semibold uppercase">{paymentGateway}</span></div>
-                <div className="flex justify-between"><strong>Amount Paid:</strong> <span>{formatPrice(total())} ({inrAmountString})</span></div>
+                {upiUtr && (
+                  <div className="flex justify-between">
+                    <strong>UPI Ref (UTR):</strong> <span className="font-mono font-bold text-emerald-600">{upiUtr}</span>
+                  </div>
+                )}
+                <div className="flex justify-between"><strong>Amount Paid:</strong> <span className="font-bold text-foreground">{inrAmountString}</span></div>
               </div>
               <p className="text-xs text-muted-foreground animate-pulse">
                 Your browser will automatically download the template source ZIP packages. Redirecting to your dashboard...
@@ -590,32 +640,94 @@ function Checkout() {
                       </div>
                     </div>
 
-                    {/* Auto Polling Status Banner */}
-                    <div className="w-full p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                    {/* UPI Step 1 & 2 Explanatory Guide Banner */}
+                    <div className="w-full p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl flex items-center justify-between text-xs text-blue-600 dark:text-blue-400 font-semibold">
                       <span className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin text-emerald-500" /> Waiting for UPI payment completion...
+                        <Smartphone className="w-4 h-4 text-blue-500 shrink-0" />
+                        1. Pay {inrAmountString} via UPI App • 2. Enter 12-Digit UTR below
                       </span>
-                      <span className="text-[10px] text-muted-foreground font-mono">Auto-checking status</span>
+                      <span className="text-[10px] text-muted-foreground font-mono">Receipt Verification</span>
                     </div>
 
-                    <div className="w-full flex gap-3 mt-2">
-                      <button
-                        onClick={() => setPaymentStep("cart")}
-                        className="py-2.5 px-4 border border-border hover:border-slate-500 rounded-xl text-xs font-semibold transition-all"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleVerifyMockPayment}
-                        disabled={isProcessing}
-                        className="flex-1 py-2.5 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-500 transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20"
-                      >
-                        {isProcessing ? (
-                          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Verifying Payment...</>
-                        ) : (
-                          <><CheckCircle2 className="w-4 h-4" /> Approve Payment & Download</>
+                    {/* Step 2: 12-Digit UTR Verification Form */}
+                    <div className="w-full p-4 bg-muted/30 border border-emerald-500/30 rounded-2xl text-left space-y-3 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                          <ShieldCheck className="w-4 h-4 text-emerald-500" /> Step 2: Enter 12-Digit UPI Reference (UTR)
+                        </span>
+                        <span className={cn(
+                          "text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full border transition-all",
+                          upiUtr.length === 12
+                            ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/40 font-black"
+                            : "bg-muted text-muted-foreground border-border/40"
+                        )}>
+                          {upiUtr.length} / 12 digits
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        After completing the payment in <strong>Google Pay, PhonePe, Paytm, or BHIM</strong>, copy the <strong>12-digit UPI Ref / Transaction No. (UTR)</strong> from your app receipt and enter it below to confirm your purchase:
+                      </p>
+
+                      <div className="space-y-1.5">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            maxLength={12}
+                            value={upiUtr}
+                            onChange={(e) => handleUtrChange(e.target.value)}
+                            placeholder="e.g. 428910293847"
+                            className={cn(
+                              "w-full px-3.5 py-2.5 rounded-xl border text-sm font-mono tracking-widest focus:outline-none bg-card text-foreground transition-all shadow-inner",
+                              utrError
+                                ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                                : upiUtr.length === 12
+                                ? "border-emerald-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                : "border-border/60 focus:border-emerald-500"
+                            )}
+                          />
+                          {upiUtr.length === 12 && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500">
+                              <CheckCircle2 className="w-4 h-4" />
+                            </div>
+                          )}
+                        </div>
+
+                        {utrError && (
+                          <p className="text-xs text-red-500 font-medium flex items-center gap-1">
+                            ⚠️ {utrError}
+                          </p>
                         )}
-                      </button>
+                      </div>
+
+                      <div className="flex gap-3 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setPaymentStep("cart")}
+                          className="py-2.5 px-4 border border-border hover:border-slate-500 rounded-xl text-xs font-semibold transition-all text-muted-foreground hover:text-foreground"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleVerifyUpiPayment}
+                          disabled={upiUtr.length !== 12 || isProcessing}
+                          className={cn(
+                            "flex-1 py-2.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg",
+                            upiUtr.length === 12 && !isProcessing
+                              ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/25 cursor-pointer"
+                              : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+                          )}
+                        >
+                          {isProcessing ? (
+                            <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Verifying UTR...</>
+                          ) : (
+                            <><ShieldCheck className="w-4 h-4" /> Verify UTR & Download Template</>
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ) : isRealRazorpay ? (
@@ -875,15 +987,15 @@ function Checkout() {
                   <div className="summary-items-list">
                     <div className="summary-item-row">
                       <span>Subtotal</span>
-                      <span>{formatConvertedPrice(total(), "USD", userCurrency, rates)}</span>
+                      <span>{hasInrItems ? `₹${total().toFixed(2)}` : formatConvertedPrice(total(), "USD", userCurrency, rates)}</span>
                     </div>
                     <div className="summary-item-row">
                       <span>Taxes</span>
-                      <span>{formatConvertedPrice(0, "USD", userCurrency, rates)}</span>
+                      <span>{hasInrItems ? `₹0.00` : formatConvertedPrice(0, "USD", userCurrency, rates)}</span>
                     </div>
                     <div className="summary-total-row">
                       <span>Total Amount</span>
-                      <span>{formatConvertedPrice(total(), "USD", userCurrency, rates)}</span>
+                      <span>{hasInrItems ? `₹${total().toFixed(2)}` : formatConvertedPrice(total(), "USD", userCurrency, rates)}</span>
                     </div>
                   </div>
 

@@ -27,12 +27,13 @@ class PaymentInitResponse(BaseModel):
 
 
 class PaymentVerifyRequest(BaseModel):
-    """Sent by client after payment completion to verify signature."""
+    """Sent by client after payment completion to verify signature or provide UPI UTR."""
     gateway: PaymentGateway
     gateway_payment_id: str
     gateway_order_id: str
-    gateway_signature: Optional[str] = None   # Razorpay HMAC signature
+    gateway_signature: Optional[str] = None   # Razorpay HMAC signature or verification token
     order_id: str
+    upi_utr: Optional[str] = None             # 12-digit UPI Reference (UTR) from buyer's bank receipt
 
 
 class PaymentVerifyResponse(BaseModel):

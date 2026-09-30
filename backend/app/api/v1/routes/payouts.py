@@ -15,6 +15,7 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_seller_or_admin, require_admin
 from app.models.user import User, UserRole
 from app.models.order import Order, OrderItem, OrderStatus
+from app.models.payment import Payment
 from app.models.template import Template
 from app.models.withdrawal_request import WithdrawalRequest, WithdrawalStatus
 from app.schemas.payout import (
@@ -112,9 +113,12 @@ async def get_seller_earnings(
             Template.title.label("template_title"),
             Order.order_number,
             Order.created_at.label("date"),
-            User.email.label("purchaser_email")
+            Order.extra_metadata,
+            User.email.label("purchaser_email"),
+            Payment.gateway_payment_id,
         )
         .join(Order, OrderItem.order_id == Order.id)
+        .outerjoin(Payment, Payment.order_id == Order.id)
         .join(Template, OrderItem.template_id == Template.id)
         .join(User, Order.user_id == User.id)
         .where(
@@ -128,19 +132,27 @@ async def get_seller_earnings(
     sales_res = await db.execute(sales_stmt)
     sales_rows = sales_res.all()
 
-    sales = [
-        SaleItemResponse(
-            order_id=row.order_id,
-            template_id=row.template_id,
-            template_title=row.template_title,
-            price=row.price,
-            purchaser_email=row.purchaser_email,
-            date=row.date,
-            order_number=row.order_number,
-            license_type=row.license_type
+    sales = []
+    for row in sales_rows:
+        utr = None
+        if row.extra_metadata and isinstance(row.extra_metadata, dict):
+            utr = row.extra_metadata.get("upi_utr")
+        if not utr and row.gateway_payment_id and "UTR:" in str(row.gateway_payment_id):
+            utr = str(row.gateway_payment_id).split("UTR:")[-1].strip()
+
+        sales.append(
+            SaleItemResponse(
+                order_id=row.order_id,
+                template_id=row.template_id,
+                template_title=row.template_title,
+                price=row.price,
+                purchaser_email=row.purchaser_email,
+                date=row.date,
+                order_number=row.order_number,
+                license_type=row.license_type,
+                upi_utr=utr,
+            )
         )
-        for row in sales_rows
-    ]
 
     return EarningsSummaryResponse(
         total_earned=summary["total_earned"],

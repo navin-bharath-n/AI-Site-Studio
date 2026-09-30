@@ -49,6 +49,10 @@ async def create_order(
         subtotal += template.price
         order_items.append((template, item_data.license_type))
 
+    # Detect primary template currency (e.g. INR for ₹5 template)
+    currencies = [str(getattr(t, "price_currency", "USD") or "USD").upper() for t, _ in order_items]
+    primary_currency = "INR" if (currencies and all(c == "INR" for c in currencies)) else "USD"
+
     order = Order(
         user_id=current_user.id,
         order_number=_generate_order_number(),
@@ -59,6 +63,7 @@ async def create_order(
         total=subtotal,
         coupon_code=data.coupon_code,
         notes=data.notes,
+        extra_metadata={"currency": primary_currency},
     )
     db.add(order)
     await db.flush()
