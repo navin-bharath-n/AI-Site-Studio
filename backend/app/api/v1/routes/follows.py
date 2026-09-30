@@ -71,15 +71,24 @@ async def toggle_follow(
 
     if existing_follow:
         # Unfollow
-        await db.execute(delete(Follow).where(Follow.id == existing_follow.id))
-        await db.commit()
-        return {"is_following": False}
+        try:
+            async with db.begin_nested():
+                await db.execute(delete(Follow).where(Follow.id == existing_follow.id))
+                await db.commit()
+            return {"is_following": False}
+        except Exception:
+            return {"is_following": False}
     else:
         # Follow
-        follow = Follow(follower_id=current_user.id, seller_id=seller_id)
-        db.add(follow)
-        await db.commit()
-        return {"is_following": True}
+        try:
+            from sqlalchemy.exc import IntegrityError
+            async with db.begin_nested():
+                follow = Follow(follower_id=current_user.id, seller_id=seller_id)
+                db.add(follow)
+                await db.commit()
+            return {"is_following": True}
+        except IntegrityError:
+            return {"is_following": True}
 
 
 @router.get("/followers", response_model=List[UserPublicResponse])

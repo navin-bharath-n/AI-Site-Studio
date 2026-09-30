@@ -6,6 +6,7 @@ import uuid
 from typing import List, Optional
 
 from sqlalchemy import select, exists
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -19,7 +20,7 @@ class FavoriteRepository:
         self.db = db
 
     async def toggle(self, user_id: uuid.UUID, template_id: uuid.UUID) -> bool:
-        """Toggle favorite. Returns True if added, False if removed."""
+        """Toggle favorite. Returns True if added, False if removed. Concurrency-safe."""
         result = await self.db.execute(
             select(Favorite).where(
                 Favorite.user_id == user_id, Favorite.template_id == template_id
@@ -27,13 +28,22 @@ class FavoriteRepository:
         )
         existing = result.scalar_one_or_none()
         if existing:
-            await self.db.delete(existing)
-            await self.db.flush()
-            return False
+            try:
+                async with self.db.begin_nested():
+                    await self.db.delete(existing)
+                    await self.db.flush()
+                return False
+            except Exception:
+                return False
         else:
-            self.db.add(Favorite(user_id=user_id, template_id=template_id))
-            await self.db.flush()
-            return True
+            try:
+                async with self.db.begin_nested():
+                    self.db.add(Favorite(user_id=user_id, template_id=template_id))
+                    await self.db.flush()
+                return True
+            except IntegrityError:
+                # Concurrent request already inserted the favorite record; it is now favorited
+                return True
 
     async def is_favorited(self, user_id: uuid.UUID, template_id: uuid.UUID) -> bool:
         result = await self.db.execute(
@@ -64,7 +74,7 @@ class WishlistRepository:
         self.db = db
 
     async def toggle(self, user_id: uuid.UUID, template_id: uuid.UUID) -> bool:
-        """Toggle wishlist. Returns True if added, False if removed."""
+        """Toggle wishlist. Returns True if added, False if removed. Concurrency-safe."""
         result = await self.db.execute(
             select(WishlistItem).where(
                 WishlistItem.user_id == user_id, WishlistItem.template_id == template_id
@@ -72,13 +82,22 @@ class WishlistRepository:
         )
         existing = result.scalar_one_or_none()
         if existing:
-            await self.db.delete(existing)
-            await self.db.flush()
-            return False
+            try:
+                async with self.db.begin_nested():
+                    await self.db.delete(existing)
+                    await self.db.flush()
+                return False
+            except Exception:
+                return False
         else:
-            self.db.add(WishlistItem(user_id=user_id, template_id=template_id))
-            await self.db.flush()
-            return True
+            try:
+                async with self.db.begin_nested():
+                    self.db.add(WishlistItem(user_id=user_id, template_id=template_id))
+                    await self.db.flush()
+                return True
+            except IntegrityError:
+                # Concurrent request already inserted the wishlist record
+                return True
 
     async def is_wishlisted(self, user_id: uuid.UUID, template_id: uuid.UUID) -> bool:
         result = await self.db.execute(
