@@ -22,6 +22,7 @@ import SidebarFilters from "@/components/marketplace/SidebarFilters";
 import TemplateGrid from "@/components/marketplace/TemplateGrid";
 import { useTemplates, useToggleFavorite, useToggleWishlist } from "@/hooks/useTemplates";
 import { useFilterStore } from "@/store";
+import { useAuthStore } from "@/store/authStore";
 import { cn, debounce } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
@@ -88,15 +89,17 @@ function Marketplace() {
     window.history.replaceState({}, "", newUrl);
   }, [filters]);
 
-  // Fetch categories dynamically
+  // Fetch categories dynamically (long-lived cache)
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
     queryFn: () => api.get("/categories"),
-    staleTime: 1000 * 30,
+    staleTime: 1000 * 60 * 60, // 1 hour fresh
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours in memory
+    placeholderData: (prev) => prev,
   });
 
-  // Auth token for mutations
-  const [token, setToken] = useState(null);
+  // Auth token for mutations — initialized synchronously from store
+  const [token, setToken] = useState(() => useAuthStore.getState().token);
   useEffect(() => {
     getToken().then(setToken);
   }, [getToken]);

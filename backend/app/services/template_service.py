@@ -34,12 +34,16 @@ class TemplateService:
     ) -> TemplateListResponse:
         templates, total = await self.repo.list_with_filters(filters, current_user)
 
-        # Get user interaction flags in bulk
+        # Get user interaction flags in bulk via parallel gathering
         favorited_ids: set = set()
         wishlisted_ids: set = set()
         if current_user:
-            favorited_ids = set(await self.favorites.get_favorited_ids(current_user.id))
-            wishlisted_ids = set(await self.wishlist.get_wishlisted_ids(current_user.id))
+            import asyncio
+            fav_task = self.favorites.get_favorited_ids(current_user.id)
+            wish_task = self.wishlist.get_wishlisted_ids(current_user.id)
+            fav_res, wish_res = await asyncio.gather(fav_task, wish_task)
+            favorited_ids = set(fav_res)
+            wishlisted_ids = set(wish_res)
 
         cards = [
             TemplateCardResponse(
@@ -81,6 +85,37 @@ class TemplateService:
             page=filters.page,
             page_size=filters.page_size,
             total_pages=total_pages,
+        )
+
+    async def enrich_with_user_interactions(
+        self,
+        cached_catalog: dict,
+        current_user: User,
+    ) -> TemplateListResponse:
+        import asyncio
+        fav_task = self.favorites.get_favorited_ids(current_user.id)
+        wish_task = self.wishlist.get_wishlisted_ids(current_user.id)
+        fav_res, wish_res = await asyncio.gather(fav_task, wish_task)
+        favorited_ids = set(fav_res)
+        wishlisted_ids = set(wish_res)
+
+        items = []
+        for raw in cached_catalog.get("items", []):
+            item_data = dict(raw)
+            try:
+                t_id = uuid.UUID(str(item_data["id"])) if isinstance(item_data["id"], str) else item_data["id"]
+            except Exception:
+                t_id = item_data["id"]
+            item_data["is_favorited"] = t_id in favorited_ids
+            item_data["is_wishlisted"] = t_id in wishlisted_ids
+            items.append(TemplateCardResponse.model_validate(item_data))
+
+        return TemplateListResponse(
+            items=items,
+            total=cached_catalog.get("total", 0),
+            page=cached_catalog.get("page", 1),
+            page_size=cached_catalog.get("page_size", 20),
+            total_pages=cached_catalog.get("total_pages", 1),
         )
 
     async def get_template(

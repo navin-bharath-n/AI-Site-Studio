@@ -13,6 +13,10 @@ from app.models.order import Order, OrderStatus
 from app.models.download import Download
 from app.models.template import Template
 
+from app.core.redis import cache_get, cache_set
+from app.models.wishlist import WishlistItem
+from app.models.favorite import Favorite
+
 router = APIRouter()
 
 
@@ -21,47 +25,50 @@ async def get_dashboard_stats(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Return aggregated stats for the current user's dashboard."""
-    # Purchases count
-    purchases = await db.execute(
-        select(func.count(Order.id)).where(
-            Order.user_id == current_user.id,
-            Order.status == OrderStatus.COMPLETED,
-        )
-    )
-    purchase_count = purchases.scalar_one()
+    """Return aggregated stats for the current user's dashboard with Redis caching."""
+    cache_key = f"user:{current_user.id}:stats"
+    cached = await cache_get(cache_key)
+    if cached is not None:
+        return cached
 
-    # Downloads count
-    downloads = await db.execute(
-        select(func.count(Download.id)).where(Download.user_id == current_user.id)
-    )
-    download_count = downloads.scalar_one()
+    # Execute all 5 counts in ONE single unified SQL query via scalar subqueries
+    combined_query = select(
+        select(func.count(Order.id))
+        .where(Order.user_id == current_user.id, Order.status == OrderStatus.COMPLETED)
+        .scalar_subquery()
+        .label("purchases"),
 
-    # Wishlist count
-    from app.models.wishlist import WishlistItem
-    wishlist = await db.execute(
-        select(func.count(WishlistItem.id)).where(WishlistItem.user_id == current_user.id)
-    )
-    wishlist_count = wishlist.scalar_one()
+        select(func.count(Download.id))
+        .where(Download.user_id == current_user.id)
+        .scalar_subquery()
+        .label("downloads"),
 
-    # Favorites count
-    from app.models.favorite import Favorite
-    favorites = await db.execute(
-        select(func.count(Favorite.id)).where(Favorite.user_id == current_user.id)
-    )
-    favorite_count = favorites.scalar_one()
+        select(func.count(WishlistItem.id))
+        .where(WishlistItem.user_id == current_user.id)
+        .scalar_subquery()
+        .label("wishlist"),
 
-    # Uploaded / Generated templates count
-    from app.models.template import Template
-    seller_tmpl = await db.execute(
-        select(func.count(Template.id)).where(Template.seller_id == current_user.id)
-    )
-    uploaded_templates_count = seller_tmpl.scalar_one()
+        select(func.count(Favorite.id))
+        .where(Favorite.user_id == current_user.id)
+        .scalar_subquery()
+        .label("favorites"),
 
-    return {
-        "purchases": purchase_count,
-        "downloads": download_count,
-        "wishlist": wishlist_count,
-        "favorites": favorite_count,
-        "uploaded_templates": uploaded_templates_count,
+        select(func.count(Template.id))
+        .where(Template.seller_id == current_user.id)
+        .scalar_subquery()
+        .label("uploaded_templates"),
+    )
+
+    res = await db.execute(combined_query)
+    row = res.first()
+
+    stats = {
+        "purchases": row.purchases if row else 0,
+        "downloads": row.downloads if row else 0,
+        "wishlist": row.wishlist if row else 0,
+        "favorites": row.favorites if row else 0,
+        "uploaded_templates": row.uploaded_templates if row else 0,
     }
+
+    await cache_set(cache_key, stats, ttl=60)
+    return stats

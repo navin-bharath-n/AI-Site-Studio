@@ -14,9 +14,12 @@ export default function Providers({ children }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 1000 * 60 * 2, // 2 min
+            staleTime: 1000 * 60 * 5, // 5 minutes cache validity
+            gcTime: 1000 * 60 * 30, // 30 minutes in memory
             retry: 1,
             refetchOnWindowFocus: false,
+            refetchOnMount: false, // Instant zero-flicker transitions
+            refetchOnReconnect: false,
           },
         },
       }),

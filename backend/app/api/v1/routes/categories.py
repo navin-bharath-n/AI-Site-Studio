@@ -5,7 +5,7 @@ Categories routes — with Redis caching and automatic invalidation on admin edi
 import uuid
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -19,26 +19,36 @@ router = APIRouter()
 
 
 @router.get("", response_model=List[CategoryResponse])
-async def list_categories(db: AsyncSession = Depends(get_db)):
+async def list_categories(
+    response: Response = None,
+    db: AsyncSession = Depends(get_db)
+):
     """Return all active top-level categories with their children (cached in Redis)."""
     cache_key = CacheKeys.categories()
     cached = await cache_get(cache_key)
     if cached is not None:
+        if response:
+            response.headers["Cache-Control"] = "public, max-age=300, stale-while-revalidate=600"
         return [CategoryResponse.model_validate(c) for c in cached]
 
     repo = CategoryRepository(db)
     categories = await repo.get_all_active()
-    result = []
-    for cat in categories:
+
+    import asyncio
+    async def fetch_cat_data(cat):
         cat_resp = CategoryResponse.model_validate(cat)
         cat_resp.template_count = await repo.count_templates(cat.id)
-        result.append(cat_resp)
+        return cat_resp
+
+    result = list(await asyncio.gather(*[fetch_cat_data(cat) for cat in categories]))
 
     await cache_set(
         cache_key,
         [c.model_dump(mode="json") for c in result],
         ttl=CacheKeys.CACHE_TTL_LONG,
     )
+    if response:
+        response.headers["Cache-Control"] = "public, max-age=300, stale-while-revalidate=600"
     return result
 
 

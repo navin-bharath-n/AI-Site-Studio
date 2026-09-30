@@ -84,6 +84,7 @@ async def list_templates(
     page_size: int = Query(20, ge=1, le=100),
     semantic: bool = Query(False, description="Use AI semantic search"),
     developer: Optional[str] = Query(None, description="Developer/seller name"),
+    response: Response = None,
     db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
@@ -91,6 +92,9 @@ async def list_templates(
     Browse marketplace templates with filtering, sorting, and pagination.
     All filter params are optional and combinable.
     """
+    import json
+    import hashlib
+
     filters = TemplateFilterParams(
         q=q, category=category, sub_category=sub_category, min_price=min_price, max_price=max_price,
         rating=rating, is_free=is_free, is_on_sale=is_on_sale,
@@ -102,19 +106,60 @@ async def list_templates(
         developer=developer,
     )
 
+    # Compute deterministic cache key for catalog query
+    filter_dict = {k: v for k, v in filters.model_dump(exclude_none=True).items() if k != "semantic"}
+    filter_str = json.dumps(filter_dict, sort_keys=True, default=str)
+    cache_key = f"templates:catalog:{hashlib.md5(filter_str.encode('utf-8')).hexdigest()}"
+
     service = TemplateService(db)
-    return await service.list_templates(filters, current_user)
+
+    # 1. Check Redis cache for public catalog (when not semantic search)
+    if not filters.semantic:
+        cached_catalog = await cache_get(cache_key)
+        if cached_catalog is not None:
+            if response:
+                response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
+            if not current_user:
+                return TemplateListResponse.model_validate(cached_catalog)
+            # Authenticated user: enrich cached catalog with favorites & wishlist in parallel
+            return await service.enrich_with_user_interactions(cached_catalog, current_user)
+
+    result = await service.list_templates(filters, current_user)
+
+    # 2. Store in Redis cache for 3 minutes (180s)
+    if result and not filters.semantic:
+        raw_cards = []
+        for c in result.items:
+            dump = c.model_dump(mode="json")
+            dump["is_favorited"] = None
+            dump["is_wishlisted"] = None
+            raw_cards.append(dump)
+        to_cache = {
+            "items": raw_cards,
+            "total": result.total,
+            "page": result.page,
+            "page_size": result.page_size,
+            "total_pages": result.total_pages,
+        }
+        await cache_set(cache_key, to_cache, ttl=180)
+
+    if response:
+        response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
+    return result
 
 
 @router.get("/featured", response_model=list[TemplateCardResponse])
 async def get_featured_templates(
     limit: int = Query(8, ge=1, le=20),
+    response: Response = None,
     db: AsyncSession = Depends(get_db),
 ):
     """Return featured templates for the landing page (cached in Redis)."""
     cache_key = CacheKeys.featured(limit)
     cached = await cache_get(cache_key)
     if cached is not None:
+        if response:
+            response.headers["Cache-Control"] = "public, max-age=300, stale-while-revalidate=600"
         return [TemplateCardResponse.model_validate(c) for c in cached]
 
     service = TemplateService(db)
@@ -125,6 +170,8 @@ async def get_featured_templates(
             [c.model_dump(mode="json") for c in result],
             ttl=CacheKeys.CACHE_TTL_MEDIUM,
         )
+    if response:
+        response.headers["Cache-Control"] = "public, max-age=300, stale-while-revalidate=600"
     return result
 
 

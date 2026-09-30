@@ -133,7 +133,7 @@ function Dashboard() {
   const [activeTab, setActiveTab] = useState("buyer-home");
   const addToCart = useCartStore((s) => s.addItem);
   const isInCart = useCartStore((s) => s.isInCart);
-  const [authToken, setAuthToken] = useState(null);
+  const [authToken, setAuthToken] = useState(() => useAuthStore.getState().token);
   const qc = useQueryClient();
 
   const [fullName, setFullName] = useState("");
@@ -419,6 +419,8 @@ function Dashboard() {
     queryKey: ["dashboard-stats"],
     queryFn: () => api.get("/dashboard/stats", authToken ?? undefined),
     enabled: !!authToken,
+    staleTime: 1000 * 60 * 3,
+    placeholderData: (prev) => prev,
   });
 
   // Fetch User Orders/Purchases
@@ -426,6 +428,8 @@ function Dashboard() {
     queryKey: ["orders"],
     queryFn: () => api.get("/orders", authToken ?? undefined),
     enabled: !!authToken,
+    staleTime: 1000 * 60 * 3,
+    placeholderData: (prev) => prev,
   });
 
   // Fetch Wishlist Items
@@ -433,6 +437,8 @@ function Dashboard() {
     queryKey: ["wishlist"],
     queryFn: () => api.get("/wishlist", authToken ?? undefined),
     enabled: !!authToken,
+    staleTime: 1000 * 60 * 3,
+    placeholderData: (prev) => prev,
   });
 
   // Fetch Followers
@@ -440,6 +446,8 @@ function Dashboard() {
     queryKey: ["followers"],
     queryFn: () => api.get("/follows/followers", authToken ?? undefined),
     enabled: !!authToken && isSeller,
+    staleTime: 1000 * 60 * 3,
+    placeholderData: (prev) => prev,
   });
 
   // Fetch Following
@@ -447,6 +455,8 @@ function Dashboard() {
     queryKey: ["following"],
     queryFn: () => api.get("/follows/following", authToken ?? undefined),
     enabled: !!authToken,
+    staleTime: 1000 * 60 * 3,
+    placeholderData: (prev) => prev,
   });
 
   // Fetch Seller/Buyer Templates
@@ -454,6 +464,8 @@ function Dashboard() {
     queryKey: ["seller-templates"],
     queryFn: () => api.get("/templates/my-templates", authToken ?? undefined),
     enabled: !!authToken,
+    staleTime: 1000 * 60 * 3,
+    placeholderData: (prev) => prev,
   });
 
   // Fetch Buyer Reviews
@@ -461,6 +473,8 @@ function Dashboard() {
     queryKey: ["buyer-reviews"],
     queryFn: () => api.get("/reviews/buyer?page_size=50", authToken ?? undefined),
     enabled: !!authToken,
+    staleTime: 1000 * 60 * 3,
+    placeholderData: (prev) => prev,
   });
   const buyerReviewsList = buyerReviewsData?.items || [];
 
@@ -469,6 +483,8 @@ function Dashboard() {
     queryKey: ["seller-reviews"],
     queryFn: () => api.get("/reviews/seller?page_size=50", authToken ?? undefined),
     enabled: !!authToken && isSeller,
+    staleTime: 1000 * 60 * 3,
+    placeholderData: (prev) => prev,
   });
   const sellerReviewsList = sellerReviewsData?.items || [];
 
@@ -477,6 +493,8 @@ function Dashboard() {
     queryKey: ["seller-earnings"],
     queryFn: () => api.get("/payouts/earnings", authToken ?? undefined),
     enabled: !!authToken && isSeller,
+    staleTime: 1000 * 60 * 3,
+    placeholderData: (prev) => prev,
   });
 
   // Fetch Withdrawal Requests
@@ -484,6 +502,8 @@ function Dashboard() {
     queryKey: ["seller-withdrawals"],
     queryFn: () => api.get("/payouts/withdrawals", authToken ?? undefined),
     enabled: !!authToken && isSeller,
+    staleTime: 1000 * 60 * 3,
+    placeholderData: (prev) => prev,
   });
 
   // Delete Review Mutation
@@ -1700,7 +1720,7 @@ function Dashboard() {
     }, 2000);
   };
 
-  if (!authToken || statsLoading) {
+  if (!authToken && !user) {
     return (
       <>
         <Navbar />

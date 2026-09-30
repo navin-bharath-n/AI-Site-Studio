@@ -10,7 +10,7 @@ import { api } from "@/lib/api";
 export const templateKeys = {
   all: ["templates"],
   lists: () => [...templateKeys.all, "list"],
-  list: (filters, token) => [...templateKeys.lists(), filters, { authenticated: !!token }],
+  list: (filters) => [...templateKeys.lists(), filters],
   details: () => [...templateKeys.all, "detail"],
   detail: (slug, token) => [...templateKeys.details(), slug, { authenticated: !!token }],
   featured: () => [...templateKeys.all, "featured"],
@@ -30,11 +30,12 @@ export function useTemplates(filters, token) {
   });
 
   return useQuery({
-    queryKey: templateKeys.list(filters, token),
+    queryKey: templateKeys.list(filters),
     queryFn: () =>
       api.get(`/templates?${params.toString()}`, token),
     placeholderData: (prev) => prev,
-    staleTime: 1000 * 60 * 2, // 2 minutes
+    staleTime: 1000 * 60 * 5, // 5 minutes fresh
+    gcTime: 1000 * 60 * 30, // 30 minutes in memory
   });
 }
 
