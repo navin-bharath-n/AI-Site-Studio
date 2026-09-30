@@ -31,6 +31,7 @@ import {
   Check,
   Clock,
   RotateCcw,
+  Lock,
 } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import { useCartStore } from "@/store";
@@ -40,6 +41,10 @@ import { useCurrencyStore } from "@/store/currencyStore";
 import Image from "@/components/Image";
 import "./Page.css";
 import Link from "@/components/Link";
+
+// Toggle external card gateways (Razorpay / Stripe)
+// Kept false (masked) until official production keys/merchant approval are ready
+const ENABLE_EXTERNAL_GATEWAYS = false;
 
 function Checkout() {
   const qc = useQueryClient();
@@ -352,6 +357,8 @@ function Checkout() {
     if (items.length === 0 || !authToken) return;
     setIsProcessing(true);
 
+    const activeGateway = ENABLE_EXTERNAL_GATEWAYS ? paymentGateway : "upi";
+
     try {
       // 1. Create PENDING order
       const order = await createOrderMutation.mutateAsync();
@@ -360,12 +367,12 @@ function Checkout() {
       // 2. Initiate Payment Session
       const payInfo = await initiatePaymentMutation.mutateAsync({
         orderId: order.id,
-        gateway: paymentGateway,
+        gateway: activeGateway,
       });
       setInitiatedPayment(payInfo);
 
       const isRealRazorpay =
-        paymentGateway === "razorpay" &&
+        activeGateway === "razorpay" &&
         payInfo?.gateway_order_id &&
         !payInfo.gateway_order_id.startsWith("rzp_mock_");
 
@@ -795,7 +802,12 @@ function Checkout() {
 
                 {items.length > 0 && (
                   <div className="checkout-card" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                    <h3 className="font-bold text-sm text-foreground">Select Payment Gateway</h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-sm text-foreground">Select Payment Method</h3>
+                      <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                        <Check className="w-3 h-3 text-emerald-500" /> Instant UPI Active
+                      </span>
+                    </div>
                     <div className="checkout-gateway-grid">
                       <button
                         type="button"
@@ -807,30 +819,51 @@ function Checkout() {
                       >
                         <QrCode className="checkout-gateway-icon text-emerald-600" />
                         <span className="checkout-gateway-title">UPI QR & Apps</span>
+                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
+                          0% Fee • Instant
+                        </span>
                       </button>
                       <button
                         type="button"
-                        onClick={() => setPaymentGateway("razorpay")}
+                        onClick={() => ENABLE_EXTERNAL_GATEWAYS && setPaymentGateway("razorpay")}
+                        disabled={!ENABLE_EXTERNAL_GATEWAYS}
                         className={cn(
                           "checkout-gateway-btn",
-                          paymentGateway === "razorpay" && "active"
+                          !ENABLE_EXTERNAL_GATEWAYS && "masked",
+                          ENABLE_EXTERNAL_GATEWAYS && paymentGateway === "razorpay" && "active"
                         )}
+                        title={!ENABLE_EXTERNAL_GATEWAYS ? "Card gateway is temporarily masked pending account verification" : ""}
                       >
-                        <CreditCard className="checkout-gateway-icon text-indigo-600" />
-                        <span className="checkout-gateway-title">Razorpay India</span>
+                        <CreditCard className="checkout-gateway-icon text-indigo-400" />
+                        <span className="checkout-gateway-title">Cards / Razorpay</span>
+                        <span className="checkout-gateway-badge-masked">
+                          <Lock className="w-2.5 h-2.5" /> In Setup
+                        </span>
                       </button>
                       <button
                         type="button"
-                        onClick={() => setPaymentGateway("stripe")}
+                        onClick={() => ENABLE_EXTERNAL_GATEWAYS && setPaymentGateway("stripe")}
+                        disabled={!ENABLE_EXTERNAL_GATEWAYS}
                         className={cn(
                           "checkout-gateway-btn",
-                          paymentGateway === "stripe" && "active"
+                          !ENABLE_EXTERNAL_GATEWAYS && "masked",
+                          ENABLE_EXTERNAL_GATEWAYS && paymentGateway === "stripe" && "active"
                         )}
+                        title={!ENABLE_EXTERNAL_GATEWAYS ? "Stripe gateway is temporarily masked pending account verification" : ""}
                       >
-                        <CreditCard className="checkout-gateway-icon text-blue-600" />
+                        <CreditCard className="checkout-gateway-icon text-blue-400" />
                         <span className="checkout-gateway-title">Stripe Payment</span>
+                        <span className="checkout-gateway-badge-masked">
+                          <Lock className="w-2.5 h-2.5" /> In Setup
+                        </span>
                       </button>
                     </div>
+                    {!ENABLE_EXTERNAL_GATEWAYS && (
+                      <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 pt-0.5">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                        Card gateways are temporarily masked pending merchant verification. Instant UPI payments (Google Pay, PhonePe, Paytm, BHIM, QR) are 100% active.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
