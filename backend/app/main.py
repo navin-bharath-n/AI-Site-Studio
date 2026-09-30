@@ -8,6 +8,7 @@ This module creates and configures the FastAPI application with:
 - Health check endpoint
 - Lifespan context (DB + Redis startup/shutdown)
 """
+import os
 import uuid
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
@@ -112,12 +113,29 @@ def create_application() -> FastAPI:
 
     @app.middleware("http")
     async def custom_domain_host_middleware(request: Request, call_next):
+        # Always let CORS preflight through — OPTIONS must reach CORSMiddleware
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
         raw_host = request.headers.get("host", "").split(":")[0].strip().lower()
-        platform_hosts = {"localhost", "127.0.0.1", "0.0.0.0", "testserver"}
-        
+        platform_hosts = {
+            "localhost", "127.0.0.1", "0.0.0.0", "testserver",
+            # Render.com internal hosts
+            "onrender.com",
+        }
+
         path = request.url.path
         # Allow platform calls, API endpoints, docs, and direct asset routes to proceed normally
-        if raw_host in platform_hosts or path.startswith("/api/") or path.startswith("/docs") or path.startswith("/openapi") or path.startswith("/static") or path.startswith("/sites/"):
+        if (
+            raw_host in platform_hosts
+            or raw_host.endswith(".onrender.com")
+            or raw_host.endswith(".vercel.app")
+            or path.startswith("/api/")
+            or path.startswith("/docs")
+            or path.startswith("/openapi")
+            or path.startswith("/static")
+            or path.startswith("/sites/")
+        ):
             return await call_next(request)
 
         # Resolve custom domain or tenant subdomain directly to tenant workload

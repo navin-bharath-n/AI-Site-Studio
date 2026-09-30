@@ -51,8 +51,10 @@ def is_strong_password(password: str) -> bool:
 import random
 import datetime
 
+import os
 import asyncio
 import smtplib
+from email.mime.text import MIMEText
 DUMMY_EMAIL_DOMAINS = {
     "example.com", "example.org", "example.net", "test.com", "dummy.com",
     "company.com", "sample.com", "invalid", "localhost", "mailinator.com"
