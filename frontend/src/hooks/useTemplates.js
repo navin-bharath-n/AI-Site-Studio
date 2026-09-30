@@ -12,7 +12,7 @@ export const templateKeys = {
   lists: () => [...templateKeys.all, "list"],
   list: (filters) => [...templateKeys.lists(), filters],
   details: () => [...templateKeys.all, "detail"],
-  detail: (slug, token) => [...templateKeys.details(), slug, { authenticated: !!token }],
+  detail: (slug) => [...templateKeys.details(), slug],
   featured: () => [...templateKeys.all, "featured"],
 };
 
@@ -34,21 +34,33 @@ export function useTemplates(filters, token) {
     queryFn: () =>
       api.get(`/templates?${params.toString()}`, token),
     placeholderData: (prev) => prev,
-    staleTime: 1000 * 60 * 5, // 5 minutes fresh
-    gcTime: 1000 * 60 * 30, // 30 minutes in memory
+    staleTime: 1000 * 60 * 15, // 15 minutes fresh
+    gcTime: 1000 * 60 * 60, // 1 hour in memory
   });
 }
 
 /**
- * Single template detail by slug.
+ * Single template detail by slug (with instant cache pre-seeding).
  */
 export function useTemplate(slug, token) {
+  const qc = useQueryClient();
   return useQuery({
-    queryKey: templateKeys.detail(slug, token),
+    queryKey: templateKeys.detail(slug),
     queryFn: () => api.get(`/templates/${slug}`, token),
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 15, // 15 mins fresh
     gcTime: 1000 * 60 * 60,
     placeholderData: (prev) => prev,
+    initialData: () => {
+      if (!slug) return undefined;
+      const lists = qc.getQueriesData({ queryKey: templateKeys.lists() });
+      for (const [, listData] of lists) {
+        if (listData?.items) {
+          const match = listData.items.find((item) => item.slug === slug || item.id === slug);
+          if (match) return match;
+        }
+      }
+      return undefined;
+    },
     enabled: !!slug,
   });
 }
@@ -118,7 +130,6 @@ export function useToggleFavorite(token) {
       }
     },
     onSettled: () => {
-      qc.invalidateQueries({ queryKey: templateKeys.all });
       qc.invalidateQueries({ queryKey: ["favorites"] });
     },
   });
@@ -165,7 +176,6 @@ export function useToggleWishlist(token) {
       }
     },
     onSettled: () => {
-      qc.invalidateQueries({ queryKey: templateKeys.all });
       qc.invalidateQueries({ queryKey: ["wishlist"] });
     },
   });

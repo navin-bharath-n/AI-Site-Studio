@@ -681,7 +681,7 @@ export default function TemplateDetailsPage({ slug: propSlug }) {
     }, 600);
   };
 
-  if (isLoading) {
+  if (isLoading && !template) {
     return (
       <>
         <Navbar />

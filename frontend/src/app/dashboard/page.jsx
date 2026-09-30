@@ -600,6 +600,8 @@ function Dashboard() {
     queryKey: ["deployments"],
     queryFn: () => api.get("/deployments", authToken ?? undefined),
     enabled: !!authToken,
+    staleTime: 1000 * 60 * 5,
+    placeholderData: (prev) => prev,
   });
 
   // Strip ANSI escape codes from terminal output
@@ -1932,7 +1934,7 @@ function Dashboard() {
         </div>
 
         {/* ── Content Area ── */}
-        {templatesLoading ? (
+        {templatesLoading && (!templateResponse || templateResponse.length === 0) ? (
           <div className="py-20 text-center rounded-2xl border border-slate-200 bg-white">
             <Loader2 className="w-8 h-8 animate-spin mx-auto text-indigo-600" />
             <p className="text-xs text-slate-500 mt-3 font-semibold">Loading templates...</p>
@@ -3234,7 +3236,7 @@ function Dashboard() {
                       </div>
                     </div>
 
-                    {templatesLoading ? (
+                    {templatesLoading && (!templateResponse || templateResponse.length === 0) ? (
                       <div className="text-center py-12">
                         <Loader2 className="w-8 h-8 animate-spin mx-auto text-indigo-600" />
                         <p className="text-xs text-slate-600 dark:text-slate-400 mt-2 font-medium">Loading your studio projects...</p>
@@ -3458,7 +3460,7 @@ function Dashboard() {
                     </button>
                   </div>
 
-                  {deploymentsLoading ? (
+                  {deploymentsLoading && (!deploymentsData || deploymentsData.length === 0) ? (
                     <div className="text-center py-12">
                       <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
                       <p className="text-xs text-muted-foreground mt-2">Loading mapped websites...</p>
@@ -3661,7 +3663,7 @@ function Dashboard() {
                     </div>
                   </div>
 
-                  {deploymentsLoading ? (
+                  {deploymentsLoading && (!deploymentsData || deploymentsData.length === 0) ? (
                     <div className="text-center py-12">
                       <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
                       <p className="text-xs text-muted-foreground mt-2">Loading deployments...</p>
@@ -3929,7 +3931,7 @@ function Dashboard() {
                       <p className="text-xs text-slate-500 font-medium">Creators and sellers you follow for template releases and updates.</p>
                     </div>
                   </div>
-                  {followingLoading ? (
+                  {followingLoading && (!following || following.length === 0) ? (
                     <div className="text-center py-12">
                       <Loader2 className="w-8 h-8 animate-spin mx-auto text-indigo-600" />
                       <p className="text-xs text-slate-400 mt-2 font-medium">Loading sellers you follow...</p>
@@ -5777,7 +5779,7 @@ function Dashboard() {
                     </div>
                   </div>
 
-                  {followersLoading ? (
+                  {followersLoading && (!followers || followers.length === 0) ? (
                     <div className="text-center py-12">
                       <Loader2 className="w-8 h-8 animate-spin mx-auto text-indigo-600" />
                       <p className="text-xs text-slate-400 mt-2 font-medium">Loading followers...</p>

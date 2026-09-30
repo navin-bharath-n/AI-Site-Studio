@@ -49,7 +49,7 @@ export default function TemplateGrid({
   onFavorite,
   onWishlist,
 }) {
-  if (isLoading) {
+  if (isLoading && (!templates || templates.length === 0)) {
     return (
       <div className={cn("marketplace-grid", view === "list" && "list-view")}>
         {Array.from({ length: 9 }).map((_, i) => (
