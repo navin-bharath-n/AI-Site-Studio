@@ -1046,7 +1046,7 @@ npm run build`;
                   <div className="text-2xl font-bold text-foreground">
                     {template.is_free ? "Free" : formatPrice(template.price)}
                   </div>
-                  <span className="text-xs text-muted-foreground">Single site regular license</span>
+                  <span className="text-xs text-muted-foreground">Lifetime Access • Complete Source Code</span>
                 </div>
               </div>
 
@@ -1572,7 +1572,7 @@ npm run build`;
                   "Configured CSS design system with HSL colors",
                   "All visual mockup SVGs & Picsum vector links",
                   "Comprehensive folder deployment configurations",
-                  "Single-Domain regular developer license key",
+                  "Complete source code & lifetime access",
                 ]).map((item, idx) => (
                   <div key={idx} className="flex gap-2.5 items-center text-xs text-muted-foreground">
                     <div className="w-5 h-5 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center text-green-500 shrink-0">
@@ -1869,7 +1869,7 @@ npm run build`;
                       </span>
                     )}
                   </div>
-                  <span className="text-xs text-muted-foreground block font-medium mt-1">Single site commercial and personal usage license</span>
+                  <span className="text-xs text-muted-foreground block font-medium mt-1">Instant download • Full commercial & personal use</span>
                 </div>
 
                 {/* Action Buttons */}
@@ -1984,13 +1984,13 @@ npm run build`;
                     </span>
                   </div>
 
-                  {/* License Box */}
+                  {/* Access Box */}
                   <div className="flex items-start justify-between py-1">
                     <span className="text-muted-foreground flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> License Type
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Access
                     </span>
                     <span className="font-bold text-foreground text-right max-w-[180px] leading-tight text-emerald-500">
-                      {template.license_type || "Single Site Commercial & Personal License"}
+                      Full Source Code • Lifetime
                     </span>
                   </div>
 
@@ -2086,7 +2086,7 @@ npm run build`;
               },
               {
                 q: "Do I get future bundle updates for free?",
-                a: "Yes. All template licenses include lifetime minor updates and 1 year of major version updates free of charge."
+                a: "Yes. All purchases include lifetime updates free of charge."
               },
               {
                 q: "Can Instant Fill rewrite my copy automatically?",
@@ -2094,7 +2094,7 @@ npm run build`;
               },
               {
                 q: "How does the download delivery work?",
-                a: "Immediately after your payment is processed, we trigger a ZIP download containing the package and register a license key in your buyer dashboard."
+                a: "Immediately after your payment is processed, you can download the full ZIP source archive directly from your dashboard."
               }
             ].map((faq, idx) => (
               <div key={idx} className="border border-border/40 rounded-lg overflow-hidden bg-card/20">
@@ -2362,7 +2362,7 @@ npm run build`;
                   className={cn("edit-modal-tab-btn", editModalTab === "pricing" && "active")}
                 >
                   <DollarSign className="w-3.5 h-3.5" />
-                  <span>Pricing & License</span>
+                  <span>Pricing</span>
                 </button>
                 <button
                   type="button"
@@ -2524,52 +2524,9 @@ npm run build`;
                           </div>
                         </div>
                       </div>
-
-                      {/* License selection visual cards */}
-                      <div className="edit-modal-input-group">
-                        <label className="edit-modal-label">License Type</label>
-                        <div className="edit-modal-license-grid">
-                          {[
-                            {
-                              id: "Single Site Commercial & Personal License",
-                              title: "Single Site",
-                              desc: "Use on 1 client or personal project with lifetime updates.",
-                            },
-                            {
-                              id: "Extended Commercial License",
-                              title: "Extended License",
-                              desc: "Use in paid SaaS products or applications with end-users.",
-                            },
-                            {
-                              id: "Unlimited Multi-Site License",
-                              title: "Unlimited Multi-Site",
-                              desc: "Unlimited deployments for agencies & multi-client developers.",
-                            },
-                          ].map((lic) => {
-                            const isSelected = editForm.license_type === lic.id;
-                            return (
-                              <div
-                                key={lic.id}
-                                onClick={() => setEditForm({ ...editForm, license_type: lic.id })}
-                                className={cn(
-                                  "edit-modal-license-card",
-                                  isSelected && "selected"
-                                )}
-                              >
-                                <div>
-                                  <div className="edit-modal-license-title">
-                                    <span>{lic.title}</span>
-                                    {isSelected && <Check className="w-4 h-4 text-indigo-600" />}
-                                  </div>
-                                  <p className="edit-modal-license-desc">{lic.desc}</p>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
                     </div>
                   )}
+
 
                   {/* TAB 3: SCREENSHOTS & GALLERY */}
                   {editModalTab === "gallery" && (

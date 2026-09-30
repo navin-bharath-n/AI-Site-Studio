@@ -2811,7 +2811,6 @@ function Dashboard() {
                       { id: "seller-followers", label: "Followers", icon: Users },
                       { id: "seller-messages", label: "Customer Messages", icon: MessageSquare },
                       { id: "seller-payouts", label: "Payouts", icon: Wallet },
-                      { id: "seller-licenses", label: "Licenses", icon: FileText },
                       { id: "settings", label: "Profile Settings", icon: Settings },
                     ]
                     : [
@@ -5101,21 +5100,8 @@ function Dashboard() {
                                 />
                               </div>
 
-                              <div>
-                                <label className="uw-label">
-                                  License Type
-                                </label>
-                                <select
-                                  value={licenseType}
-                                  onChange={(e) => setLicenseType(e.target.value)}
-                                  className="uw-select"
-                                >
-                                  <option value="standard">Standard License</option>
-                                  <option value="commercial">Commercial License</option>
-                                  <option value="extended">Extended License</option>
-                                </select>
-                              </div>
                             </div>
+
 
                             {/* Sub-Category / Industry Focus */}
                             <div className="space-y-2 pt-2 border-t border-slate-100">
@@ -6158,36 +6144,8 @@ function Dashboard() {
                 </div>
               )}
 
-              {/* === SELLER LICENSES === */}
-              {activeTab === "seller-licenses" && (
-                <div className="glass border border-border/40 rounded-2xl p-8 space-y-6">
-                  <div>
-                    <h3 className="font-bold text-lg">Issued Licenses</h3>
-                    <p className="text-sm text-muted-foreground">Track software license tokens generated for purchases.</p>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="border-b border-border/50 text-muted-foreground font-bold">
-                          <th className="pb-2">License Token</th>
-                          <th className="pb-2">License Type</th>
-                          <th className="pb-2">Created Date</th>
-                          <th className="pb-2 text-right">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td colSpan={4} className="py-4 text-center text-muted-foreground text-xs">
-                            No issued software licenses found.
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
               {/* === ADMIN USERS LEDGER === */}
+
               {activeTab === "admin-users" && (
                 <div className="glass border border-border/40 rounded-2xl p-8 space-y-6">
                   <div>
