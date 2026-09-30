@@ -2823,7 +2823,7 @@ function Dashboard() {
                       { id: "my-websites", label: "My Websites", icon: Globe },
                       { id: "deployments", label: "Deployments", icon: Zap },
                       { id: "wishlist", label: "Wishlist", icon: Heart },
-                      { id: "buyer-following", label: "Following Sellers", icon: Users },
+                      { id: "buyer-following", label: "Following", icon: Users },
                       { id: "orders", label: "Orders", icon: CreditCard },
                       { id: "reviews", label: "Reviews", icon: Star },
                       { id: "settings", label: "Profile Settings", icon: Settings },
@@ -3916,27 +3916,34 @@ function Dashboard() {
 
               {/* === BUYER FOLLOWING === */}
               {activeTab === "buyer-following" && (
-                <div className="glass border border-border/40 rounded-2xl p-8 space-y-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/40 pb-5">
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
                     <div>
                       <div className="flex items-center gap-2.5">
-                        <h3 className="font-bold text-lg text-foreground">Following Sellers</h3>
+                        <h3 className="font-extrabold text-xl text-slate-900">Following</h3>
                         {Array.isArray(following) && following.length > 0 && (
-                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                             {following.length}
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">Manage and view updates from the sellers you follow.</p>
+                      <p className="text-xs text-slate-500 font-medium">Creators and sellers you follow for template releases and updates.</p>
                     </div>
                   </div>
                   {followingLoading ? (
-                    <div className="text-center py-8">
-                      <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
+                    <div className="text-center py-12">
+                      <Loader2 className="w-8 h-8 animate-spin mx-auto text-indigo-600" />
+                      <p className="text-xs text-slate-400 mt-2 font-medium">Loading sellers you follow...</p>
                     </div>
                   ) : !following || following.length === 0 ? (
-                    <div className="p-8 text-center text-muted-foreground text-sm border border-border/40 rounded-xl">
-                      You are not following any sellers yet.
+                    <div className="mt-empty-card">
+                      <div className="mt-empty-icon">
+                        <Users className="w-7 h-7" />
+                      </div>
+                      <h4 className="mt-empty-title">Not Following Any Sellers Yet</h4>
+                      <p className="mt-empty-desc">
+                        When you follow creators from template pages, they will appear here so you can browse their latest releases.
+                      </p>
                     </div>
                   ) : (
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -3970,15 +3977,15 @@ function Dashboard() {
                                 </span>
                               </div>
                               <div className="space-y-0.5 min-w-0">
-                                <div className="font-bold text-sm text-foreground truncate">{displayName}</div>
-                                <span className="text-xs text-muted-foreground truncate block">@{seller.username || "seller"}</span>
+                                <div className="font-extrabold text-sm text-slate-900 truncate">{displayName}</div>
+                                <span className="text-xs text-slate-500 font-medium truncate block">@{seller.username || "seller"}</span>
                               </div>
                             </div>
                             <Link
                               to={`/marketplace?developer=${encodeURIComponent(seller.full_name || seller.username || "")}`}
-                              className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold rounded-lg text-decoration-none shrink-0 transition-colors"
+                              className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-600 hover:text-white border border-indigo-200 text-decoration-none shrink-0 transition-all shadow-2xs"
                             >
-                              View Items
+                              Profile
                             </Link>
                           </div>
                         );
@@ -5773,14 +5780,14 @@ function Dashboard() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2.5">
-                        <h3 className="font-extrabold text-xl text-slate-900">Seller Followers</h3>
+                        <h3 className="font-extrabold text-xl text-slate-900">Followers</h3>
                         {Array.isArray(followers) && followers.length > 0 && (
                           <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                             {followers.length}
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-500 font-medium">Track profiles and users who follow your updates.</p>
+                      <p className="text-xs text-slate-500 font-medium">Users and community members who follow your updates.</p>
                     </div>
                   </div>
 
@@ -5796,7 +5803,7 @@ function Dashboard() {
                       </div>
                       <h4 className="mt-empty-title">No Followers Yet</h4>
                       <p className="mt-empty-desc">
-                        When clients and other creators follow your profile from template pages, they will appear here.
+                        When clients and users follow your profile from template pages, they will appear here.
                       </p>
                     </div>
                   ) : (
@@ -5839,17 +5846,15 @@ function Dashboard() {
                                 </span>
                               </div>
                             </div>
-                            <Link
-                              to={`/marketplace?developer=${encodeURIComponent(follower.full_name || follower.username || "")}`}
-                              className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-600 hover:text-white border border-indigo-200 text-decoration-none shrink-0 transition-all shadow-2xs"
-                            >
-                              Profile
-                            </Link>
+                            <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-slate-50 text-slate-500 border border-slate-100 shrink-0">
+                              Follower
+                            </span>
                           </div>
                         );
                       })}
                     </div>
                   )}
+
                 </div>
               )}
 
