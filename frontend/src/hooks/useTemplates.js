@@ -46,7 +46,9 @@ export function useTemplate(slug, token) {
   return useQuery({
     queryKey: templateKeys.detail(slug, token),
     queryFn: () => api.get(`/templates/${slug}`, token),
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 60,
+    placeholderData: (prev) => prev,
     enabled: !!slug,
   });
 }

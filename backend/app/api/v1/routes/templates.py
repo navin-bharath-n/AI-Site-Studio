@@ -266,22 +266,41 @@ async def get_template(
     db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
-    """Get full template details by slug (cached in Redis for anonymous visitors)."""
-    cache_key = None
-    if not current_user:
-        cache_key = CacheKeys.template(slug)
-        cached = await cache_get(cache_key)
-        if cached is not None:
+    """Get full template details by slug or ID with Redis multi-tier caching."""
+    cache_key = CacheKeys.template(slug)
+    cached = await cache_get(cache_key)
+    if cached is not None:
+        try:
+            if current_user:
+                template_id = uuid.UUID(str(cached["id"]))
+                service = TemplateService(db)
+                # Count unique account view if new
+                await service.record_unique_account_view(template_id, current_user.id)
+                # Fetch user-specific favorite and wishlist flags
+                is_fav = await service.favorites.is_favorited(current_user.id, template_id)
+                is_wish = await service.wishlist.is_wishlisted(current_user.id, template_id)
+                resp_dict = dict(cached)
+                resp_dict["is_favorited"] = is_fav
+                resp_dict["is_wishlisted"] = is_wish
+                return TemplateResponse.model_validate(resp_dict)
             return TemplateResponse.model_validate(cached)
+        except Exception as e_cache:
+            logger.warning(f"Error serving cached template for '{slug}': {e_cache}")
 
     service = TemplateService(db)
     result = await service.get_template(slug, current_user)
-    if cache_key and result:
-        await cache_set(
-            cache_key,
-            result.model_dump(mode="json"),
-            ttl=CacheKeys.CACHE_TTL_MEDIUM,
-        )
+    if result:
+        # Cache clean base template details in Redis
+        base_dump = result.model_dump(mode="json")
+        base_dump["is_favorited"] = None
+        base_dump["is_wishlisted"] = None
+        
+        await cache_set(cache_key, base_dump, ttl=CacheKeys.CACHE_TTL_MEDIUM)
+        if result.slug and result.slug != slug:
+            await cache_set(CacheKeys.template(result.slug), base_dump, ttl=CacheKeys.CACHE_TTL_MEDIUM)
+        if str(result.id) != slug:
+            await cache_set(CacheKeys.template(str(result.id)), base_dump, ttl=CacheKeys.CACHE_TTL_MEDIUM)
+            
     return result
 
 
@@ -319,6 +338,7 @@ async def update_template(
     # Invalidate template details and featured caches
     if hasattr(template, "slug") and template.slug:
         await cache_delete(CacheKeys.template(template.slug))
+    await cache_delete(CacheKeys.template(str(template.id)))
     await cache_delete_pattern("templates:featured:*")
 
     return updated
@@ -554,6 +574,12 @@ async def reupload_template_zip(
     for p_dir in cache_dirs:
         if os.path.exists(p_dir):
             shutil.rmtree(p_dir, ignore_errors=True)
+
+    # 4. Invalidate template detail caches
+    if hasattr(template, "slug") and template.slug:
+        await cache_delete(CacheKeys.template(template.slug))
+    await cache_delete(CacheKeys.template(str(t_uuid)))
+    await cache_delete_pattern("templates:featured:*")
 
     service = TemplateService(db)
     return await service.get_template_by_id(t_uuid)

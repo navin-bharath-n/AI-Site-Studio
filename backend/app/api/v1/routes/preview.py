@@ -2089,7 +2089,10 @@ async def serve_live_preview(
     # Redirect to URL with trailing slash to ensure relative assets load correctly in browser
     if not filepath and not request.url.path.endswith("/"):
         from fastapi.responses import RedirectResponse
-        return RedirectResponse(url=str(request.url) + "/")
+        forwarded_proto = request.headers.get("x-forwarded-proto") or ("https" if (settings.ENVIRONMENT == "production" or "onrender.com" in str(request.url)) else request.url.scheme)
+        url_obj = request.url.replace(scheme=forwarded_proto)
+        redirect_url = str(url_obj) + "/"
+        return RedirectResponse(url=redirect_url)
     """
     Dynamically extract, compile (if needed), and serve the template's actual frontend code in the browser as a running live demo.
     """
@@ -2104,6 +2107,7 @@ async def serve_live_preview(
     from fastapi.responses import Response
     from sqlalchemy import select
     from app.repositories.template_repo import TemplateRepository
+    from app.services.security_scanner import security_scanner
     
     template_repo = TemplateRepository(db)
     template = await template_repo.get_by_id_or_slug(template_id)
@@ -2393,7 +2397,7 @@ async def serve_live_preview(
                     "  </script>\n"
                     "</body>\n</html>"
                 )
-                return Response(content=react_runner_html.encode("utf-8"), media_type="text/html")
+                return Response(content=react_runner_html.encode("utf-8"), media_type="text/html", headers=security_scanner.get_secure_preview_headers())
             except Exception as e_runner:
                 logger.warning(f"In-browser React runner fallback failed: {e_runner}")
 
@@ -2776,7 +2780,7 @@ async def serve_live_preview(
   {watermark_payload}
 </body>
 </html>"""
-        return Response(content=fallback_html.encode("utf-8"), media_type="text/html")
+        return Response(content=fallback_html.encode("utf-8"), media_type="text/html", headers=security_scanner.get_secure_preview_headers())
 
     try:
         download_assets = template.download_assets or {}
@@ -3323,7 +3327,7 @@ async def serve_live_preview(
   </div>
 </body>
 </html>"""
-                return Response(content=missing_html_warning.encode("utf-8"), media_type="text/html")
+                return Response(content=missing_html_warning.encode("utf-8"), media_type="text/html", headers=security_scanner.get_secure_preview_headers())
     
         # Intercept and forward API calls to the template's embedded sub-app
         if filepath and (filepath.startswith("api/") or filepath == "api"):

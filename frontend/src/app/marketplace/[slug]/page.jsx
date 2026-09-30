@@ -431,7 +431,7 @@ export default function TemplateDetailsPage({ slug: propSlug }) {
     }
   }, [template, searchParams]);
   const previewSrc = (() => {
-    let base = template?.id ? `${API_URL}/preview/live/${template.id}` : "";
+    let base = template?.id ? `${API_URL}/preview/live/${template.id}/` : "";
     if (template?.preview_url && !template.preview_url.includes("example.com") && !template.preview_url.includes("/preview/watermarked")) {
       base = template.preview_url;
     }
@@ -904,7 +904,7 @@ npm run build`;
                         <iframe
                           src={previewSrc}
                           title={`Live Video Walkthrough — ${template.title}`}
-                          sandbox="allow-scripts allow-same-origin allow-forms"
+                          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                           className="autoscroll-iframe"
                         />
                       </div>
@@ -947,7 +947,7 @@ npm run build`;
                         <iframe
                           src={previewSrc}
                           title={`Mobile Preview — ${template.title}`}
-                          sandbox="allow-scripts allow-same-origin allow-forms"
+                          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                         />
                       </div>
 
@@ -1019,7 +1019,7 @@ npm run build`;
                         <iframe
                           src={previewSrc}
                           title={`${heroTab} Preview — ${template.title}`}
-                          sandbox="allow-scripts allow-same-origin allow-forms"
+                          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none", zIndex: 1 }}
                         />
                       </div>

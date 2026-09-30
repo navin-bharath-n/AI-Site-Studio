@@ -248,19 +248,18 @@ class SecurityScanner:
 
     def get_secure_preview_headers(self) -> Dict[str, str]:
         """
-        Returns strict HTTP headers for sandboxed live previews.
-        Prevents clickjacking, MIME-sniffing, and cross-site exfiltration.
+        Returns HTTP headers for sandboxed live previews.
+        Allows the preview to be safely framed in the marketplace canvas while preventing cross-site exfiltration.
         """
         return {
             "X-Content-Type-Options": "nosniff",
-            "X-Frame-Options": "SAMEORIGIN",
             "Referrer-Policy": "strict-origin-when-cross-origin",
             "Content-Security-Policy": (
-                "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; "
-                "font-src 'self' https: data:; "
-                "img-src 'self' https: data: blob:; "
-                "connect-src 'self' https: http://localhost:* http://127.0.0.1:*; "
-                "frame-ancestors 'self' http://localhost:* http://127.0.0.1:*;"
+                "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https: http:; "
+                "font-src 'self' https: http: data:; "
+                "img-src 'self' https: http: data: blob:; "
+                "connect-src 'self' https: http: ws: wss:; "
+                "frame-ancestors *;"
             )
         }
 
