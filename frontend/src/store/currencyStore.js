@@ -30,6 +30,7 @@ export const useCurrencyStore = create(
       setUserCurrency: (currency) => set({ userCurrency: (currency || "USD").toUpperCase() }),
 
       fetchRates: async () => {
+        if (get().hasFetched) return;
         try {
           const res = await fetch(`${API_BASE}/payment/exchange-rates`);
           if (res.ok) {
@@ -40,6 +41,7 @@ export const useCurrencyStore = create(
           }
         } catch (err) {
           console.warn("Failed to fetch exchange rates, using defaults:", err);
+          set({ hasFetched: true });
         }
       },
 

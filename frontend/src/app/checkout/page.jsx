@@ -138,13 +138,13 @@ function Checkout() {
   const [liveRate, setLiveRate] = useState(95.48);
 
   useEffect(() => {
-    getToken().then(setAuthToken);
+    getToken().then(setAuthToken).catch(() => {});
     api.get("/payment/exchange-rate")
       .then(res => {
         if (res?.rate) setLiveRate(res.rate);
       })
       .catch(() => {});
-  }, [getToken]);
+  }, []);
 
   // Real-time polling effect for UPI payment status
   useEffect(() => {

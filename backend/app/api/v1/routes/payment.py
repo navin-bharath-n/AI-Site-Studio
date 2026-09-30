@@ -37,7 +37,7 @@ async def get_all_exchange_rates() -> dict:
     import httpx
     global _cached_rates, _cached_time
     now = time.time()
-    if _cached_rates and (now - _cached_time < 300):
+    if _cached_rates and (now - _cached_time < 3600):
         return _cached_rates
 
     fallback_rates = {
@@ -53,7 +53,7 @@ async def get_all_exchange_rates() -> dict:
         "BRL": 5.65,
     }
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=1.5) as client:
             response = await client.get("https://open.er-api.com/v6/latest/USD")
             if response.status_code == 200:
                 data = response.json()
@@ -62,8 +62,8 @@ async def get_all_exchange_rates() -> dict:
                     _cached_rates = rates
                     _cached_time = now
                     return rates
-    except Exception as e:
-        print(f"Error fetching live global exchange rates: {e}")
+    except Exception:
+        pass
 
     _cached_rates = fallback_rates
     _cached_time = now

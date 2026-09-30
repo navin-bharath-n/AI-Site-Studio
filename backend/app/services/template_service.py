@@ -146,10 +146,9 @@ class TemplateService:
 
         response = TemplateResponse.model_validate(template)
         
-        # Dynamically inspect ZIP files if included_pages is empty or only shows index.html (self-healing for auto-seeded templates).
-        # Keep the archive URL on the server: TemplateResponse is a public API response.
+        # Dynamically inspect ZIP files ONLY if included_pages has never been determined
         download_assets = template.download_assets or {}
-        if (not response.included_pages or response.included_pages == ["index.html"] or response.included_pages == ["Home"] or response.included_pages == ["Home Page"]) and "zip" in download_assets:
+        if (not template.included_pages or len(template.included_pages) == 0) and "zip" in download_assets:
             try:
                 import re
                 zip_url = download_assets["zip"]
@@ -183,27 +182,26 @@ class TemplateService:
                                     pages.append(rel_name)
                         
                         # Dynamic section detection for single-page templates
-                        if len(pages) == 1 and pages[0] == "index.html":
+                        if len(pages) <= 1:
                             try:
                                 index_content = z_in.read(base_dir + "index.html").decode("utf-8", errors="ignore")
-                                import re
                                 anchors = re.findall(r'href="#([a-zA-Z0-9_-]+)"', index_content)
                                 seen = set()
                                 for anchor in anchors:
-                                    # Ignore common layout / utility IDs
                                     if anchor.lower() not in ["home", "top", "carousel", "header", "footer", "wrapper", "main"] and anchor not in seen:
                                         seen.add(anchor)
                                         pages.append(f"{anchor}.html")
-                            except Exception as ex:
-                                print("Failed to extract virtual anchor pages:", ex)
+                            except Exception:
+                                pass
                                 
-                        if pages:
-                            response.included_pages = sorted(pages)
-                            # Cache in database
-                            template.included_pages = response.included_pages
-                            await self.db.flush()
-            except Exception as e:
-                print("Failed to dynamically extract included_pages:", e)
+                        if not pages:
+                            pages = ["index.html"]
+                        response.included_pages = sorted(list(set(pages)))
+                        # Persist permanently in database so it is never re-scanned
+                        template.included_pages = response.included_pages
+                        await self.db.commit()
+            except Exception:
+                pass
                 
         # Get developer stats
         templates_count = 0
