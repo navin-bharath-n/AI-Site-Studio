@@ -133,8 +133,10 @@ class TemplateService:
         if not template:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
 
-        # Increment view count (fire-and-forget style in real app)
-        await self.repo.increment_views(template.id)
+        # Record unique account view — if 1 account opens 5 times, it only counts as 1.
+        if current_user:
+            await self.record_unique_account_view(template.id, current_user.id)
+
 
         is_favorited = None
         is_wishlisted = None
@@ -324,3 +326,50 @@ class TemplateService:
     async def get_featured_templates(self, limit: int = 8) -> List[TemplateCardResponse]:
         templates = await self.repo.get_featured(limit)
         return [TemplateCardResponse.model_validate(t) for t in templates]
+
+    async def record_unique_account_view(
+        self,
+        template_id: uuid.UUID,
+        user_id: uuid.UUID,
+    ) -> bool:
+        """
+        Record a unique view for this account.
+        If the account has already viewed this template, does nothing.
+        If this is a new unique account opening the template, records it
+        and increments views_count by 1.
+        """
+        try:
+            # 1. Quick Redis set check for instant deduplication
+            from app.core.redis import get_redis_client
+            redis_client = await get_redis_client()
+            if redis_client:
+                viewer_set_key = f"template:{template_id}:account_viewers"
+                is_new = await redis_client.sadd(viewer_set_key, str(user_id))
+                if not is_new:
+                    return False  # Already viewed by this account
+
+            # 2. Database check & record in template_account_views
+            from app.models.template_view import TemplateAccountView
+            from sqlalchemy import select
+
+            existing = await self.db.execute(
+                select(TemplateAccountView).where(
+                    TemplateAccountView.template_id == template_id,
+                    TemplateAccountView.user_id == user_id,
+                )
+            )
+            if existing.scalar_one_or_none():
+                return False
+
+            new_view = TemplateAccountView(
+                template_id=template_id,
+                user_id=user_id,
+            )
+            self.db.add(new_view)
+            await self.repo.increment_views(template_id)
+            await self.db.commit()
+            return True
+        except Exception as e:
+            await self.db.rollback()
+            return False
+

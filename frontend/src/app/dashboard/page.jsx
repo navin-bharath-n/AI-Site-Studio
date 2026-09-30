@@ -2570,12 +2570,12 @@ function Dashboard() {
                           <Download className="w-3 h-3 text-primary" /> Downloads
                         </span>
                       </div>
-                      <div className="flex flex-col items-center justify-center py-2.5 rounded-xl bg-muted/40 border border-border/40">
+                      <div className="flex flex-col items-center justify-center py-2.5 rounded-xl bg-muted/40 border border-border/40" title="Number of unique accounts that opened this template">
                         <span className="text-sm font-black text-foreground leading-none">
                           {item.views_count || 0}
                         </span>
                         <span className="text-[10px] text-muted-foreground font-semibold mt-1 flex items-center gap-1">
-                          <Eye className="w-3 h-3 text-indigo-500" /> Views
+                          <Users className="w-3 h-3 text-indigo-500" /> Accounts
                         </span>
                       </div>
                     </div>
@@ -2613,7 +2613,7 @@ function Dashboard() {
                       <div className="db-template-btn-grid-4">
                         <button
                           type="button"
-                          onClick={() => alert(`Analytics for ${item.title}: ${item.downloads_count || 0} downloads, ${item.views_count || 0} views.`)}
+                          onClick={() => alert(`Analytics for ${item.title}: ${item.downloads_count || 0} downloads, ${item.views_count || 0} unique accounts opened.`)}
                           className="db-btn-secondary"
                           title="View Analytics"
                         >
@@ -4183,10 +4183,10 @@ function Dashboard() {
                         iconColor: "#7c3aed",
                       },
                       {
-                        label: "Template Views",
+                        label: "Unique Viewers",
                         value: sellerTotalViews.toLocaleString(),
-                        sub: "Total organic impressions",
-                        icon: Eye,
+                        sub: "Distinct accounts opened",
+                        icon: Users,
                         iconBg: "#ecfeff",
                         iconColor: "#0891b2",
                       },
@@ -5484,10 +5484,10 @@ function Dashboard() {
                     {[
                       { label: "Total Sales", value: (earningsSummary?.sales || []).length.toLocaleString(), sub: "Completed orders", icon: ShoppingBag, color: "#059669", bg: "#ecfdf5" },
                       { label: "Net Revenue", value: formatPrice(earningsSummary?.total_earned || 0), sub: "Gross income", icon: Coins, color: "#2563eb", bg: "#eff6ff" },
-                      { label: "Platform Views", value: sellerTotalViews.toLocaleString(), sub: "Impressions", icon: Eye, color: "#0891b2", bg: "#ecfeff" },
+                      { label: "Unique Accounts", value: sellerTotalViews.toLocaleString(), sub: "Distinct accounts", icon: Users, color: "#0891b2", bg: "#ecfeff" },
                       { label: "Downloads Count", value: sellerTotalDownloads.toLocaleString(), sub: "Packages retrieved", icon: Download, color: "#4f46e5", bg: "#eef2ff" },
                       { label: "Refund Requests", value: "0", sub: "Disputes logged", icon: ShieldCheck, color: "#64748b", bg: "#f1f5f9" },
-                      { label: "Conversion Rate", value: sellerConversionRate, sub: "Sales / Views ratio", icon: TrendingUp, color: "#059669", bg: "#ecfdf5" },
+                      { label: "Conversion Rate", value: sellerConversionRate, sub: "Sales / Accounts ratio", icon: TrendingUp, color: "#059669", bg: "#ecfdf5" },
                     ].map((stat, idx) => {
                       const Icon = stat.icon;
                       return (
@@ -5720,8 +5720,8 @@ function Dashboard() {
               {activeTab === "seller-performance" && (
                 <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs">
                   <div>
-                    <h3 className="font-extrabold text-xl text-slate-900">Detailed Click Performance</h3>
-                    <p className="text-xs text-slate-500 font-medium">Check click conversion and traffic metrics per template.</p>
+                    <h3 className="font-extrabold text-xl text-slate-900">Detailed Performance</h3>
+                    <p className="text-xs text-slate-500 font-medium">Check unique account visits and conversion metrics per template.</p>
                   </div>
                   {!sellerTemplatesList || sellerTemplatesList.length === 0 ? (
                     <div className="mt-empty-card">
@@ -5737,7 +5737,7 @@ function Dashboard() {
                         <thead>
                           <tr className="border-b border-slate-200 bg-slate-50 text-slate-700 font-extrabold">
                             <th className="p-3">Template Title</th>
-                            <th className="p-3">Views</th>
+                            <th className="p-3">Unique Accounts</th>
                             <th className="p-3">Downloads</th>
                             <th className="p-3">Rating</th>
                           </tr>

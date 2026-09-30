@@ -21,6 +21,7 @@ from app.models.deployment import Deployment, DeploymentVersion, Domain, Deploym
 from app.models.incident import SiteIncident
 from app.models.project import Project
 from app.models.withdrawal_request import WithdrawalRequest, WithdrawalStatus
+from app.models.template_view import TemplateAccountView
 
 __all__ = [
     "User", "UserRole",
@@ -46,4 +47,6 @@ __all__ = [
     "Project",
     "WithdrawalRequest",
     "WithdrawalStatus",
+    "TemplateAccountView",
 ]
+
