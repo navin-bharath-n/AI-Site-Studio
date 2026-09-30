@@ -84,9 +84,8 @@ export default function AdminModerationHub({
     const total = moderationTemplates.length;
     const inReview = moderationTemplates.filter((t) => t.status === "draft").length;
     const published = moderationTemplates.filter((t) => t.status === "published").length;
-    const figmaCount = moderationTemplates.filter((t) => t.is_figma || t.title?.includes("(Figma Import)")).length;
     const archived = moderationTemplates.filter((t) => t.status === "archived").length;
-    return { total, inReview, published, figmaCount, archived };
+    return { total, inReview, published, archived };
   }, [moderationTemplates]);
 
   // ── Unique Frameworks List ───────────────────────────────────────────────
@@ -106,7 +105,6 @@ export default function AdminModerationHub({
         if (statusFilter === "draft" && t.status !== "draft") return false;
         if (statusFilter === "published" && t.status !== "published") return false;
         if (statusFilter === "archived" && t.status !== "archived") return false;
-        if (statusFilter === "figma" && !t.is_figma && !t.title?.includes("(Figma Import)")) return false;
 
         // Framework Filter
         if (frameworkFilter !== "all" && t.framework?.toLowerCase() !== frameworkFilter.toLowerCase()) {
@@ -446,15 +444,6 @@ export default function AdminModerationHub({
           </button>
           <button
             type="button"
-            onClick={() => setStatusFilter("figma")}
-            className={cn("mod-tab-btn", statusFilter === "figma" && "is-active")}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-purple-500" />
-            Figma Imports
-            <span className="mod-tab-badge">{metrics.figmaCount}</span>
-          </button>
-          <button
-            type="button"
             onClick={() => setStatusFilter("archived")}
             className={cn("mod-tab-btn", statusFilter === "archived" && "is-active")}
           >
@@ -697,11 +686,6 @@ export default function AdminModerationHub({
                               {t.title}
                             </button>
                             <div className="mod-tags-row">
-                              {Boolean(t.is_figma || t.title?.includes("(Figma Import)")) && (
-                                <span className="mod-category-pill !bg-purple-500/10 !text-purple-600 dark:!text-purple-400 !border-purple-500/20 font-bold flex items-center gap-1">
-                                  <Sparkles className="w-2.5 h-2.5" /> Figma
-                                </span>
-                              )}
                               <span className="mod-category-pill">
                                 {t.category || "General"}
                               </span>

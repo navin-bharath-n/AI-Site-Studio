@@ -74,7 +74,6 @@ import {
   Filter,
 } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
-import FigmaImportModal from "@/components/marketplace/FigmaImportModal";
 import { api } from "@/lib/api";
 import { cn, formatPrice, convertToUSD } from "@/lib/utils";
 import Image from "@/components/Image";
@@ -140,7 +139,6 @@ function Dashboard() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [templatesSubTab, setTemplatesSubTab] = useState("purchased");
   const [studioProjectsSubTab, setStudioProjectsSubTab] = useState("created");
-  const [figmaModalOpen, setFigmaModalOpen] = useState(false); // "created" | "purchased"
 
   // Template Redesign & Edit state
   const [uploadedTemplatesView, setUploadedTemplatesView] = useState("grid"); // "grid" | "table"
@@ -2743,15 +2741,6 @@ function Dashboard() {
 
             <div className="db-header-actions flex items-center gap-2.5">
               <button
-                type="button"
-                onClick={() => setFigmaModalOpen(true)}
-                className="db-figma-btn"
-                title="Import design directly from Figma link"
-              >
-                <Sparkles className="w-4 h-4 text-amber-300" />
-                <span>Import from Figma</span>
-              </button>
-              <button
                 onClick={() => signOut()}
                 className="db-signout-btn"
               >
@@ -2874,13 +2863,6 @@ function Dashboard() {
                         className="db-banner-btn primary"
                       >
                         <Cpu className="w-3.5 h-3.5" /> Launch Studio Workspace
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setFigmaModalOpen(true)}
-                        className="db-banner-btn secondary flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <Sparkles className="w-3.5 h-3.5 text-indigo-400" /> Import from Figma
                       </button>
                       <Link
                         href="/marketplace"
@@ -3631,14 +3613,6 @@ function Dashboard() {
                     </div>
                     <div className="flex items-center gap-2.5">
                       <button
-                        type="button"
-                        onClick={() => setFigmaModalOpen(true)}
-                        className="btn-secondary flex items-center gap-1.5"
-                        title="Import design directly from Figma and deploy live"
-                      >
-                        <Sparkles className="w-4 h-4 text-indigo-400" /> Deploy from Figma
-                      </button>
-                      <button
                         onClick={() => {
                           const available = [...sellerTemplatesList];
                           if (available.length > 0) {
@@ -3667,16 +3641,9 @@ function Dashboard() {
                       <Zap className="w-8 h-8 text-primary mx-auto mb-3 opacity-60" />
                       <p className="text-sm font-semibold text-foreground">No active deployments</p>
                       <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
-                        Connect a project template or import directly from Figma to start building and hosting.
+                        Connect a project template to start building and hosting.
                       </p>
                       <div className="flex items-center justify-center gap-3 mt-4">
-                        <button
-                          type="button"
-                          onClick={() => setFigmaModalOpen(true)}
-                          className="btn-primary flex items-center gap-1.5"
-                        >
-                          <Sparkles className="w-4 h-4 text-indigo-300" /> Deploy from Figma
-                        </button>
                         <button
                           onClick={() => {
                             const available = [...sellerTemplatesList];
@@ -7692,17 +7659,6 @@ function Dashboard() {
           </div>
         </div>
       </div>
-      <FigmaImportModal
-        isOpen={figmaModalOpen}
-        onClose={() => setFigmaModalOpen(false)}
-        onDeploy={(item) => {
-          setFigmaModalOpen(false);
-          setActiveTab("deployments");
-          setDeployTemplateId(item.id);
-          setDeployProjectName(item.title);
-          setIsDeployModalOpen(true);
-        }}
-      />
 
       {/* Failure Incident Reporting Modal */}
       <ReportIssueModal
