@@ -5769,18 +5769,18 @@ function Dashboard() {
 
               {/* === SELLER FOLLOWERS === */}
               {activeTab === "seller-followers" && (
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2.5">
-                        <h3 className="font-extrabold text-xl text-slate-900 dark:text-white">Seller Followers</h3>
+                        <h3 className="font-extrabold text-xl text-slate-900">Seller Followers</h3>
                         {Array.isArray(followers) && followers.length > 0 && (
-                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                             {followers.length}
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Track profiles and users who follow your updates.</p>
+                      <p className="text-xs text-slate-500 font-medium">Track profiles and users who follow your updates.</p>
                     </div>
                   </div>
 
@@ -5831,17 +5831,17 @@ function Dashboard() {
                                 </span>
                               </div>
                               <div className="space-y-0.5 min-w-0">
-                                <div className="font-extrabold text-sm text-slate-900 dark:text-white truncate">
+                                <div className="font-extrabold text-sm text-slate-900 truncate">
                                   {displayName}
                                 </div>
-                                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate block">
+                                <span className="text-xs text-slate-500 font-medium truncate block">
                                   @{follower.username || "user"}
                                 </span>
                               </div>
                             </div>
                             <Link
                               to={`/marketplace?developer=${encodeURIComponent(follower.full_name || follower.username || "")}`}
-                              className="px-3 py-1.5 rounded-lg text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800 text-decoration-none shrink-0 transition-colors"
+                              className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-600 hover:text-white border border-indigo-200 text-decoration-none shrink-0 transition-all shadow-2xs"
                             >
                               Profile
                             </Link>

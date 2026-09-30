@@ -3996,20 +3996,17 @@
   background: #ffffff !important;
   border: 1px solid #e2e8f0 !important;
   border-radius: 1rem !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-.dark .follower-card {
-  background: rgba(30, 41, 59, 0.5) !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
-}
-
 .follower-card:hover {
-  border-color: #a5b4fc !important;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.09) !important;
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08) !important;
   transform: translateY(-1px) !important;
 }
+
 
 .follower-avatar-wrap {
   position: relative !important;
@@ -4029,10 +4026,6 @@
   flex-shrink: 0 !important;
 }
 
-.dark .follower-avatar-wrap {
-  background-color: #1e293b !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
-}
 
 .follower-avatar-img {
   width: 100% !important;
