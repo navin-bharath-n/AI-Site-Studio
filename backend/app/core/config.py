@@ -201,7 +201,7 @@ class Settings(BaseSettings):
     STRIPE_WEBHOOK_SECRET: str = ""
     STRIPE_PUBLISHABLE_KEY: str = ""
 
-    # ── SMTP Settings ──────────────────────────────────────────────────────────
+    # ── SMTP & Email Provider Settings ─────────────────────────────────────────
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
@@ -209,6 +209,8 @@ class Settings(BaseSettings):
     SMTP_FROM: str = "noreply@aisitestudio.com"
     SMTP_USE_TLS: bool = True
     ENABLE_EMAIL_DELIVERY: bool = True
+    RESEND_API_KEY: str = ""
+    RESEND_FROM: str = "Site Studio <onboarding@resend.dev>"
 
     # ── CORS ──────────────────────────────────────────────────────────────────
     FRONTEND_URL: str = "http://localhost:3000"

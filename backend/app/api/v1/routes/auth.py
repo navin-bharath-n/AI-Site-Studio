@@ -113,6 +113,11 @@ def send_smtp_email_sync(to_email: str, subject: str, body: str):
         print(f"\n[EMAIL ERROR] Failed to send email via SMTP to {to_email}: {e}\n")
 
 async def send_otp_email(to_email: str, otp: str):
+    # 1. ALWAYS log OTP prominently so it is immediately visible in Render/local logs
+    print(f"\n=======================================================", flush=True)
+    print(f"🔑 [AUTH OTP CODE] Verification code for {to_email} is: {otp}", flush=True)
+    print(f"=======================================================\n", flush=True)
+
     subject = f"Your OTP Verification Code - Site Studio"
     body = f"""
     <html>
@@ -128,6 +133,32 @@ async def send_otp_email(to_email: str, otp: str):
       </body>
     </html>
     """
+
+    # 2. If RESEND_API_KEY is configured, send via Resend REST API (HTTPS port 443 — never blocked on Render)
+    if getattr(settings, "RESEND_API_KEY", ""):
+        try:
+            import httpx
+            headers = {
+                "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "from": settings.RESEND_FROM or "Site Studio <onboarding@resend.dev>",
+                "to": [to_email],
+                "subject": subject,
+                "html": body,
+            }
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post("https://api.resend.com/emails", headers=headers, json=payload)
+                if resp.status_code in (200, 201):
+                    print(f"\n[EMAIL SENT] OTP successfully sent via Resend API to {to_email}\n", flush=True)
+                    return
+                else:
+                    print(f"\n[EMAIL ERROR] Resend API error ({resp.status_code}): {resp.text}\n", flush=True)
+        except Exception as err:
+            print(f"\n[EMAIL ERROR] Resend API exception: {err}\n", flush=True)
+
+    # 3. Fallback to standard SMTP
     try:
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(None, send_smtp_email_sync, to_email, subject, body)
