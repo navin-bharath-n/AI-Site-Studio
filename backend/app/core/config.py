@@ -221,7 +221,21 @@ class Settings(BaseSettings):
     # ── Computed Properties ───────────────────────────────────────────────────
     @property
     def ALLOWED_ORIGINS_LIST(self) -> List[str]:
-        return [o.strip() for o in self.ALLOWED_ORIGINS.split(",")]
+        origins = set()
+        for o in self.ALLOWED_ORIGINS.split(","):
+            cleaned = o.strip()
+            if not cleaned:
+                continue
+            origins.add(cleaned)
+            origins.add(cleaned.rstrip("/"))
+            origins.add(cleaned.rstrip("/") + "/")
+        if self.FRONTEND_URL:
+            f_clean = self.FRONTEND_URL.strip()
+            if f_clean:
+                origins.add(f_clean)
+                origins.add(f_clean.rstrip("/"))
+                origins.add(f_clean.rstrip("/") + "/")
+        return list(origins)
 
     @property
     def ALLOWED_IMAGE_TYPES_LIST(self) -> List[str]:

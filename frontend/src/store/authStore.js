@@ -205,7 +205,7 @@ export const useAuthStore = create(
           return { success: true };
         } catch (err) {
           if (err.name === "TypeError" || err.message?.includes("Failed to fetch") || err.message?.includes("fetch")) {
-            throw new Error("Unable to connect to Site Studio server. Please check if the backend is running on http://localhost:8000.");
+            throw new Error(`Unable to connect to Site Studio server (${API_BASE}). Please check your connection or CORS settings.`);
           }
           console.error("Login failed:", err);
           throw err;
@@ -292,7 +292,7 @@ export const useAuthStore = create(
           return { success: true };
         } catch (err) {
           if (err.name === "TypeError" || err.message?.includes("Failed to fetch") || err.message?.includes("fetch")) {
-            throw new Error("Unable to connect to Site Studio server. Please check if the backend is running on http://localhost:8000.");
+            throw new Error(`Unable to connect to Site Studio server (${API_BASE}). Please check your connection or CORS settings.`);
           }
           console.error("Registration failed:", err);
           throw err;
