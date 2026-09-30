@@ -107,7 +107,7 @@ async def get_stored_file(
     headers = {}
     
     # 3. Prevent arbitrary inline execution (XSS) by using attachment disposition for untrusted formats
-    allowed_inline_types = settings.ALLOWED_IMAGE_TYPES_LIST
+    allowed_inline_types = set(settings.ALLOWED_IMAGE_TYPES_LIST) | {"video/mp4", "video/webm", "video/quicktime", "video/ogg"}
     if content_type in allowed_inline_types:
         disposition = "inline"
     else:
@@ -152,39 +152,51 @@ async def upload_file(
     finally:
         await file.close()
 
-    # 3. Security: Validate image bytes using Pillow
-    try:
-        image = Image.open(io.BytesIO(content))
-        image.verify()
-        
-        # Re-detect MIME type based on format rather than client input
-        detected_format = image.format.lower() if image.format else ""
-        if detected_format == "jpeg":
-            detected_mime = "image/jpeg"
-        elif detected_format == "png":
-            detected_mime = "image/png"
-        elif detected_format == "webp":
-            detected_mime = "image/webp"
-        elif detected_format == "gif":
-            detected_mime = "image/gif"
-        else:
-            detected_mime = mimetypes.guess_type(file.filename)[0] or "application/octet-stream"
-    except Exception:
-        # Fallback for non-image files like templates
-        if file.filename.endswith(".zip") and ("seller" in current_user.role.value or "admin" in current_user.role.value):
-            detected_mime = "application/zip"
-        else:
+    # 3. Security: Check if file is a video, ZIP template, or image
+    filename_lower = (file.filename or "").lower()
+    video_exts = {".mp4": "video/mp4", ".webm": "video/webm", ".mov": "video/quicktime", ".ogg": "video/ogg"}
+    detected_mime = None
+
+    for ext, v_mime in video_exts.items():
+        if filename_lower.endswith(ext):
+            detected_mime = v_mime
+            break
+
+    if detected_mime:
+        # Valid video upload — bypass image Pillow parser
+        pass
+    elif filename_lower.endswith(".zip") and ("seller" in str(getattr(current_user, "role", "")).lower() or "admin" in str(getattr(current_user, "role", "")).lower()):
+        detected_mime = "application/zip"
+    else:
+        # Validate image bytes using Pillow
+        try:
+            image = Image.open(io.BytesIO(content))
+            image.verify()
+            
+            # Re-detect MIME type based on format rather than client input
+            detected_format = image.format.lower() if image.format else ""
+            if detected_format == "jpeg":
+                detected_mime = "image/jpeg"
+            elif detected_format == "png":
+                detected_mime = "image/png"
+            elif detected_format == "webp":
+                detected_mime = "image/webp"
+            elif detected_format == "gif":
+                detected_mime = "image/gif"
+            else:
+                detected_mime = mimetypes.guess_type(file.filename)[0] or "application/octet-stream"
+        except Exception:
             raise HTTPException(
                 status_code=400,
-                detail="Uploaded file is not a valid image."
+                detail="Uploaded file is not a valid image, video, or ZIP archive."
             )
 
     # Enforce configured allow-list
-    allowed_types = settings.ALLOWED_IMAGE_TYPES_LIST
-    if detected_mime not in allowed_types and detected_mime != "application/zip":
+    allowed_types = set(settings.ALLOWED_IMAGE_TYPES_LIST) | {"application/zip", "video/mp4", "video/webm", "video/quicktime", "video/ogg"}
+    if detected_mime not in allowed_types:
         raise HTTPException(
             status_code=400,
-            detail=f"File type {detected_mime} is not allowed. Whitelisted types: {settings.ALLOWED_IMAGE_TYPES}"
+            detail=f"File type {detected_mime} is not allowed."
         )
 
     # 4. Store file and build URL

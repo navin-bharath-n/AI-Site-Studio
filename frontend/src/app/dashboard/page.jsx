@@ -86,7 +86,8 @@ import DeploymentFixConsole from "@/components/dashboard/DeploymentFixConsole";
 import "./Page.css";
 
 // Env-aware API base — reads VITE_API_URL from .env, falls back to localhost for development
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
+const API_BASE = import.meta.env.VITE_API_URL ?? `${API_BASE}`;
+const BACKEND_BASE = API_BASE.replace(/\/api\/v1\/?$/, "");
 
 const DASHBOARD_SUB_CATEGORIES = {
   business: ["Corporate", "Startup", "Small Business", "Enterprise", "Consulting", "Finance", "Insurance", "Accounting", "Manufacturing", "Logistics"],
@@ -386,7 +387,7 @@ function Dashboard() {
   // Fetch actual admin users from backend when admin tab is active
   useEffect(() => {
     if (authToken && isAdmin) {
-      fetch("http://localhost:8000/api/v1/admin/users?page_size=100", {
+      fetch(`${API_BASE}/admin/users?page_size=100`, {
         headers: { "Authorization": `Bearer ${authToken}` }
       })
         .then(res => res.json())
@@ -832,7 +833,7 @@ function Dashboard() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("http://localhost:8000/api/v1/files/upload", {
+      const res = await fetch(`${API_BASE}/files/upload`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${authToken}`
@@ -861,7 +862,7 @@ function Dashboard() {
     e.preventDefault();
     try {
       setSavingProfile(true);
-      const res = await fetch("http://localhost:8000/api/v1/auth/me", {
+      const res = await fetch(`${API_BASE}/auth/me`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -900,7 +901,7 @@ function Dashboard() {
     }
     try {
       setSavingPayout(true);
-      const res = await fetch("http://localhost:8000/api/v1/auth/payout-account", {
+      const res = await fetch(`${API_BASE}/auth/payout-account`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -956,6 +957,7 @@ function Dashboard() {
   const [zipFile, setZipFile] = useState(null);
   const [folderFiles, setFolderFiles] = useState(null);
   const [videoFile, setVideoFile] = useState(null);
+  const [videoUrl, setVideoUrl] = useState("");
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [galleryFiles, setGalleryFiles] = useState([]);
   const [galleryPreviews, setGalleryPreviews] = useState([]);
@@ -1080,7 +1082,7 @@ function Dashboard() {
     if (!fileObj) return "";
     const uploadForm = new FormData();
     uploadForm.append("file", fileObj);
-    const res = await fetch("http://localhost:8000/api/v1/files/upload", {
+    const res = await fetch(`${API_BASE}/files/upload`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${authToken}`
@@ -1128,7 +1130,7 @@ function Dashboard() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("http://localhost:8000/api/v1/templates/analyze-zip", {
+      const res = await fetch(`${API_BASE}/templates/analyze-zip`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${authToken}`
@@ -1279,7 +1281,7 @@ function Dashboard() {
     }, 600);
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/templates/analyze-git", {
+      const res = await fetch(`${API_BASE}/templates/analyze-git`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1397,7 +1399,7 @@ function Dashboard() {
       if (githubUsername) query.append("username", githubUsername.trim());
       if (githubToken) query.append("token", githubToken.trim());
 
-      const res = await fetch(`http://localhost:8000/api/v1/templates/git-repos?${query.toString()}`, {
+      const res = await fetch(`${API_BASE}/templates/git-repos?${query.toString()}`, {
         headers: {
           "Authorization": `Bearer ${authToken}`
         }
@@ -1428,7 +1430,7 @@ function Dashboard() {
     }
     setConnectingGithub(true);
     try {
-      const res = await fetch("http://localhost:8000/api/v1/auth/connect-github", {
+      const res = await fetch(`${API_BASE}/auth/connect-github`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1458,7 +1460,7 @@ function Dashboard() {
   const disconnectGithub = async () => {
     if (!confirm("Are you sure you want to disconnect your GitHub account?")) return;
     try {
-      const res = await fetch("http://localhost:8000/api/v1/auth/disconnect-github", {
+      const res = await fetch(`${API_BASE}/auth/disconnect-github`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${authToken}`
@@ -1542,8 +1544,8 @@ function Dashboard() {
         finalZipUrl = await uploadFileHelper(finalZipFile, "source ZIP");
       }
 
-      // 4. Upload Video file if exists (seller with GitHub connected)
-      let finalVideoUrl = null;
+      // 4. Upload Video file if exists, or use video URL
+      let finalVideoUrl = videoUrl ? videoUrl.trim() : null;
       if (videoFile) {
         finalVideoUrl = await uploadFileHelper(videoFile, "video preview");
       }
@@ -1606,7 +1608,7 @@ function Dashboard() {
         changelog: analysisResult ? { "ai_report": analysisResult } : null
       };
 
-      const res = await fetch("http://localhost:8000/api/v1/templates", {
+      const res = await fetch(`${API_BASE}/templates`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1636,6 +1638,7 @@ function Dashboard() {
       setDemoUrl("");
       setThumbnailFile(null);
       setVideoFile(null);
+      setVideoUrl("");
       setZipFile(null);
       setFolderFiles(null);
       setUploadType("zip");
@@ -2043,7 +2046,7 @@ function Dashboard() {
                         </button>
 
                         <a
-                          href={item.preview_url || `http://localhost:8000/api/v1/preview/live/${item.template_id || item.id}`}
+                          href={item.preview_url || `${API_BASE}/preview/live/${item.template_id || item.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="db-btn-secondary"
@@ -2295,7 +2298,7 @@ function Dashboard() {
                           </button>
 
                           <a
-                            href={`http://localhost:8000/api/v1/preview/live/${item.id}`}
+                            href={`${API_BASE}/preview/live/${item.id}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="db-btn-secondary"
@@ -2601,7 +2604,7 @@ function Dashboard() {
                         </button>
 
                         <a
-                          href={item.preview_url || `http://localhost:8000/api/v1/preview/live/${item.id}`}
+                          href={item.preview_url || `${API_BASE}/preview/live/${item.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="db-btn-secondary"
@@ -3013,7 +3016,7 @@ function Dashboard() {
                                         <span>Edit in Studio</span>
                                       </Link>
                                       <a
-                                        href={`http://localhost:8000/api/v1/preview/live/${item.id}`}
+                                        href={`${API_BASE}/preview/live/${item.id}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="db-custom-icon-btn"
@@ -3306,7 +3309,7 @@ function Dashboard() {
                                       <Wand2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" /> Editor
                                     </Link>
                                     <a
-                                      href={`http://localhost:8000/api/v1/preview/live/${item.id}`}
+                                      href={`${API_BASE}/preview/live/${item.id}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all text-decoration-none text-center"
@@ -3382,7 +3385,7 @@ function Dashboard() {
                                       <Wand2 className="w-3 h-3 text-indigo-600" /> Editor
                                     </Link>
                                     <a
-                                      href={`http://localhost:8000/api/v1/preview/live/${item.id}`}
+                                      href={`${API_BASE}/preview/live/${item.id}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="flex-1 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-bold rounded-lg text-[11px] flex items-center justify-center gap-1 transition-all text-decoration-none"
@@ -3472,7 +3475,7 @@ function Dashboard() {
                           </thead>
                           <tbody>
                             {deploymentsData.filter(d => d.custom_domain).map((deploy) => {
-                              const livePreviewUrl = `http://localhost:8000/sites/${deploy.custom_domain}/`;
+                              const livePreviewUrl = `${BACKEND_BASE}/sites/${deploy.custom_domain}/`;
                               const isVerifying = verifyingDomainId === deploy.id;
 
                               return (
@@ -3705,7 +3708,7 @@ function Dashboard() {
                                   <div className="flex items-center gap-1.5">
                                     <span className="text-slate-500 dark:text-slate-400 font-semibold">Custom:</span>
                                     <a
-                                      href={`http://localhost:8000/sites/${deploy.custom_domain}/`}
+                                      href={`${BACKEND_BASE}/sites/${deploy.custom_domain}/`}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="text-indigo-600 dark:text-indigo-400 font-mono font-extrabold truncate max-w-[200px] hover:underline flex items-center gap-1"
@@ -3728,7 +3731,7 @@ function Dashboard() {
                               <div className="flex gap-2">
                                 {isLive && (
                                   <a
-                                    href={deploy.live_url || (deploy.site_id ? `http://localhost:8000/sites/${deploy.site_id}/` : "#")}
+                                    href={deploy.live_url || (deploy.site_id ? `${BACKEND_BASE}/sites/${deploy.site_id}/` : "#")}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex-1 btn-deploy-visit"
@@ -4391,8 +4394,7 @@ function Dashboard() {
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        const API_BASE = "http://localhost:8000/api/v1";
-                                        window.location.href = `${API_BASE}/auth/github/login?token=${authToken}&redirect=/dashboard?tab=seller-upload`;
+                                                                                window.location.href = `${API_BASE}/auth/github/login?token=${authToken}&redirect=/dashboard?tab=seller-upload`;
                                       }}
                                       className="uw-github-btn"
                                     >
@@ -5285,26 +5287,56 @@ function Dashboard() {
                               </div>
                             </div>
 
-                            {/* Video Upload */}
-                            <div className="p-3.5 border border-blue-200 bg-blue-50/40 rounded-xl space-y-1.5">
+                            {/* Video Upload or URL */}
+                            <div className="p-3.5 border border-blue-200 bg-blue-50/40 rounded-xl space-y-2">
                               <label className="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
                                 <Video className="w-4 h-4 text-blue-600" />
                                 Video Walkthrough Preview (Optional)
                               </label>
-                              <p className="text-[11px] text-slate-500 font-medium">Upload a short product walkthrough MP4/WebM video shown on the catalog listing.</p>
-                              <div className="uw-file-card" style={{ backgroundColor: "#ffffff" }}>
-                                <label className="uw-file-btn uw-file-btn-blue">
-                                  Choose Video File
+                              <p className="text-[11px] text-slate-500 font-medium">Upload a short MP4/WebM video (Max 50MB) or paste a YouTube / Vimeo / Loom link.</p>
+                              
+                              <div className="space-y-2">
+                                <div className="uw-file-card" style={{ backgroundColor: "#ffffff" }}>
+                                  <label className="uw-file-btn uw-file-btn-blue">
+                                    Choose Video File
+                                    <input
+                                      type="file"
+                                      accept="video/mp4,video/webm,video/quicktime,video/ogg"
+                                      onChange={(e) => {
+                                        const file = e.target.files[0];
+                                        if (file && file.size > 50 * 1024 * 1024) {
+                                          alert("Video exceeds 50MB limit. For longer videos, please paste a YouTube or Vimeo link below.");
+                                          return;
+                                        }
+                                        setVideoFile(file);
+                                      }}
+                                      className="hidden"
+                                    />
+                                  </label>
+                                  <span className="uw-file-text">
+                                    {videoFile ? `✓ ${videoFile.name} (${(videoFile.size / (1024 * 1024)).toFixed(2)} MB)` : "No video file selected"}
+                                  </span>
+                                  {videoFile && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setVideoFile(null)}
+                                      className="text-xs text-red-500 hover:text-red-700 ml-2 font-bold cursor-pointer"
+                                    >
+                                      Remove
+                                    </button>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] uppercase font-bold text-slate-400">OR</span>
                                   <input
-                                    type="file"
-                                    accept="video/*"
-                                    onChange={(e) => setVideoFile(e.target.files[0])}
-                                    className="hidden"
+                                    type="url"
+                                    value={videoUrl}
+                                    onChange={(e) => setVideoUrl(e.target.value)}
+                                    placeholder="Paste YouTube, Vimeo, Loom or MP4 URL (e.g. https://www.youtube.com/watch?v=...)"
+                                    className="uw-input text-xs"
                                   />
-                                </label>
-                                <span className="uw-file-text">
-                                  {videoFile ? `✓ ${videoFile.name} (${(videoFile.size / (1024 * 1024)).toFixed(2)} MB)` : "No walkthrough video selected"}
-                                </span>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -6062,7 +6094,7 @@ function Dashboard() {
                                 onChange={async (e) => {
                                   const newRole = e.target.value;
                                   try {
-                                    const res = await fetch(`http://localhost:8000/api/v1/admin/users/${u.id}`, {
+                                    const res = await fetch(`${API_BASE}/admin/users/${u.id}`, {
                                       method: "PATCH",
                                       headers: {
                                         "Content-Type": "application/json",
@@ -6097,7 +6129,7 @@ function Dashboard() {
                                 onClick={async () => {
                                   const newStatus = u.status === "Active" ? "Suspended" : "Active";
                                   try {
-                                    const res = await fetch(`http://localhost:8000/api/v1/admin/users/${u.id}`, {
+                                    const res = await fetch(`${API_BASE}/admin/users/${u.id}`, {
                                       method: "PATCH",
                                       headers: {
                                         "Content-Type": "application/json",
@@ -6122,7 +6154,7 @@ function Dashboard() {
                                 onClick={async () => {
                                   if (!window.confirm(`Are you sure you want to permanently delete user ${u.name || u.email}? This action is irreversible.`)) return;
                                   try {
-                                    const res = await fetch(`http://localhost:8000/api/v1/admin/users/${u.id}`, {
+                                    const res = await fetch(`${API_BASE}/admin/users/${u.id}`, {
                                       method: "DELETE",
                                       headers: {
                                         "Authorization": `Bearer ${authToken}`
@@ -6716,7 +6748,7 @@ function Dashboard() {
                 const displayError = lastErrorLine ? stripAnsi(lastErrorLine).replace(/^\[.*?\]\s*\[ERROR\]\s*/, '') : "Runtime error detected on live website.";
 
                 const liveTargetUrl = selectedDeployment?.live_url
-                  || (selectedDeployment?.site_id ? `http://localhost:8000/sites/${selectedDeployment.site_id}/` : null)
+                  || (selectedDeployment?.site_id ? `${BACKEND_BASE}/sites/${selectedDeployment.site_id}/` : null)
                   || (selectedDeployment?.custom_domain ? `http://${selectedDeployment.custom_domain}` : null);
 
                 // Quick AI Auto-Heal Handler
