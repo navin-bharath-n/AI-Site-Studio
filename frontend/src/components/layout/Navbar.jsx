@@ -136,10 +136,11 @@ function NavbarComponent() {
 
           {/* Auth */}
           {isSignedIn ? (
-            <>
+            <div className="desktop-auth">
               <Link
                 href="/dashboard"
                 className="search-btn"
+                style={{ display: "inline-flex" }}
               >
                 Dashboard
               </Link>
@@ -150,7 +151,7 @@ function NavbarComponent() {
               >
                 Log Out
               </button>
-            </>
+            </div>
           ) : (
             <div className="desktop-auth">
               <Link

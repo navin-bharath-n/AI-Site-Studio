@@ -516,7 +516,7 @@ function Checkout() {
       <div className="checkout-page">
         <div className="checkout-container">
           {paymentStep === "success" ? (
-            <div className="checkout-card" style={{ maxWidth: "600px", margin: "4rem auto", textAlign: "center", padding: "3rem", display: "flex", flexDirection: "column", gap: "1.5rem", alignItems: "center" }}>
+            <div className="checkout-success-card">
               <div style={{ width: "4rem", height: "4rem", borderRadius: "50%", backgroundColor: "rgba(16, 185, 129, 0.1)", display: "flex", alignItems: "center", justifyItems: "center", justifyContent: "center", color: "hsl(var(--success, 142.1 76.2% 36.3%))" }}>
                 <ShieldCheck className="w-10 h-10 text-emerald-500" />
               </div>
@@ -537,335 +537,351 @@ function Checkout() {
               <p className="text-xs text-muted-foreground animate-pulse">
                 Your browser will automatically download the template source ZIP packages. Redirecting to your dashboard...
               </p>
-              <Link href="/dashboard" className="checkout-browse-btn" style={{ width: "100%", textAlign: "center" }}>
+              <Link href="/dashboard" className="checkout-browse-btn" style={{ width: "100%", textAlign: "center", justifyContent: "center" }}>
                 Go to Dashboard
               </Link>
             </div>
           ) : paymentStep === "paying" ? (
-            <div className="checkout-grid" style={{ maxWidth: "800px", margin: "2rem auto" }}>
-              <div className="checkout-left-block" style={{ gridColumn: "span 2" }}>
-                {paymentGateway === "upi" ? (
-                  <div className="checkout-card" style={{ display: "flex", flexDirection: "column", gap: "1.5rem", alignItems: "center", textAlign: "center" }}>
-                    <div className="w-full flex items-center justify-between border-b border-border/50 pb-4">
-                      <h3 className="font-bold text-lg flex items-center gap-2">
-                        <QrCode className="w-5 h-5 text-emerald-500" /> Pay via UPI QR Code / Apps
-                      </h3>
-                      <div className="flex items-center gap-2">
-                        <span className={cn(
-                          "text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1.5 border transition-all",
-                          qrTimerSeconds > 60
-                            ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
-                            : "bg-amber-500/10 text-amber-500 border-amber-500/30 animate-pulse"
-                        )}>
-                          <Clock className="w-3.5 h-3.5" />
-                          QR Valid: {timerFormatted}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={handleManualRefreshQr}
-                          className="p-1.5 rounded-lg text-muted-foreground hover:text-emerald-400 bg-muted/20 hover:bg-emerald-500/10 border border-border/40 hover:border-emerald-500/30 transition-all"
-                          title="Refresh QR Code (Generate new 5-min session)"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+            <div className="checkout-paying-wrapper">
+              {paymentGateway === "upi" ? (
+                <div className="checkout-paying-card items-center text-center">
+                  <div className="checkout-paying-header">
+                    <h3 className="checkout-paying-title">
+                      <QrCode className="w-5 h-5 text-emerald-500 shrink-0" /> Pay via UPI QR Code / Apps
+                    </h3>
+                    <div className="checkout-paying-timer-bar">
+                      <span className={cn(
+                        "text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1.5 border transition-all",
+                        qrTimerSeconds > 60
+                          ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
+                          : "bg-amber-500/10 text-amber-500 border-amber-500/30 animate-pulse"
+                      )}>
+                        <Clock className="w-3.5 h-3.5" />
+                        QR Valid: {timerFormatted}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleManualRefreshQr}
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-emerald-400 bg-muted/20 hover:bg-emerald-500/10 border border-border/40 hover:border-emerald-500/30 transition-all cursor-pointer"
+                        title="Refresh QR Code (Generate new 5-min session)"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </button>
                     </div>
+                  </div>
 
-                    <div className="p-3 bg-muted/20 border border-border/50 rounded-xl text-xs w-full flex items-center justify-between">
-                      <span className="text-muted-foreground">Amount Payable:</span>
-                      <span className="text-lg font-bold text-emerald-500">{inrAmountString} <span className="text-xs text-muted-foreground font-normal">({formatPrice(total())})</span></span>
-                    </div>
+                  <div className="checkout-amount-badge">
+                    <span className="text-muted-foreground font-medium">Amount Payable:</span>
+                    <span className="text-base sm:text-lg font-bold text-emerald-500">{inrAmountString} <span className="text-xs text-muted-foreground font-normal">({formatPrice(total())})</span></span>
+                  </div>
 
-                    {/* QR Code Render Box */}
-                    <div className="p-6 bg-white rounded-2xl border-2 border-emerald-500/30 shadow-xl flex flex-col items-center gap-3">
+                  {/* QR Code Render Box */}
+                  <div className="checkout-qr-box">
+                    <div className="checkout-qr-svg-wrapper">
                       <QRCodeSVG
                         key={qrNonce}
                         value={defaultUpiUri}
-                        size={220}
+                        size={190}
                         level="H"
                         includeMargin={true}
                       />
-                      <div className="flex items-center gap-1.5 text-xs text-slate-700 font-semibold bg-slate-100 px-3 py-1 rounded-full">
-                        <Smartphone className="w-3.5 h-3.5 text-emerald-600" /> Scan with any UPI App
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-slate-700 font-semibold bg-slate-100 px-3 py-1 rounded-full">
+                      <Smartphone className="w-3.5 h-3.5 text-emerald-600" /> Scan with any UPI App
+                    </div>
+                    {qrRefreshedNotice && (
+                      <div className="text-xs text-emerald-600 font-semibold bg-emerald-50 border border-emerald-300 px-3 py-1 rounded-full animate-bounce">
+                        ✨ QR Code refreshed for another 5 minutes!
                       </div>
-                      {qrRefreshedNotice && (
-                        <div className="text-xs text-emerald-600 font-semibold bg-emerald-50 border border-emerald-300 px-3 py-1 rounded-full animate-bounce">
-                          ✨ QR Code refreshed for another 5 minutes!
-                        </div>
+                    )}
+                  </div>
+
+                  {/* VPA Copy Bar */}
+                  <div className="checkout-vpa-box">
+                    <div className="checkout-vpa-info">
+                      <span className="checkout-vpa-label">UPI ID / VPA</span>
+                      <span className="checkout-vpa-value">{merchantVpa}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => copyVpaToClipboard(merchantVpa)}
+                      className="checkout-vpa-copy-btn"
+                    >
+                      {vpaCopied ? <><Check className="w-3.5 h-3.5 text-emerald-500" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy VPA</>}
+                    </button>
+                  </div>
+
+                  {/* Quick Launch UPI App Deep Links */}
+                  <div className="checkout-upi-apps-section">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <Smartphone className="w-3.5 h-3.5 text-emerald-500" /> Pay Directly Using App:
+                      </label>
+                      <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full sm:hidden">
+                        Tap to open app
+                      </span>
+                    </div>
+                    <div className="checkout-upi-apps-grid">
+                      <button
+                        type="button"
+                        onClick={() => window.open(defaultUpiUri, '_self')}
+                        className="checkout-upi-app-btn"
+                      >
+                        <span className="checkout-upi-app-name text-blue-500">Google Pay</span>
+                        <span className="checkout-upi-app-sub">Tap to Pay</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => window.open(defaultUpiUri, '_self')}
+                        className="checkout-upi-app-btn"
+                      >
+                        <span className="checkout-upi-app-name text-purple-500">PhonePe</span>
+                        <span className="checkout-upi-app-sub">Tap to Pay</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => window.open(defaultUpiUri, '_self')}
+                        className="checkout-upi-app-btn"
+                      >
+                        <span className="checkout-upi-app-name text-sky-500">Paytm</span>
+                        <span className="checkout-upi-app-sub">Tap to Pay</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => window.open(defaultUpiUri, '_self')}
+                        className="checkout-upi-app-btn"
+                      >
+                        <span className="checkout-upi-app-name text-orange-500">BHIM UPI</span>
+                        <span className="checkout-upi-app-sub">Tap to Pay</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* UPI Step 1 & 2 Explanatory Guide Banner */}
+                  <div className="checkout-steps-banner">
+                    <div className="flex items-center gap-2">
+                      <Smartphone className="w-4 h-4 text-blue-500 shrink-0" />
+                      <span><strong>1.</strong> Pay {inrAmountString} via UPI App • <strong>2.</strong> Enter 12-digit UTR</span>
+                    </div>
+                    <span className="checkout-steps-pill">Receipt Verification</span>
+                  </div>
+
+                  {/* Step 2: 12-Digit UTR Verification Form */}
+                  <div className="checkout-utr-card">
+                    <div className="flex items-center justify-between flex-wrap gap-1">
+                      <span className="checkout-utr-step-title">
+                        <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" /> Step 2: Enter 12-Digit UPI Reference (UTR)
+                      </span>
+                      <span className={cn(
+                        "checkout-utr-counter",
+                        upiUtr.length === 12 && "is-complete"
+                      )}>
+                        {upiUtr.length} / 12 digits
+                      </span>
+                    </div>
+
+                    <p className="checkout-utr-desc">
+                      After completing the payment in <strong>Google Pay, PhonePe, Paytm, or BHIM</strong>, copy the <strong>12-digit UPI Ref / Transaction No. (UTR)</strong> from your app receipt and enter it below:
+                    </p>
+
+                    <div className="space-y-1.5">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={12}
+                          value={upiUtr}
+                          onChange={(e) => handleUtrChange(e.target.value)}
+                          placeholder="e.g. 428910293847"
+                          className={cn(
+                            "checkout-utr-input",
+                            utrError
+                              ? "is-error"
+                              : upiUtr.length === 12
+                              ? "is-valid"
+                              : ""
+                          )}
+                        />
+                        {upiUtr.length === 12 && (
+                          <div className="checkout-utr-check-icon">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          </div>
+                        )}
+                      </div>
+
+                      {utrError && (
+                        <p className="checkout-utr-error-msg">
+                          ⚠️ {utrError}
+                        </p>
                       )}
                     </div>
 
-                    {/* VPA Copy Bar */}
-                    <div className="w-full p-3 bg-card border border-border/60 rounded-xl flex items-center justify-between gap-2">
-                      <div className="text-left text-xs">
-                        <span className="text-muted-foreground block text-[10px] uppercase font-semibold">UPI ID / VPA</span>
-                        <span className="font-mono font-bold text-foreground">{merchantVpa}</span>
-                      </div>
+                    <div className="checkout-action-row">
                       <button
-                        onClick={() => copyVpaToClipboard(merchantVpa)}
-                        className="px-3 py-1.5 bg-muted/50 hover:bg-muted text-xs font-semibold rounded-lg flex items-center gap-1 border border-border/40 transition-all"
+                        type="button"
+                        onClick={() => setPaymentStep("cart")}
+                        className="checkout-cancel-btn"
                       >
-                        {vpaCopied ? <><Check className="w-3.5 h-3.5 text-emerald-500" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy VPA</>}
+                        Cancel / Change Method
                       </button>
-                    </div>
-
-                    {/* Quick Launch UPI App Deep Links */}
-                    <div className="w-full space-y-2 text-left">
-                      <label className="text-xs font-semibold text-muted-foreground uppercase">Pay directly using App:</label>
-                      <div className="grid grid-cols-4 gap-2">
-                        <button
-                          onClick={() => window.open(defaultUpiUri, '_self')}
-                          className="p-2.5 rounded-xl border border-border/50 hover:border-emerald-500 bg-muted/20 hover:bg-emerald-500/10 transition-all flex flex-col items-center gap-1 text-[11px] font-bold"
-                        >
-                          <span className="text-blue-500">GPay</span>
-                        </button>
-                        <button
-                          onClick={() => window.open(defaultUpiUri, '_self')}
-                          className="p-2.5 rounded-xl border border-border/50 hover:border-emerald-500 bg-muted/20 hover:bg-emerald-500/10 transition-all flex flex-col items-center gap-1 text-[11px] font-bold"
-                        >
-                          <span className="text-purple-500">PhonePe</span>
-                        </button>
-                        <button
-                          onClick={() => window.open(defaultUpiUri, '_self')}
-                          className="p-2.5 rounded-xl border border-border/50 hover:border-emerald-500 bg-muted/20 hover:bg-emerald-500/10 transition-all flex flex-col items-center gap-1 text-[11px] font-bold"
-                        >
-                          <span className="text-sky-500">Paytm</span>
-                        </button>
-                        <button
-                          onClick={() => window.open(defaultUpiUri, '_self')}
-                          className="p-2.5 rounded-xl border border-border/50 hover:border-emerald-500 bg-muted/20 hover:bg-emerald-500/10 transition-all flex flex-col items-center gap-1 text-[11px] font-bold"
-                        >
-                          <span className="text-orange-500">BHIM</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* UPI Step 1 & 2 Explanatory Guide Banner */}
-                    <div className="w-full p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl flex items-center justify-between text-xs text-blue-600 dark:text-blue-400 font-semibold">
-                      <span className="flex items-center gap-2">
-                        <Smartphone className="w-4 h-4 text-blue-500 shrink-0" />
-                        1. Pay {inrAmountString} via UPI App • 2. Enter 12-Digit UTR below
-                      </span>
-                      <span className="text-[10px] text-muted-foreground font-mono">Receipt Verification</span>
-                    </div>
-
-                    {/* Step 2: 12-Digit UTR Verification Form */}
-                    <div className="w-full p-4 bg-muted/30 border border-emerald-500/30 rounded-2xl text-left space-y-3 shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                          <ShieldCheck className="w-4 h-4 text-emerald-500" /> Step 2: Enter 12-Digit UPI Reference (UTR)
-                        </span>
-                        <span className={cn(
-                          "text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full border transition-all",
-                          upiUtr.length === 12
-                            ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/40 font-black"
-                            : "bg-muted text-muted-foreground border-border/40"
-                        )}>
-                          {upiUtr.length} / 12 digits
-                        </span>
-                      </div>
-
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        After completing the payment in <strong>Google Pay, PhonePe, Paytm, or BHIM</strong>, copy the <strong>12-digit UPI Ref / Transaction No. (UTR)</strong> from your app receipt and enter it below to confirm your purchase:
-                      </p>
-
-                      <div className="space-y-1.5">
-                        <div className="relative">
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            maxLength={12}
-                            value={upiUtr}
-                            onChange={(e) => handleUtrChange(e.target.value)}
-                            placeholder="e.g. 428910293847"
-                            className={cn(
-                              "w-full px-3.5 py-2.5 rounded-xl border text-sm font-mono tracking-widest focus:outline-none bg-card text-foreground transition-all shadow-inner",
-                              utrError
-                                ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                                : upiUtr.length === 12
-                                ? "border-emerald-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                                : "border-border/60 focus:border-emerald-500"
-                            )}
-                          />
-                          {upiUtr.length === 12 && (
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500">
-                              <CheckCircle2 className="w-4 h-4" />
-                            </div>
-                          )}
-                        </div>
-
-                        {utrError && (
-                          <p className="text-xs text-red-500 font-medium flex items-center gap-1">
-                            ⚠️ {utrError}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="flex gap-3 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => setPaymentStep("cart")}
-                          className="py-2.5 px-4 border border-border hover:border-slate-500 rounded-xl text-xs font-semibold transition-all text-muted-foreground hover:text-foreground"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleVerifyUpiPayment}
-                          disabled={upiUtr.length !== 12 || isProcessing}
-                          className={cn(
-                            "flex-1 py-2.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg",
-                            upiUtr.length === 12 && !isProcessing
-                              ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/25 cursor-pointer"
-                              : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
-                          )}
-                        >
-                          {isProcessing ? (
-                            <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Verifying UTR...</>
-                          ) : (
-                            <><ShieldCheck className="w-4 h-4" /> Verify UTR & Download Template</>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ) : isRealRazorpay ? (
-                  <div className="checkout-card" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-                    <div className="flex items-center justify-between border-b border-border/50 pb-4">
-                      <h3 className="font-bold text-lg flex items-center gap-2">
-                        <CreditCard className="w-5 h-5 text-primary" /> Razorpay Official Checkout
-                      </h3>
-                      <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-500 font-bold uppercase border border-emerald-500/30">
-                        Live Gateway
-                      </span>
-                    </div>
-
-                    <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-3">
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Pay securely using <strong>UPI, Credit/Debit Cards, NetBanking, or Wallets</strong> via the official Razorpay checkout popup.
-                      </p>
-                      <div className="flex items-center justify-between pt-2 border-t border-primary/10 text-xs">
-                        <span className="text-muted-foreground">Order ID:</span>
-                        <span className="font-mono font-semibold">{initiatedOrder?.id?.slice(0, 13)}...</span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Amount Payable:</span>
-                        <span className="font-bold text-primary text-sm">{inrAmountString}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-3">
                       <button
-                        onClick={() => handleOpenRazorpay(initiatedOrder, initiatedPayment)}
-                        disabled={isProcessing}
-                        className="w-full py-3 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-primary/95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 cursor-pointer"
+                        type="button"
+                        onClick={handleVerifyUpiPayment}
+                        disabled={upiUtr.length !== 12 || isProcessing}
+                        className={cn(
+                          "checkout-verify-btn",
+                          upiUtr.length === 12 && !isProcessing && "active"
+                        )}
                       >
                         {isProcessing ? (
-                          <><Loader2 className="w-4 h-4 animate-spin" /> Launching Razorpay...</>
+                          <><Loader2 className="w-4 h-4 animate-spin" /> Verifying UTR...</>
                         ) : (
-                          <><ShieldCheck className="w-4 h-4" /> Open Razorpay Payment Window ({inrAmountString})</>
+                          <><ShieldCheck className="w-4 h-4" /> Verify UTR & Download Template</>
                         )}
-                      </button>
-                      <button
-                        onClick={() => setPaymentStep("cart")}
-                        className="py-2.5 px-4 border border-border hover:border-slate-500 rounded-xl text-xs font-semibold transition-all text-muted-foreground hover:text-foreground"
-                      >
-                        Back to Cart / Change Gateway
                       </button>
                     </div>
                   </div>
-                ) : (
-                  <div className="checkout-card" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-                    <div className="flex items-center justify-between border-b border-border/50 pb-4">
-                      <h3 className="font-bold text-lg flex items-center gap-2">
-                        <CreditCard className="w-5 h-5 text-primary" /> Confirm Sandbox Checkout
-                      </h3>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold uppercase">
-                        {paymentGateway} Mode
-                      </span>
-                    </div>
+                </div>
+              ) : isRealRazorpay ? (
+                <div className="checkout-paying-card">
+                  <div className="flex items-center justify-between border-b border-border/50 pb-4">
+                    <h3 className="font-bold text-lg flex items-center gap-2">
+                      <CreditCard className="w-5 h-5 text-primary" /> Razorpay Official Checkout
+                    </h3>
+                    <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-500 font-bold uppercase border border-emerald-500/30">
+                      Live Gateway
+                    </span>
+                  </div>
 
-                    <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-2">
-                      <p className="text-xs text-muted-foreground">
-                        This platform is running in <strong>Sandbox Mode</strong>. Please use the simulated checkout card details below to complete your checkout flow:
-                      </p>
+                  <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-3">
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Pay securely using <strong>UPI, Credit/Debit Cards, NetBanking, or Wallets</strong> via the official Razorpay checkout popup.
+                    </p>
+                    <div className="flex items-center justify-between pt-2 border-t border-primary/10 text-xs">
+                      <span className="text-muted-foreground">Order ID:</span>
+                      <span className="font-mono font-semibold">{initiatedOrder?.id?.slice(0, 13)}...</span>
                     </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Amount Payable:</span>
+                      <span className="font-bold text-primary text-sm">{inrAmountString}</span>
+                    </div>
+                  </div>
 
-                    <div className="space-y-4">
+                  <div className="checkout-action-row">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentStep("cart")}
+                      className="checkout-cancel-btn"
+                    >
+                      Back to Cart / Change Gateway
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenRazorpay(initiatedOrder, initiatedPayment)}
+                      disabled={isProcessing}
+                      className="checkout-verify-btn active bg-primary hover:bg-primary/95 shadow-primary/25"
+                    >
+                      {isProcessing ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" /> Launching Razorpay...</>
+                      ) : (
+                        <><ShieldCheck className="w-4 h-4" /> Open Razorpay Payment Window ({inrAmountString})</>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="checkout-paying-card">
+                  <div className="flex items-center justify-between border-b border-border/50 pb-4">
+                    <h3 className="font-bold text-lg flex items-center gap-2">
+                      <CreditCard className="w-5 h-5 text-primary" /> Confirm Sandbox Checkout
+                    </h3>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold uppercase">
+                      {paymentGateway} Mode
+                    </span>
+                  </div>
+
+                  <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      This platform is running in <strong>Sandbox Mode</strong>. Please use the simulated checkout card details below to complete your checkout flow:
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Card Number</label>
+                      <input
+                        type="text"
+                        value={cardNumber}
+                        onChange={(e) => handleCardNumberChange(e.target.value)}
+                        className={cn(
+                          "w-full px-3 py-2 rounded-lg glass border text-xs focus:outline-none bg-card text-foreground transition-all",
+                          errors.card ? "border-red-500/80 focus:border-red-500 focus:ring-1 focus:ring-red-500" : "border-border/50 focus:border-primary"
+                        )}
+                      />
+                      {errors.card && (
+                        <p className="text-[10px] text-red-500 mt-1 font-semibold">{errors.card}</p>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Card Number</label>
+                        <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Expiration Date</label>
                         <input
                           type="text"
-                          value={cardNumber}
-                          onChange={(e) => handleCardNumberChange(e.target.value)}
+                          value={cardExpiry}
+                          onChange={(e) => handleCardExpiryChange(e.target.value)}
+                          placeholder="MM/YY"
                           className={cn(
                             "w-full px-3 py-2 rounded-lg glass border text-xs focus:outline-none bg-card text-foreground transition-all",
-                            errors.card ? "border-red-500/80 focus:border-red-500 focus:ring-1 focus:ring-red-500" : "border-border/50 focus:border-primary"
+                            errors.expiry ? "border-red-500/80 focus:border-red-500 focus:ring-1 focus:ring-red-500" : "border-border/50 focus:border-primary"
                           )}
                         />
-                        {errors.card && (
-                          <p className="text-[10px] text-red-500 mt-1 font-semibold">{errors.card}</p>
+                        {errors.expiry && (
+                          <p className="text-[10px] text-red-500 mt-1 font-semibold">{errors.expiry}</p>
                         )}
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">Expiration Date</label>
-                          <input
-                            type="text"
-                            value={cardExpiry}
-                            onChange={(e) => handleCardExpiryChange(e.target.value)}
-                            placeholder="MM/YY"
-                            className={cn(
-                              "w-full px-3 py-2 rounded-lg glass border text-xs focus:outline-none bg-card text-foreground transition-all",
-                              errors.expiry ? "border-red-500/80 focus:border-red-500 focus:ring-1 focus:ring-red-500" : "border-border/50 focus:border-primary"
-                            )}
-                          />
-                          {errors.expiry && (
-                            <p className="text-[10px] text-red-500 mt-1 font-semibold">{errors.expiry}</p>
+                      <div>
+                        <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">CVC / CVV</label>
+                        <input
+                          type="password"
+                          value={cardCvc}
+                          onChange={(e) => handleCardCvcChange(e.target.value)}
+                          placeholder="•••"
+                          className={cn(
+                            "w-full px-3 py-2 rounded-lg glass border text-xs focus:outline-none bg-card text-foreground transition-all",
+                            errors.cvc ? "border-red-500/80 focus:border-red-500 focus:ring-1 focus:ring-red-500" : "border-border/50 focus:border-primary"
                           )}
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">CVC / CVV</label>
-                          <input
-                            type="password"
-                            value={cardCvc}
-                            onChange={(e) => handleCardCvcChange(e.target.value)}
-                            placeholder="•••"
-                            className={cn(
-                              "w-full px-3 py-2 rounded-lg glass border text-xs focus:outline-none bg-card text-foreground transition-all",
-                              errors.cvc ? "border-red-500/80 focus:border-red-500 focus:ring-1 focus:ring-red-500" : "border-border/50 focus:border-primary"
-                            )}
-                          />
-                          {errors.cvc && (
-                            <p className="text-[10px] text-red-500 mt-1 font-semibold">{errors.cvc}</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
-                      <button
-                        onClick={() => setPaymentStep("cart")}
-                        className="py-2.5 px-4 border border-border hover:border-slate-500 rounded-xl text-xs font-semibold transition-all"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleVerifyMockPayment}
-                        disabled={isProcessing}
-                        className="flex-1 py-2.5 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary/95 transition-all flex items-center justify-center gap-1"
-                      >
-                        {isProcessing ? (
-                          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Verifying Payment...</>
-                        ) : (
-                          <>Pay {formatPrice(total())} and Download</>
+                        />
+                        {errors.cvc && (
+                          <p className="text-[10px] text-red-500 mt-1 font-semibold">{errors.cvc}</p>
                         )}
-                      </button>
+                      </div>
                     </div>
                   </div>
-                )}
-              </div>
+
+                  <div className="checkout-action-row">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentStep("cart")}
+                      className="checkout-cancel-btn"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleVerifyMockPayment}
+                      disabled={isProcessing}
+                      className="checkout-verify-btn active bg-primary hover:bg-primary/95 shadow-primary/25"
+                    >
+                      {isProcessing ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" /> Verifying Payment...</>
+                      ) : (
+                        <>Pay {formatPrice(total())} and Download</>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="checkout-grid">
