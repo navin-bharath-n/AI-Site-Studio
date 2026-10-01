@@ -31,15 +31,20 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Startup
     await init_db()
     try:
-        redis = await get_redis_client()
-        app.state.redis = redis
-        if redis is not None:
-            print(f"Site Studio API started | Redis connected | env={settings.ENVIRONMENT}")
+        from app.core.redis import check_redis_health
+        health_info = await check_redis_health()
+        if health_info.get("status") == "connected":
+            app.state.redis = await get_redis_client()
+            print(f"✅ Site Studio API started | Redis connected ({health_info.get('latency_ms')}ms) | env={settings.ENVIRONMENT}")
+        elif health_info.get("status") == "unconfigured":
+            app.state.redis = None
+            print(f"ℹ️ Site Studio API started | Redis unconfigured (L1 memory cache active) | env={settings.ENVIRONMENT}")
         else:
-            print(f"Site Studio API started | Redis disabled (fallback active) | env={settings.ENVIRONMENT}")
+            app.state.redis = None
+            print(f"⚠️ Site Studio API started | Redis unreachable: {health_info.get('error')} | env={settings.ENVIRONMENT}")
     except Exception as e_redis:
         app.state.redis = None
-        print(f"Site Studio API started | Redis skipped: {e_redis} | env={settings.ENVIRONMENT}")
+        print(f"⚠️ Site Studio API started | Redis check error: {e_redis} | env={settings.ENVIRONMENT}")
 
     # Verify or auto-spawn Ollama daemon in background with CUDA
     try:
@@ -204,11 +209,14 @@ def create_application() -> FastAPI:
 
     @app.api_route("/health", methods=["GET", "HEAD"], tags=["Health"])
     async def health_check() -> dict:
+        from app.core.redis import check_redis_health
+        redis_info = await check_redis_health()
         return {
             "status": "ok",
             "app": settings.APP_NAME,
             "version": settings.APP_VERSION,
             "environment": settings.ENVIRONMENT,
+            "redis": redis_info,
         }
 
     # ── Frontend Soft Navigation Redirects ─────────────────────────────────────

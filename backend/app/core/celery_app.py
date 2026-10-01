@@ -28,6 +28,14 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
 )
 
+# Crucial for Upstash / Redis Cloud / AWS ElastiCache using rediss:// SSL scheme
+if settings.REDIS_URL and settings.REDIS_URL.startswith("rediss://"):
+    import ssl
+    celery_app.conf.update(
+        broker_use_ssl={"ssl_cert_reqs": ssl.CERT_NONE},
+        redis_backend_use_ssl={"ssl_cert_reqs": ssl.CERT_NONE},
+    )
+
 
 @celery_app.task(bind=True)
 def debug_task(self):

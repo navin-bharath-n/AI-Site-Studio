@@ -12,6 +12,9 @@ class FakeRedis:
     def __init__(self):
         self.store = {}
 
+    async def ping(self) -> bool:
+        return True
+
     async def get(self, key: str) -> Optional[str]:
         return self.store.get(key)
 
