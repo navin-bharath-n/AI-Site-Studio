@@ -132,7 +132,9 @@
   backdrop-filter: blur(8px);
 }
 
-.section-title {
+.card-container .section-title,
+.details-info-block .section-title,
+.details-grid .section-title {
   font-size: 1.25rem;
   font-weight: 800;
   color: hsl(var(--foreground));

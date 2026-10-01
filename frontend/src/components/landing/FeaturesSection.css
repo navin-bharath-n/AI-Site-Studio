@@ -86,15 +86,23 @@
 
 .features-section .section-title,
 .section-title {
+  display: block !important;
+  width: 100% !important;
   font-size: clamp(2rem, 3.2vw, 2.75rem);
   font-weight: 800;
-  line-height: 1.2;
+  line-height: 1.25;
   letter-spacing: -0.025em;
   margin-bottom: 0.85rem;
   color: hsl(var(--foreground));
-  text-align: left;
-  margin-left: 0;
-  margin-right: 0;
+  text-align: left !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  white-space: normal !important;
+}
+
+.features-section .section-title span,
+.features-section .gradient-text {
+  display: inline !important;
 }
 
 .features-section .section-subtitle,
