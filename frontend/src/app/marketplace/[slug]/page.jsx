@@ -1279,9 +1279,9 @@ npm run build`;
             <div className="details-gallery-block card-container">
               <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                 <div>
-                  <h3 className="section-title mb-0 flex items-center gap-2">
+                  <h3 className="section-title mb-0 flex items-center gap-2 flex-wrap">
                     Screenshots Gallery
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                    <span className="inline-flex items-center whitespace-nowrap shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                       {allImages.length} {allImages.length === 1 ? "Image" : "Images"}
                     </span>
                   </h3>
@@ -1429,17 +1429,17 @@ npm run build`;
             {/* 6. Features Section */}
             <div className="details-features-block card-container">
               <h3 className="section-title">Utility & Design Features</h3>
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
                 {featuresList.map((f, i) => {
                   const IconComp = f.icon;
                   return (
-                    <div key={i} className="flex gap-3 p-3 rounded-lg border border-border/30 hover:border-primary/20 transition-all bg-card/40">
-                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                        <IconComp className="w-4 h-4" />
+                    <div key={i} className="flex flex-col sm:flex-row gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg border border-border/30 hover:border-primary/20 transition-all bg-card/40">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                        <IconComp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </div>
-                      <div>
-                        <h4 className="font-bold text-sm text-foreground">{f.name}</h4>
-                        <p className="text-xs text-muted-foreground mt-0.5">{f.desc}</p>
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-xs sm:text-sm text-foreground leading-snug">{f.name}</h4>
+                        <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 leading-normal">{f.desc}</p>
                       </div>
                     </div>
                   );
@@ -1573,11 +1573,11 @@ npm run build`;
             {/* 8. Performance Scores */}
             <div className="details-performance-block card-container">
               <h3 className="section-title">Google Lighthouse Audits</h3>
-              <p className="text-xs text-muted-foreground mb-6">
+              <p className="text-xs text-muted-foreground mb-3 sm:mb-6">
                 Scores gathered on production builds hosted on serverless edges. Audited on simulated 4G throttling.
               </p>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+              <div className="grid grid-cols-4 gap-2 sm:gap-4 md:gap-6">
                 {(() => {
                   const getDeterministicScore = (seedStr, offset, minScore = 85, maxScore = 100) => {
                     if (!seedStr) return 95;
@@ -1602,9 +1602,9 @@ npm run build`;
                     { name: "Best Practices", score: scores.best_practices, color: scores.best_practices >= 90 ? "#22c55e" : "#eab308" },
                   ];
                 })().map((s) => (
-                  <div key={s.name} className="flex flex-col items-center text-center space-y-2">
+                  <div key={s.name} className="flex flex-col items-center text-center space-y-1 sm:space-y-2">
                     {/* SVG Circular Progress Chart */}
-                    <div className="relative w-20 h-20">
+                    <div className="relative w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 shrink-0">
                       <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                         <path className="text-border" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                         <motion.path
@@ -1619,11 +1619,11 @@ npm run build`;
                           d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                         />
                       </svg>
-                      <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-base text-foreground">
+                      <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-xs sm:text-sm md:text-base text-foreground">
                         {s.score}
                       </div>
                     </div>
-                    <span className="text-xs font-bold text-foreground">{s.name}</span>
+                    <span className="text-[10px] sm:text-xs font-bold text-foreground leading-tight text-center line-clamp-2">{s.name}</span>
                   </div>
                 ))}
               </div>
@@ -1632,17 +1632,17 @@ npm run build`;
             {/* 9. Customization Options */}
             <div className="details-customization-options-block card-container">
               <h3 className="section-title">Design Customization Options</h3>
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
                 {customizationOptions.map((c, i) => {
                   const IconComp = c.icon;
                   return (
-                    <div key={i} className="flex gap-3 items-start p-3 bg-muted/10 rounded-lg">
-                      <div className="p-2 rounded bg-card border border-border/50 text-primary shrink-0">
-                        <IconComp className="w-4 h-4" />
+                    <div key={i} className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-start p-2.5 sm:p-3 bg-muted/10 rounded-lg">
+                      <div className="p-1.5 sm:p-2 rounded bg-card border border-border/50 text-primary shrink-0">
+                        <IconComp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </div>
-                      <div>
-                        <h4 className="font-bold text-xs text-foreground">{c.title}</h4>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">{c.desc}</p>
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-xs text-foreground leading-snug">{c.title}</h4>
+                        <p className="text-[10.5px] sm:text-[11px] text-muted-foreground mt-0.5 leading-normal">{c.desc}</p>
                       </div>
                     </div>
                   );
@@ -1653,52 +1653,52 @@ npm run build`;
             {/* 10. Template Specifications */}
             <div className="details-specs-block card-container">
               <h3 className="section-title">Technical Specifications</h3>
-              <div className="overflow-x-auto">
+              <div className="w-full">
                 <table className="specs-table w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="border-b border-border/50 text-muted-foreground font-semibold">
-                      <th className="py-2.5 px-3">Specification</th>
-                      <th className="py-2.5 px-3">Detail Value</th>
+                      <th className="py-2 px-1 sm:px-3">Specification</th>
+                      <th className="py-2 px-1 sm:px-3">Detail Value</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/30">
                     <tr>
-                      <td className="py-2.5 px-3 font-medium text-foreground">Bundle File Size</td>
-                      <td className="py-2.5 px-3 font-mono text-muted-foreground">
+                      <td className="py-2 px-1 sm:px-3 font-medium text-foreground">Bundle File Size</td>
+                      <td className="py-2 px-1 sm:px-3 font-mono text-muted-foreground break-words">
                         {template.changelog?.ai_report?.assets_count?.zip_size || "1.8 MB"} (ZIP Archive)
                       </td>
                     </tr>
                     <tr>
-                      <td className="py-2.5 px-3 font-medium text-foreground">Interactive Components</td>
-                      <td className="py-2.5 px-3 font-mono text-muted-foreground">
+                      <td className="py-2 px-1 sm:px-3 font-medium text-foreground">Interactive Components</td>
+                      <td className="py-2 px-1 sm:px-3 font-mono text-muted-foreground break-words">
                         {template.changelog?.ai_report?.components?.length
                           ? `${template.changelog.ai_report.components.length} UI Modules`
                           : "24+ UI Blocks"}
                       </td>
                     </tr>
                     <tr>
-                      <td className="py-2.5 px-3 font-medium text-foreground">Stock Images Included</td>
-                      <td className="py-2.5 px-3 font-mono text-muted-foreground">
+                      <td className="py-2 px-1 sm:px-3 font-medium text-foreground">Stock Images Included</td>
+                      <td className="py-2 px-1 sm:px-3 font-mono text-muted-foreground break-words">
                         {template.changelog?.ai_report?.assets_count?.images
                           ? `Yes (${template.changelog.ai_report.assets_count.images} Images, licensed)`
                           : "Yes (Unsplash licensed, clean usage)"}
                       </td>
                     </tr>
                     <tr>
-                      <td className="py-2.5 px-3 font-medium text-foreground">Google Web Fonts</td>
-                      <td className="py-2.5 px-3 font-mono text-muted-foreground">
+                      <td className="py-2 px-1 sm:px-3 font-medium text-foreground">Google Web Fonts</td>
+                      <td className="py-2 px-1 sm:px-3 font-mono text-muted-foreground break-words">
                         {template.changelog?.ai_report?.typography?.length
                           ? template.changelog.ai_report.typography.join(", ")
                           : "Inter, Outfit (CSS linked)"}
                       </td>
                     </tr>
                     <tr>
-                      <td className="py-2.5 px-3 font-medium text-foreground">Documentation Guide</td>
-                      <td className="py-2.5 px-3 font-mono text-muted-foreground">Comprehensive Markdown (SKILL.md layout)</td>
+                      <td className="py-2 px-1 sm:px-3 font-medium text-foreground">Documentation Guide</td>
+                      <td className="py-2 px-1 sm:px-3 font-mono text-muted-foreground break-words">Comprehensive Markdown (SKILL.md layout)</td>
                     </tr>
                     <tr>
-                      <td className="py-2.5 px-3 font-medium text-foreground">Support Period</td>
-                      <td className="py-2.5 px-3 font-mono text-muted-foreground">6 Months Developer SLA (Extendable)</td>
+                      <td className="py-2 px-1 sm:px-3 font-medium text-foreground">Support Period</td>
+                      <td className="py-2 px-1 sm:px-3 font-mono text-muted-foreground break-words">6 Months Developer SLA (Extendable)</td>
                     </tr>
                   </tbody>
                 </table>
