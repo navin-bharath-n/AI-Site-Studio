@@ -1940,16 +1940,17 @@ npm run build`;
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
                     onSubmit={handleReviewSubmit}
-                    className="overflow-hidden mb-6 p-4 sm:p-5 rounded-2xl border border-primary/30 bg-primary/[0.02] shadow-sm space-y-4"
+                    className="review-form-box overflow-hidden mb-6 space-y-4"
                   >
-                    <div className="flex items-center justify-between border-b border-border/40 pb-3">
-                      <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
+                    <div className="review-form-header">
+                      <h4 className="review-form-title">
                         <Star className="w-4 h-4 text-primary fill-primary" /> Rate & Review This Template
                       </h4>
                       <button
                         type="button"
                         onClick={() => setIsReviewFormOpen(false)}
-                        className="text-xs text-muted-foreground hover:text-foreground p-1 cursor-pointer"
+                        className="review-close-btn"
+                        title="Close"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -1963,13 +1964,14 @@ npm run build`;
 
                     <div>
                       <span className="text-xs font-semibold text-muted-foreground block mb-1.5">Rating</span>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         {[1, 2, 3, 4, 5].map((s) => (
                           <button
                             key={s}
                             type="button"
                             onClick={() => setNewReview((prev) => ({ ...prev, rating: s }))}
-                            className="p-1 focus:outline-none transition-transform active:scale-95 cursor-pointer"
+                            className="review-star-btn"
+                            title={`${s} star${s > 1 ? "s" : ""}`}
                           >
                             <Star className={cn("w-7 h-7 transition-colors", s <= newReview.rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30")} />
                           </button>
@@ -2007,14 +2009,14 @@ npm run build`;
                       <button
                         type="button"
                         onClick={() => setIsReviewFormOpen(false)}
-                        className="px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
+                        className="review-cancel-btn"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
                         disabled={isSubmittingReview}
-                        className="py-2 px-5 bg-primary text-primary-foreground text-xs font-bold rounded-xl hover:bg-primary/95 transition-all shadow-sm shadow-primary/20 disabled:opacity-50 cursor-pointer"
+                        className="review-submit-btn"
                       >
                         {isSubmittingReview ? "Submitting..." : "Submit Review"}
                       </button>
@@ -2126,13 +2128,14 @@ npm run build`;
                     bullets: ["Initial template release with core configurations"]
                   }
                 ].map((c, i) => (
-                  <div key={c.ver} className="border border-border/30 rounded-lg overflow-hidden bg-card/40">
+                  <div key={c.ver} className={cn("details-changelog-item", openChangelog === i && "is-open")}>
                     <button
+                      type="button"
                       onClick={() => setOpenChangelog(openChangelog === i ? null : i)}
-                      className="w-full flex items-center justify-between p-3 text-left font-bold text-xs text-foreground bg-muted/10 hover:bg-muted/30"
+                      className="details-changelog-btn"
                     >
                       <span className="flex items-center gap-2">
-                        <code className="bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded text-[10px]">{c.ver}</code>
+                        <code className="details-changelog-ver">{c.ver}</code>
                         <span>Released on {c.date}</span>
                       </span>
                       {openChangelog === i ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
@@ -2141,7 +2144,7 @@ npm run build`;
                     <AnimatePresence>
                       {openChangelog === i && (
                         <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
-                          <ul className="p-3 border-t border-border/20 list-disc pl-5 text-xs text-muted-foreground space-y-1">
+                          <ul className="details-changelog-content space-y-1">
                             {c.bullets.map((b, idx) => (
                               <li key={idx}>{b}</li>
                             ))}
@@ -2351,10 +2354,11 @@ npm run build`;
                 a: "Immediately after your payment is processed, you can download the full ZIP source archive directly from your dashboard."
               }
             ].map((faq, idx) => (
-              <div key={idx} className="border border-border/40 rounded-lg overflow-hidden bg-card/20">
+              <div key={idx} className={cn("details-faq-item", openFaq === idx && "is-open")}>
                 <button
+                  type="button"
                   onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                  className="w-full flex items-center justify-between p-3.5 text-left font-bold text-xs text-foreground hover:bg-muted/30"
+                  className="details-faq-btn"
                 >
                   <span>{faq.q}</span>
                   {openFaq === idx ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
@@ -2362,7 +2366,7 @@ npm run build`;
                 <AnimatePresence>
                   {openFaq === idx && (
                     <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
-                      <p className="p-3.5 border-t border-border/20 text-xs text-muted-foreground leading-relaxed">
+                      <p className="details-faq-answer">
                         {faq.a}
                       </p>
                     </motion.div>

@@ -3415,3 +3415,233 @@
     display: none !important;
   }
 }
+
+/* ══════════════════════════════════════════════
+   ✦ FAQ ACCORDION STYLES — Flawless across all devices
+   ══════════════════════════════════════════════ */
+.details-faq-block {
+  width: 100%;
+}
+
+.details-faq-item {
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-radius: 0.85rem;
+  overflow: hidden;
+  background: hsl(var(--card) / 0.7);
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.details-faq-item:hover {
+  border-color: hsl(var(--primary) / 0.4);
+  background: hsl(var(--card));
+}
+
+.details-faq-item.is-open {
+  border-color: hsl(var(--primary) / 0.45);
+  background: hsl(var(--card));
+  box-shadow: 0 4px 16px -4px hsl(var(--primary) / 0.08);
+}
+
+.details-faq-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  text-align: left;
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: hsl(var(--foreground));
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.details-faq-btn:hover {
+  background: hsl(var(--muted) / 0.35) !important;
+  color: hsl(var(--primary));
+}
+
+.details-faq-answer {
+  padding: 1rem 1.25rem 1.15rem;
+  border-top: 1px solid hsl(var(--border) / 0.4);
+  font-size: 0.8125rem;
+  color: hsl(var(--muted-foreground));
+  line-height: 1.65;
+  background: hsl(var(--muted) / 0.15);
+}
+
+/* ══════════════════════════════════════════════
+   ✦ CHANGELOG ACCORDION STYLES
+   ══════════════════════════════════════════════ */
+.details-changelog-item {
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: hsl(var(--card) / 0.6);
+  transition: all 0.2s ease;
+}
+
+.details-changelog-item:hover {
+  border-color: hsl(var(--border) / 0.8);
+}
+
+.details-changelog-item.is-open {
+  border-color: hsl(var(--primary) / 0.4);
+  background: hsl(var(--card));
+}
+
+.details-changelog-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  text-align: left;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  color: hsl(var(--foreground));
+  background: hsl(var(--muted) / 0.25) !important;
+  border: none !important;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.details-changelog-btn:hover {
+  background: hsl(var(--muted) / 0.45) !important;
+}
+
+.details-changelog-ver {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.35rem;
+  background: hsl(var(--primary) / 0.12);
+  color: hsl(var(--primary));
+  border: 1px solid hsl(var(--primary) / 0.25);
+}
+
+.details-changelog-content {
+  padding: 0.85rem 1.15rem;
+  border-top: 1px solid hsl(var(--border) / 0.4);
+  background: hsl(var(--card) / 0.4);
+  list-style-type: disc;
+  padding-left: 2rem;
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  line-height: 1.6;
+}
+
+/* ══════════════════════════════════════════════
+   ✦ REVIEW FORM & MODAL STYLES
+   ══════════════════════════════════════════════ */
+.review-form-box {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--primary) / 0.3);
+  border-radius: 1rem;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 8px 24px -6px hsl(var(--primary) / 0.1);
+}
+
+.review-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid hsl(var(--border) / 0.5);
+  margin-bottom: 1rem;
+}
+
+.review-form-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}
+
+.review-close-btn {
+  background: transparent !important;
+  border: none !important;
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 0.375rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.review-close-btn:hover {
+  background: hsl(var(--muted) / 0.5) !important;
+  color: hsl(var(--foreground));
+}
+
+.review-star-btn {
+  background: transparent !important;
+  border: none !important;
+  padding: 0.25rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+  box-shadow: none;
+  border-radius: 0.375rem;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.review-star-btn:hover {
+  transform: scale(1.15);
+  background: hsl(var(--muted) / 0.35) !important;
+}
+
+.review-star-btn:focus {
+  outline: none;
+}
+
+.review-cancel-btn {
+  background: transparent !important;
+  border: 1px solid hsl(var(--border)) !important;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.45rem 1rem;
+  border-radius: 0.625rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.review-cancel-btn:hover {
+  background: hsl(var(--muted) / 0.5) !important;
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border) / 0.8) !important;
+}
+
+.review-submit-btn {
+  background: hsl(var(--primary)) !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.45rem 1.25rem;
+  border-radius: 0.625rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px hsl(var(--primary) / 0.25);
+  transition: all 0.15s ease;
+}
+
+.review-submit-btn:hover {
+  background: hsl(var(--primary) / 0.9) !important;
+  box-shadow: 0 4px 12px hsl(var(--primary) / 0.35);
+}
+
+.review-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
