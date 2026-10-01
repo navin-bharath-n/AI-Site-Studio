@@ -780,7 +780,7 @@ npm run build`;
 
               {/* ── Tab Switcher Row (ABOVE the viewport) ── */}
               <div className="details-hero-tabs-row">
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                <div className="details-hero-tabs-left">
                   <button
                     onClick={() => { setHeroTab("screenshot"); setActiveImage(0); }}
                     className={cn("hero-tab-btn", heroTab === "screenshot" && "active")}
@@ -805,10 +805,9 @@ npm run build`;
                   >
                     <Tablet className="w-3.5 h-3.5 mr-1 inline" /> Tablet
                   </button>
-
                 </div>
 
-                <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
+                <div className="details-hero-tabs-right">
                   <a
                     href={previewSrc}
                     target="_blank"
@@ -2796,6 +2795,42 @@ npm run build`;
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Mobile Floating Purchase Bar (Sticky Bottom on <= 768px) ── */}
+      <div className="details-mobile-bottom-bar">
+        <div className="details-mobile-bottom-info">
+          <span className="details-mobile-bottom-price">
+            {template.is_free ? "Free" : formatConvertedPrice(template.price, template.price_currency || "USD", userCurrency, rates)}
+          </span>
+          <span className="details-mobile-bottom-license">Lifetime License</span>
+        </div>
+        <div className="details-mobile-bottom-actions">
+          <a
+            href={previewSrc}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="details-mobile-bottom-btn demo"
+          >
+            <Globe className="w-3.5 h-3.5" /> Demo
+          </a>
+          {!isSeller && (
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              className={cn(
+                "details-mobile-bottom-btn cart",
+                isInCart && "in-cart"
+              )}
+            >
+              {isInCart ? (
+                <><Check className="w-3.5 h-3.5" /> Added</>
+              ) : (
+                <><ShoppingCart className="w-3.5 h-3.5" /> Add to Cart</>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
     </>
   );
 }

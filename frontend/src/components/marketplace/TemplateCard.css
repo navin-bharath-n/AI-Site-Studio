@@ -354,3 +354,66 @@
   align-items: center;
   gap: 0.5rem;
 }
+
+/* ── Mobile Touch Action Bar ────────────────────────────────── */
+.card-mobile-action-bar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .card-mobile-action-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-top: 0.625rem;
+    margin-top: 0.25rem;
+    border-top: 1px solid hsl(var(--border) / 0.4);
+  }
+
+  .card-mobile-preview-pill {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: hsl(var(--muted) / 0.6);
+    color: hsl(var(--foreground));
+    border: 1px solid hsl(var(--border) / 0.6);
+  }
+
+  .card-mobile-cart-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border: none;
+    cursor: pointer;
+    min-height: 34px;
+    box-shadow: 0 2px 8px hsla(var(--primary) / 0.25);
+    transition: all 0.15s ease;
+  }
+
+  .card-mobile-cart-btn.in-cart {
+    background: #10b981;
+    color: #ffffff;
+  }
+
+  .card-title {
+    font-size: 0.9375rem;
+  }
+
+  .price-val {
+    font-size: 1.05rem;
+  }
+}

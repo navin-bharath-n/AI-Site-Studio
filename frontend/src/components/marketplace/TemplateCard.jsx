@@ -263,6 +263,30 @@ export default function TemplateCard({
                 {template.developer_name || "Site Studio"}
               </span>
             </div>
+
+            {/* Mobile Touch Action Bar (visible on <= 768px) */}
+            <div className="card-mobile-action-bar">
+              <span className="card-mobile-preview-pill">
+                <Eye className="w-3.5 h-3.5" /> View Details
+              </span>
+              {!isSeller && (
+                <button
+                  type="button"
+                  onClick={handleAddToCart}
+                  className={cn(
+                    "card-mobile-cart-btn",
+                    isInCart && "in-cart"
+                  )}
+                  aria-label={isInCart ? "Item added to cart" : "Add item to cart"}
+                >
+                  {isInCart ? (
+                    <><Check className="w-3.5 h-3.5" /> Added</>
+                  ) : (
+                    <><ShoppingCart className="w-3.5 h-3.5" /> Add to Cart</>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </Link>

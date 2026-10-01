@@ -15,8 +15,9 @@ const useRouter = () => ({
 const useSearchParams = () => new URLSearchParams(window.location.search);
 import { useAppAuth } from "@/lib/auth";
 import {
-  LayoutGrid, LayoutList, Search, X, Sparkles,
+  LayoutGrid, LayoutList, Search, X, Sparkles, SlidersHorizontal, Filter,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/layout/Navbar";
 import SidebarFilters from "@/components/marketplace/SidebarFilters";
 import TemplateGrid from "@/components/marketplace/TemplateGrid";
@@ -38,11 +39,44 @@ const SORT_OPTIONS = [
   { value: "most_downloaded", label: "Most Downloaded" },
 ];
 
+const QUICK_CATEGORIES = [
+  { label: "All Templates", value: "" },
+  { label: "Business", value: "business" },
+  { label: "SaaS & Tech", value: "saas-technology" },
+  { label: "Ecommerce", value: "ecommerce" },
+  { label: "Landing Pages", value: "landing-pages" },
+  { label: "Dashboards", value: "dashboards" },
+  { label: "Portfolio", value: "portfolio" },
+  { label: "Agency", value: "creative-agency" },
+  { label: "Restaurant", value: "restaurant-food" },
+  { label: "Healthcare", value: "healthcare" },
+  { label: "Education", value: "education" },
+  { label: "Real Estate", value: "real-estate" },
+  { label: "Events", value: "events" },
+  { label: "Travel", value: "travel" },
+  { label: "Fitness", value: "fitness" },
+];
+
 function Marketplace() {
   const { getToken } = useAppAuth();
   const { filters, setFilter, setFilters, resetFilters } = useFilterStore();
   const [view, setView] = useState("grid");
   const [searchInput, setSearchInput] = useState(filters.q ?? "");
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+
+  const activeFilterCount = [
+    filters.category,
+    filters.sub_category,
+    filters.technology,
+    filters.min_price !== undefined || filters.max_price !== undefined,
+    filters.is_on_sale,
+    filters.sales,
+    filters.rating,
+    filters.compatibility,
+    filters.language,
+    filters.date_added,
+    filters.developer,
+  ].filter(Boolean).length;
   const searchParams = useSearchParams();
 
   // Sync URL params → store on mount
@@ -203,8 +237,22 @@ function Marketplace() {
                   </div>
                 </div>
 
-                {/* Row 2 — Sort tabs + spacer + view toggle */}
+                {/* Row 2 — Mobile Filter Trigger + Sort tabs + spacer + view toggle */}
                 <div className="toolbar-row toolbar-row-controls">
+                  {/* Mobile Filters Trigger Button */}
+                  <button
+                    type="button"
+                    onClick={() => setMobileFilterOpen(true)}
+                    className={cn("marketplace-mobile-filter-btn", activeFilterCount > 0 && "has-filters")}
+                    aria-label="Open filter drawer"
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                    <span>Filters</span>
+                    {activeFilterCount > 0 && (
+                      <span className="mobile-filter-count-badge">{activeFilterCount}</span>
+                    )}
+                  </button>
+
                   <div className="marketplace-sort-bar">
                     {SORT_OPTIONS.slice(0, 4).map((o) => (
                       <button
@@ -222,7 +270,6 @@ function Marketplace() {
                   <button
                     onClick={() => navigate("/marketplace/generate")}
                     className="marketplace-ai-generate-btn"
-                    style={{ marginRight: "0.75rem" }}
                     title="Generate a custom template in the studio"
                   >
                     <Sparkles className="ai-generate-icon animate-pulse" />
@@ -244,6 +291,26 @@ function Marketplace() {
                     ))}
                   </div>
                 </div>
+              </div>
+
+              {/* ── Quick Categories Horizontal Scroll Pill Bar ── */}
+              <div className="marketplace-quick-categories">
+                {QUICK_CATEGORIES.map((cat) => {
+                  const isSelected = (!filters.category && !cat.value) || filters.category === cat.value;
+                  return (
+                    <button
+                      key={cat.value || "all"}
+                      type="button"
+                      onClick={() => {
+                        setFilter("category", cat.value || undefined);
+                        setFilter("sub_category", undefined);
+                      }}
+                      className={cn("quick-category-pill", isSelected && "active")}
+                    >
+                      {cat.label}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* ── Result count ──────────────────────────────────── */}
@@ -285,18 +352,24 @@ function Marketplace() {
                     Previous
                   </button>
 
-                  {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                    const page = i + 1;
-                    return (
-                      <button
-                        key={page}
-                        onClick={() => setFilter("page", page)}
-                        className={cn("page-num-btn", (filters.page ?? 1) === page && "active")}
-                      >
-                        {page}
-                      </button>
-                    );
-                  })}
+                  <div className="pagination-desktop-numbers">
+                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                      const page = i + 1;
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => setFilter("page", page)}
+                          className={cn("page-num-btn", (filters.page ?? 1) === page && "active")}
+                        >
+                          {page}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <span className="pagination-mobile-indicator">
+                    Page {filters.page ?? 1} of {totalPages}
+                  </span>
 
                   <button
                     onClick={() => setFilter("page", Math.min(totalPages, (filters.page ?? 1) + 1))}
@@ -311,6 +384,65 @@ function Marketplace() {
           </div>
         </div>
       </div>
+
+      {/* ── Mobile Filter Slide-Over Drawer ── */}
+      <AnimatePresence>
+        {mobileFilterOpen && (
+          <div className="mobile-filter-backdrop" onClick={() => setMobileFilterOpen(false)}>
+            <motion.div
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 250 }}
+              className="mobile-filter-drawer"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mobile-filter-header">
+                <div className="flex items-center gap-2" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <SlidersHorizontal className="w-4 h-4 text-primary" />
+                  <h3 className="font-bold text-sm text-foreground m-0" style={{ margin: 0, fontSize: "0.9375rem" }}>Filters & Categories</h3>
+                  {activeFilterCount > 0 && (
+                    <span className="mobile-filter-count-badge">{activeFilterCount}</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  {activeFilterCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => resetFilters()}
+                      className="text-xs font-semibold text-muted-foreground hover:text-red-500 transition-colors cursor-pointer bg-transparent border-none"
+                    >
+                      Reset All
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setMobileFilterOpen(false)}
+                    className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer border-none bg-transparent"
+                    aria-label="Close filters"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="mobile-filter-body">
+                <SidebarFilters categories={categories} />
+              </div>
+
+              <div className="mobile-filter-footer">
+                <button
+                  type="button"
+                  onClick={() => setMobileFilterOpen(false)}
+                  className="mobile-filter-apply-btn"
+                >
+                  Show {total.toLocaleString()} Templates
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
