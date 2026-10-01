@@ -24,6 +24,7 @@ import {
   ArrowRight,
   Download,
   QrCode,
+  ScanQrCode,
   CheckCircle2,
   Copy,
   ExternalLink,
@@ -43,8 +44,7 @@ import "./Page.css";
 import Link from "@/components/Link";
 
 // Toggle external card gateways (Razorpay / Stripe)
-// Kept false (masked) until official production keys/merchant approval are ready
-const ENABLE_EXTERNAL_GATEWAYS = false;
+const ENABLE_EXTERNAL_GATEWAYS = true;
 
 function Checkout() {
   const qc = useQueryClient();
@@ -54,6 +54,7 @@ function Checkout() {
   const router = useRouter();
   const { items, removeItem, clearCart, total } = useCartStore();
   const [paymentGateway, setPaymentGateway] = useState("upi"); // "upi" | "razorpay" | "stripe"
+  const [paymentMethodType, setPaymentMethodType] = useState("upi"); // "upi" | "card"
   const [authToken, setAuthToken] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentStep, setPaymentStep] = useState("cart"); // "cart" | "paying" | "success"
@@ -356,7 +357,11 @@ function Checkout() {
   };
 
   const handleCheckout = async () => {
-    if (items.length === 0 || !authToken) return;
+    if (items.length === 0) return;
+    if (!authToken) {
+      router.push("/login?redirect=/checkout");
+      return;
+    }
     setIsProcessing(true);
 
     const activeGateway = ENABLE_EXTERNAL_GATEWAYS ? paymentGateway : "upi";
@@ -547,7 +552,7 @@ function Checkout() {
                 <div className="checkout-paying-card items-center text-center">
                   <div className="checkout-paying-header">
                     <h3 className="checkout-paying-title">
-                      <QrCode className="w-5 h-5 text-emerald-500 shrink-0" /> Pay via UPI QR Code / Apps
+                      <ScanQrCode className="w-5 h-5 text-emerald-500 shrink-0" /> Pay via UPI QR Code / Apps
                     </h3>
                     <div className="checkout-paying-timer-bar">
                       <span className={cn(
@@ -936,17 +941,22 @@ function Checkout() {
                         <Check className="w-2.5 h-2.5 text-emerald-500" /> Instant UPI Active
                       </span>
                     </div>
+
+                    {/* 2 Primary Methods: Scanner for UPI, Card for others */}
                     <div className="checkout-gateway-grid">
                       <button
                         type="button"
-                        onClick={() => setPaymentGateway("upi")}
+                        onClick={() => {
+                          setPaymentMethodType("upi");
+                          setPaymentGateway("upi");
+                        }}
                         className={cn(
                           "checkout-gateway-btn",
-                          paymentGateway === "upi" && "active-upi"
+                          paymentMethodType === "upi" && "active-upi"
                         )}
                       >
                         <div className="checkout-gateway-left">
-                          <QrCode className="checkout-gateway-icon text-emerald-600" />
+                          <ScanQrCode className="checkout-gateway-icon text-emerald-600" />
                           <span className="checkout-gateway-title">UPI QR & Apps</span>
                         </div>
                         <span className="checkout-gateway-badge-upi">
@@ -954,49 +964,111 @@ function Checkout() {
                         </span>
                       </button>
 
-                      <div className="checkout-masked-row">
-                        <button
-                          type="button"
-                          onClick={() => ENABLE_EXTERNAL_GATEWAYS && setPaymentGateway("razorpay")}
-                          disabled={!ENABLE_EXTERNAL_GATEWAYS}
-                          className={cn(
-                            "checkout-gateway-btn checkout-gateway-btn-sub",
-                            !ENABLE_EXTERNAL_GATEWAYS && "masked",
-                            ENABLE_EXTERNAL_GATEWAYS && paymentGateway === "razorpay" && "active"
-                          )}
-                          title={!ENABLE_EXTERNAL_GATEWAYS ? "Card gateway is temporarily masked pending account verification" : ""}
-                        >
-                          <CreditCard className="checkout-gateway-icon-sub text-indigo-400" />
-                          <span className="checkout-gateway-title-sub">Cards / Razorpay</span>
-                          <span className="checkout-gateway-badge-masked">
-                            <Lock className="w-2 h-2" /> In Setup
-                          </span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => ENABLE_EXTERNAL_GATEWAYS && setPaymentGateway("stripe")}
-                          disabled={!ENABLE_EXTERNAL_GATEWAYS}
-                          className={cn(
-                            "checkout-gateway-btn checkout-gateway-btn-sub",
-                            !ENABLE_EXTERNAL_GATEWAYS && "masked",
-                            ENABLE_EXTERNAL_GATEWAYS && paymentGateway === "stripe" && "active"
-                          )}
-                          title={!ENABLE_EXTERNAL_GATEWAYS ? "Stripe gateway is temporarily masked pending account verification" : ""}
-                        >
-                          <CreditCard className="checkout-gateway-icon-sub text-blue-400" />
-                          <span className="checkout-gateway-title-sub">Stripe Payment</span>
-                          <span className="checkout-gateway-badge-masked">
-                            <Lock className="w-2 h-2" /> In Setup
-                          </span>
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPaymentMethodType("card");
+                          if (paymentGateway === "upi") {
+                            setPaymentGateway("razorpay");
+                          }
+                        }}
+                        className={cn(
+                          "checkout-gateway-btn",
+                          paymentMethodType === "card" && "active-card"
+                        )}
+                      >
+                        <div className="checkout-gateway-left">
+                          <CreditCard className="checkout-gateway-icon text-indigo-600" />
+                          <span className="checkout-gateway-title">Credit / Debit Card</span>
+                        </div>
+                        <span className="checkout-gateway-badge-card">
+                          Cards & Global
+                        </span>
+                      </button>
                     </div>
-                    {!ENABLE_EXTERNAL_GATEWAYS && (
-                      <p className="checkout-gateway-notice">
-                        <ShieldCheck className="w-3 h-3 text-emerald-500 shrink-0" />
-                        <span>Instant UPI (GPay, PhonePe, Paytm, QR) 100% active • Cards in setup</span>
-                      </p>
+
+                    {/* When Card is selected: show these 2 options to go to next step */}
+                    {paymentMethodType === "card" && (
+                      <div className="checkout-card-options-box">
+                        <div className="checkout-card-options-header">
+                          <span className="checkout-card-options-title">
+                            Select Card Gateway:
+                          </span>
+                          <span className="text-[11px] text-muted-foreground">
+                            Choose provider to proceed
+                          </span>
+                        </div>
+
+                        <div className="checkout-card-subgrid">
+                          <button
+                            type="button"
+                            onClick={() => setPaymentGateway("razorpay")}
+                            className={cn(
+                              "checkout-card-subbtn",
+                              paymentGateway === "razorpay" && "active"
+                            )}
+                          >
+                            <div className="checkout-card-subbtn-left">
+                              <div className={cn(
+                                "checkout-radio-circle",
+                                paymentGateway === "razorpay" && "is-selected"
+                              )}>
+                                {paymentGateway === "razorpay" && <div className="checkout-radio-dot" />}
+                              </div>
+                              <div>
+                                <div className="checkout-card-subbtn-name">
+                                  Cards / Razorpay
+                                </div>
+                                <span className="checkout-card-subbtn-hint">
+                                  Domestic & Global Cards, NetBanking
+                                </span>
+                              </div>
+                            </div>
+                            <span className="checkout-card-subbtn-badge badge-razorpay">
+                              Popular
+                            </span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setPaymentGateway("stripe")}
+                            className={cn(
+                              "checkout-card-subbtn",
+                              paymentGateway === "stripe" && "active"
+                            )}
+                          >
+                            <div className="checkout-card-subbtn-left">
+                              <div className={cn(
+                                "checkout-radio-circle",
+                                paymentGateway === "stripe" && "is-selected"
+                              )}>
+                                {paymentGateway === "stripe" && <div className="checkout-radio-dot" />}
+                              </div>
+                              <div>
+                                <div className="checkout-card-subbtn-name">
+                                  Stripe Payment
+                                </div>
+                                <span className="checkout-card-subbtn-hint">
+                                  Visa, MasterCard, Amex & Global
+                                </span>
+                              </div>
+                            </div>
+                            <span className="checkout-card-subbtn-badge badge-stripe">
+                              Global
+                            </span>
+                          </button>
+                        </div>
+                      </div>
                     )}
+
+                    <p className="checkout-gateway-notice">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <span>
+                        {paymentMethodType === "upi"
+                          ? "Instant UPI (GPay, PhonePe, Paytm, QR) 100% active • Instant delivery"
+                          : `Encrypted payment via ${paymentGateway === "razorpay" ? "Razorpay" : "Stripe"} • Click below to proceed`}
+                      </span>
+                    </p>
                   </div>
                 )}
               </div>
@@ -1027,8 +1099,12 @@ function Checkout() {
                   >
                     {isProcessing ? (
                       <><Loader2 className="checkout-btn-loader animate-spin" /> Starting Session…</>
+                    ) : paymentMethodType === "upi" ? (
+                      <><ScanQrCode className="checkout-btn-icon" /> Pay via UPI QR ({hasInrItems ? `₹${total().toFixed(2)}` : inrAmountString})</>
+                    ) : paymentGateway === "stripe" ? (
+                      <><CreditCard className="checkout-btn-icon" /> Continue with Stripe →</>
                     ) : (
-                      <><CreditCard className="checkout-btn-icon" /> Checkout & Pay</>
+                      <><CreditCard className="checkout-btn-icon" /> Continue with Razorpay →</>
                     )}
                   </button>
 
