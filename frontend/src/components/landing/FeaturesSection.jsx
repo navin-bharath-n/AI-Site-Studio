@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import {
-  Brain, Search, Palette, Globe, Shield, Zap, MessageSquare,
+  Brain, Search, Palette, Globe, Shield, Zap, Sparkles,
 } from "lucide-react";
 import "./FeaturesSection.css";
 
@@ -51,14 +51,34 @@ export default function FeaturesSection() {
       <div className="container-xl">
         {/* Header */}
         <div className="section-header">
-          <h2 className="section-title">
-            Platform Features
-          </h2>
-          <p className="section-subtitle">
-            A complete toolset for finding, customising, and deploying
-            professional website templates — without extra subscriptions or
-            locked features.
-          </p>
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.4 }}
+            className="section-badge"
+          >
+            <Sparkles className="section-badge-icon" />
+            Core Platform Engine
+          </motion.div>
+          <motion.h2
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.45, delay: 0.08 }}
+            className="section-title"
+          >
+            Platform <span className="gradient-text">Features.</span>
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.45, delay: 0.16 }}
+            className="section-subtitle"
+          >
+            A complete toolset for finding, customising, and deploying professional website templates — without extra subscriptions or locked features.
+          </motion.p>
         </div>
 
         {/* Feature grid */}

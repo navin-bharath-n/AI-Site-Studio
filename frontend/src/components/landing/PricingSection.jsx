@@ -31,16 +31,34 @@ export default function PricingSection() {
       <div className="container-xl">
         {/* Header */}
         <div className="section-header">
-          <div className="section-badge">
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.4 }}
+            className="section-badge"
+          >
             <Zap className="section-badge-icon" />
             100% Free Platform
-          </div>
-          <h2 className="section-title">
+          </motion.div>
+          <motion.h2
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.45, delay: 0.08 }}
+            className="section-title"
+          >
             No Fees. No Signups required to browse. <span className="gradient-text">Just Build.</span>
-          </h2>
-          <p className="section-subtitle">
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.45, delay: 0.16 }}
+            className="section-subtitle"
+          >
             Site Studio is a free utility platform for frontend developers to analyze, live preview, and download templates.
-          </p>
+          </motion.p>
         </div>
 
         {/* Plans */}

@@ -1,27 +1,44 @@
 /* Pricing Section custom modular styles — SERENITY Light Theme */
 
+.pricing-section-wrap .section-header,
 .section-header {
+  position: relative;
+  z-index: 2;
   text-align: center;
-  margin-bottom: 4rem;
+  max-width: 48rem;
+  margin: 0 auto 3.5rem;
 }
 
+.pricing-section-wrap .section-badge,
 .section-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  padding: 0.45rem 1rem;
   border-radius: 9999px;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 600;
-  margin-bottom: 1rem;
+  letter-spacing: 0.02em;
+  margin-bottom: 1.15rem;
   background: hsl(var(--primary) / 0.07);
-  border: 1px solid hsl(var(--primary) / 0.2);
+  border: 1px solid hsl(var(--primary) / 0.18);
   color: hsl(var(--primary));
+  box-shadow: 0 2px 10px hsl(var(--primary) / 0.08);
+  backdrop-filter: blur(12px);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+.pricing-section-wrap .section-badge:hover,
+.section-badge:hover {
+  transform: translateY(-1px);
+  border-color: hsl(var(--primary) / 0.35);
+  box-shadow: 0 4px 16px hsl(var(--primary) / 0.14);
+}
+
+.pricing-section-wrap .section-badge-icon,
 .section-badge-icon {
-  width: 1rem;
-  height: 1rem;
+  width: 0.95rem;
+  height: 0.95rem;
   color: #f59e0b;
 }
 
@@ -33,29 +50,26 @@
   flex-shrink: 0;
 }
 
+.pricing-section-wrap .section-title,
 .section-title {
-  font-size: 2.25rem;
+  font-size: clamp(2rem, 3.2vw, 2.75rem);
   font-weight: 800;
-  margin-bottom: 1rem;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  margin-bottom: 0.85rem;
   color: hsl(var(--foreground));
-  letter-spacing: -0.02em;
-}
-
-@media (min-width: 768px) {
-  .section-title {
-    font-size: 3rem;
-  }
+  text-align: center;
 }
 
 .pricing-section-wrap .section-subtitle,
 .section-subtitle {
-  font-size: 1.25rem;
-  color: #334155;
+  font-size: 1.05rem;
+  color: #475569;
   font-weight: 500;
-  max-width: 42rem;
-  margin-left: auto;
-  margin-right: auto;
-  line-height: 1.7;
+  max-width: 40rem;
+  margin: 0 auto;
+  line-height: 1.68;
+  text-align: center;
 }
 
 .pricing-grid {
