@@ -55,10 +55,6 @@ async def get_redis_client() -> Optional[aioredis.Redis]:
             "health_check_interval": 30,
         }
 
-        # For SSL connections (e.g. Upstash rediss:// or cloud Redis), ensure SSL context doesn't reject certs
-        if url.startswith("rediss://"):
-            connection_kwargs["ssl_cert_reqs"] = ssl.CERT_NONE
-
         try:
             _redis_client = aioredis.from_url(url, **connection_kwargs)
         except Exception as e:
