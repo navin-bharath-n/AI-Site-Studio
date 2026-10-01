@@ -127,6 +127,10 @@ async def init_db() -> None:
             await conn.execute(text("ALTER TYPE paymentgateway ADD VALUE IF NOT EXISTS 'upi';"))
         except Exception:
             pass
+        try:
+            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm;"))
+        except Exception:
+            pass
 
     # Ensure tables exist
     async with engine.begin() as conn:

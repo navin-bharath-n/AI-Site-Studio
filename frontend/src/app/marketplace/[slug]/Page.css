@@ -2966,3 +2966,188 @@
     font-size: 0.75rem !important;
   }
 }
+
+/* ══════════════════════════════════════════════
+   ✦ COLLAPSIBLE DESCRIPTION — See More / See Less
+   ══════════════════════════════════════════════ */
+.details-desc-collapse {
+  position: relative;
+  transition: max-height 0.35s ease;
+}
+
+.details-desc-collapse.collapsed {
+  max-height: 5.5rem;
+  overflow: hidden;
+}
+
+.details-desc-collapse.expanded {
+  max-height: 9999px;
+  overflow: visible;
+}
+
+.details-desc-fade {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3rem;
+  background: linear-gradient(to bottom, transparent, hsl(var(--card)));
+  pointer-events: none;
+}
+
+.details-seemore-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: hsl(var(--primary));
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem 0;
+  transition: opacity 0.15s;
+  letter-spacing: 0.01em;
+}
+
+.details-seemore-btn:hover {
+  opacity: 0.8;
+}
+
+/* ══════════════════════════════════════════════
+   ✦ REDESIGNED TAG CHIPS
+   ══════════════════════════════════════════════ */
+.details-tags-block {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid hsl(var(--border) / 0.4);
+}
+
+.details-tags-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: hsl(var(--muted-foreground));
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.65rem;
+}
+
+.details-tags-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.details-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: hsl(var(--primary) / 0.08);
+  color: hsl(var(--primary));
+  border: 1px solid hsl(var(--primary) / 0.2);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.details-tag-chip:hover {
+  background: hsl(var(--primary));
+  color: #fff;
+  border-color: hsl(var(--primary));
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px hsl(var(--primary) / 0.25);
+}
+
+/* ══════════════════════════════════════════════
+   ✦ COMPACT PAGES & LAYOUTS CHIPS
+   ══════════════════════════════════════════════ */
+.details-pages-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.details-page-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: hsl(var(--muted) / 0.3);
+  border: 1px solid hsl(var(--border) / 0.3);
+  color: hsl(var(--foreground));
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.details-page-chip:hover {
+  background: hsl(var(--muted) / 0.5);
+}
+
+/* ══════════════════════════════════════════════
+   ✦ MULTIPLE CATEGORIES DISPLAY
+   ══════════════════════════════════════════════ */
+.details-categories-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.details-category-chip {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.4rem;
+  font-size: 0.675rem;
+  font-weight: 700;
+  background: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+  border: 1px solid hsl(var(--primary) / 0.2);
+  letter-spacing: 0.01em;
+}
+
+/* ══════════════════════════════════════════════
+   ✦ SIDEBAR TAGS — desktop only
+   ══════════════════════════════════════════════ */
+@media (max-width: 767px) {
+  .sidebar-tags-desktop {
+    display: none !important;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   ✦ FOOTER CTA — hidden on mobile
+   ══════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .details-footer-cta-hide-mobile {
+    display: none !important;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   ✦ MOBILE DESC — always show See More button
+   ══════════════════════════════════════════════ */
+@media (min-width: 769px) {
+  /* On desktop, description is never clamped */
+  .details-desc-collapse.collapsed {
+    max-height: 9999px !important;
+    overflow: visible !important;
+  }
+  .details-desc-fade {
+    display: none !important;
+  }
+  .details-seemore-btn {
+    display: none !important;
+  }
+}

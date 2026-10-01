@@ -294,19 +294,25 @@ class TemplateRepository:
             }
             synonyms_list = [q_clean] + synonym_dict.get(q_clean, [])
 
-            # Trigram similarity (requires pg_trgm extension)
-            title_sim = func.similarity(Template.title, q_clean)
-            desc_sim = func.similarity(Template.short_description, q_clean)
-            industry_sim = func.similarity(Template.industry, q_clean)
-            tags_sim = func.similarity(cast(Template.tags, String), q_clean)
+            # Trigram similarity (if pg_trgm extension available)
+            similarity_score = None
+            or_conditions = []
+            try:
+                title_sim = func.similarity(Template.title, q_clean)
+                desc_sim = func.similarity(Template.short_description, q_clean)
+                industry_sim = func.similarity(Template.industry, q_clean)
+                tags_sim = func.similarity(cast(Template.tags, String), q_clean)
 
-            if need_category_join:
-                cat_sim = func.similarity(Category.name, q_clean)
-                similarity_score = func.greatest(title_sim, desc_sim, industry_sim, cat_sim, tags_sim)
-            else:
-                similarity_score = func.greatest(title_sim, desc_sim, industry_sim, tags_sim)
+                if need_category_join:
+                    cat_sim = func.similarity(Category.name, q_clean)
+                    similarity_score = func.greatest(title_sim, desc_sim, industry_sim, cat_sim, tags_sim)
+                else:
+                    similarity_score = func.greatest(title_sim, desc_sim, industry_sim, tags_sim)
 
-            or_conditions = [similarity_score > 0.12]
+                or_conditions.append(similarity_score > 0.12)
+            except Exception:
+                similarity_score = None
+
             for term in synonyms_list:
                 search_term = f"%{term}%"
                 or_conditions.extend([
@@ -336,8 +342,11 @@ class TemplateRepository:
 
                 if not matched_ids:
                     query = query.where(or_(*or_conditions))
-                    score_expr = func.coalesce(similarity_score, 0.0)
-                    query = query.order_by(score_expr.desc())
+                    if similarity_score is not None:
+                        score_expr = func.coalesce(similarity_score, 0.0)
+                        query = query.order_by(score_expr.desc())
+                    else:
+                        query = query.order_by(Template.created_at.desc())
                 else:
                     query = query.where(Template.id.in_(matched_ids))
                     from sqlalchemy import case
@@ -348,8 +357,11 @@ class TemplateRepository:
                     query = query.order_by(ordering)
             else:
                 query = query.where(or_(*or_conditions))
-                score_expr = func.coalesce(similarity_score, 0.0)
-                query = query.order_by(score_expr.desc())
+                if similarity_score is not None:
+                    score_expr = func.coalesce(similarity_score, 0.0)
+                    query = query.order_by(score_expr.desc())
+                else:
+                    query = query.order_by(Template.created_at.desc())
 
         # ── Count (snapshot before pagination) ───────────────────────────────
         count_query = select(func.count()).select_from(query.subquery())

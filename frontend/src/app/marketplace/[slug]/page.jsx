@@ -80,6 +80,9 @@ export default function TemplateDetailsPage({ slug: propSlug }) {
   // Lightbox Modal
   const [lightboxImg, setLightboxImg] = useState(null);
 
+  // Description See More / See Less toggle
+  const [isDescExpanded, setIsDescExpanded] = useState(false);
+
   // Share link modal states
   const [shareUrl, setShareUrl] = useState("");
   const [showShareModal, setShowShareModal] = useState(false);
@@ -1047,13 +1050,25 @@ npm run build`;
 
               {/* Information Card Grid */}
               <div className="details-specs-grid">
+                {/* Multiple categories support */}
                 <div className="spec-info-card">
                   <span className="spec-label">Category</span>
-                  <span className="spec-val capitalize">{template.category?.name || "Business"}</span>
-                </div>
-                <div className="spec-info-card">
-                  <span className="spec-label">Industry Match</span>
-                  <span className="spec-val">{template.industry || "General Agency"}</span>
+                  <span className="spec-val">
+                    {(() => {
+                      const cats = [];
+                      if (template.category?.name) cats.push(template.category.name);
+                      if (template.sub_category) cats.push(template.sub_category);
+                      if (template.industry) cats.push(template.industry);
+                      const display = cats.length > 0 ? cats : ["Business"];
+                      return (
+                        <span className="details-categories-wrap">
+                          {display.map((c, i) => (
+                            <span key={i} className="details-category-chip capitalize">{c}</span>
+                          ))}
+                        </span>
+                      );
+                    })()}
+                  </span>
                 </div>
                 <div className="spec-info-card">
                   <span className="spec-label">Customer Rating</span>
@@ -1072,7 +1087,11 @@ npm run build`;
                 </div>
                 <div className="spec-info-card">
                   <span className="spec-label">Last Updated</span>
-                  <span className="spec-val">June 2026</span>
+                  <span className="spec-val">
+                    {template.updated_at
+                      ? new Date(template.updated_at).toLocaleDateString("en-US", { year: "numeric", month: "short" })
+                      : "June 2026"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -1080,16 +1099,33 @@ npm run build`;
             {/* 3. Description Details */}
             <div className="details-desc-card card-container">
               <h3 className="section-title">About this template</h3>
-              <div className="details-markdown-content text-muted-foreground text-sm leading-relaxed space-y-4">
-                <p>
-                  {template.description || `Build a highly customized homepage for your business in seconds. Designed specifically for modern consulting, agency structures, and startups looking to represent a bold, premium aesthetic.`}
-                </p>
-                <p>
-                  Built with professional developers in mind, this package delivers multiple variations for grid setups, flexible CTA items, responsive menus, and clean CSS code scopes that can easily be compiled or extended.
-                </p>
+
+              {/* Collapsible description with See More */}
+              <div className={`details-desc-collapse ${isDescExpanded ? 'expanded' : 'collapsed'}`}>
+                <div className="details-markdown-content text-muted-foreground text-sm leading-relaxed space-y-3">
+                  <p>
+                    {template.description || `Build a highly customized homepage for your business in seconds. Designed specifically for modern consulting, agency structures, and startups looking to represent a bold, premium aesthetic.`}
+                  </p>
+                  <p>
+                    Built with professional developers in mind, this package delivers multiple variations for grid setups, flexible CTA items, responsive menus, and clean CSS code scopes that can easily be compiled or extended.
+                  </p>
+                </div>
+                {!isDescExpanded && <div className="details-desc-fade" />}
               </div>
 
-              {/* Clickable Tags & Topics */}
+              <button
+                type="button"
+                onClick={() => setIsDescExpanded((v) => !v)}
+                className="details-seemore-btn"
+              >
+                {isDescExpanded ? (
+                  <><ChevronUp className="w-3.5 h-3.5" /> See Less</>
+                ) : (
+                  <><ChevronDown className="w-3.5 h-3.5" /> See More</>
+                )}
+              </button>
+
+              {/* Clickable Tags — single clean block */}
               {(() => {
                 const rawTags = Array.isArray(template.tags)
                   ? template.tags
@@ -1100,21 +1136,20 @@ npm run build`;
                 if (cleanUniqueTags.length === 0) return null;
 
                 return (
-                  <div className="pt-4 mt-5 border-t border-border/40">
-                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2.5 flex items-center gap-1.5">
-                      <Tag className="w-3.5 h-3.5 text-primary" />
-                      Tags & Discoverability (Click to search)
+                  <div className="details-tags-block">
+                    <span className="details-tags-label">
+                      <Tag className="w-3 h-3" /> Tags
                     </span>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="details-tags-wrap">
                       {cleanUniqueTags.map((tag) => (
                         <button
                           key={tag}
                           type="button"
                           onClick={() => navigate(`/marketplace?q=${encodeURIComponent(tag)}`)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/25 transition-all shadow-sm cursor-pointer"
+                          className="details-tag-chip"
                           title={`Search for "${tag}" templates`}
                         >
-                          <span>#{tag}</span>
+                          #{tag}
                         </button>
                       ))}
                     </div>
@@ -1262,18 +1297,16 @@ npm run build`;
             {/* 5. Pages Included */}
             <div className="details-pages-included-block card-container">
               <h3 className="section-title">Pages & Layouts Included</h3>
-              <p className="text-xs text-muted-foreground mb-4">
-                This bundle features {template.pages_count} highly responsive pages pre-linked and configured for the client routing system.
-              </p>
-              <div className="details-pages-grid">
+              {/* Compact chip layout matching Utility & Design Features */}
+              <div className="details-pages-chips">
                 {(template.included_pages && template.included_pages.length > 0
                   ? template.included_pages
                   : ["Home", "About", "Services", "Portfolio Showcase", "Pricing Table", "Testimonials Panel", "Accordion FAQ", "Contact Form", "Blog Listing", "Privacy Policy", "404 Error page"]
-                ).map((page, index) => (
-                  <div key={page} className="details-page-item">
-                    <Check className="w-4 h-4 text-green-500 shrink-0" />
-                    <span>{page}</span>
-                  </div>
+                ).map((page) => (
+                  <span key={page} className="details-page-chip">
+                    <Check className="w-3 h-3 text-green-500 shrink-0" />
+                    {page}
+                  </span>
                 ))}
               </div>
             </div>
@@ -1989,7 +2022,7 @@ npm run build`;
                     </span>
                   </div>
 
-                  {/* Sidebar Tags */}
+                  {/* Sidebar Tags — hidden on mobile (shown only in desc section on mobile) */}
                   {(() => {
                     const rawTags = Array.isArray(template.tags)
                       ? template.tags
@@ -2000,7 +2033,7 @@ npm run build`;
                     if (cleanUniqueTags.length === 0) return null;
 
                     return (
-                      <div className="pt-2 border-t border-border/30">
+                      <div className="pt-2 border-t border-border/30 sidebar-tags-desktop">
                         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5 flex items-center gap-1">
                           <Tag className="w-3 h-3 text-primary" /> Tags
                         </span>
@@ -2114,8 +2147,8 @@ npm run build`;
           </div>
         </div>
 
-        {/* 18. Footer CTA Banner */}
-        <div className="details-footer-cta-block">
+        {/* 18. Footer CTA Banner — hidden on mobile, visible on tablet+ */}
+        <div className="details-footer-cta-block details-footer-cta-hide-mobile">
           <div className="cta-glow" />
           <h2 className="cta-heading">Ready to build your professional site?</h2>
           <p className="cta-sub">
