@@ -1,5 +1,14 @@
 /* Testimonials / How It Works section styles */
 
+.how-it-works-section .section-subtitle {
+  color: #334155;
+  font-weight: 500;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  max-width: 38rem;
+  margin-inline: auto;
+}
+
 .how-it-works-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -29,7 +38,8 @@
 .how-step-number {
   font-size: 2.25rem;
   font-weight: 800;
-  color: hsl(var(--primary) / 0.2);
+  color: hsl(var(--primary));
+  opacity: 0.35;
   line-height: 1;
   margin-bottom: 1rem;
   letter-spacing: -0.04em;
@@ -44,6 +54,57 @@
 
 .how-step-desc {
   font-size: 0.9375rem;
-  color: hsl(var(--muted-foreground));
+  color: #475569;
   line-height: 1.7;
+}
+
+@media (max-width: 768px) {
+  .how-it-works-section {
+    padding: 3.5rem 0;
+  }
+
+  .how-it-works-section .section-header {
+    margin-bottom: 1.75rem;
+  }
+
+  .how-it-works-section .section-title {
+    font-size: 1.75rem;
+    line-height: 1.2;
+    margin-bottom: 0.6rem;
+  }
+
+  .how-it-works-section .section-subtitle {
+    font-size: 0.925rem;
+    color: #334155;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  .how-it-works-grid {
+    grid-template-columns: 1fr; /* Exactly 1 single column */
+    gap: 0.875rem;
+    margin-top: 1.5rem;
+  }
+
+  .how-step-card {
+    padding: 1.15rem 1.15rem;
+    border-radius: 14px;
+  }
+
+  .how-step-number {
+    font-size: 1.6rem;
+    opacity: 0.6;
+    margin-bottom: 0.35rem;
+  }
+
+  .how-step-title {
+    font-size: 1.05rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .how-step-desc {
+    font-size: 0.85rem;
+    color: #475569;
+    line-height: 1.5;
+  }
 }

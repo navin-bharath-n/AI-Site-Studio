@@ -29,7 +29,7 @@ const STEPS = [
 
 export default function HowItWorksSection() {
   return (
-    <section className="section">
+    <section className="section how-it-works-section">
       <div className="container-xl">
         <div className="section-header">
           <h2 className="section-title">

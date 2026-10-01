@@ -27,7 +27,7 @@ const PLANS = [
 
 export default function PricingSection() {
   return (
-    <section id="pricing" className="section">
+    <section id="pricing" className="section pricing-section-wrap">
       <div className="container-xl">
         {/* Header */}
         <div className="section-header">

@@ -39,7 +39,7 @@ export default function HomePage() {
 
 
         {/* CTA Banner */}
-        <section className="section">
+        <section className="section cta-section-wrapper">
           <div className="container-xl">
             <div className="cta-banner glass">
               <div className="cta-banner-bg" />
