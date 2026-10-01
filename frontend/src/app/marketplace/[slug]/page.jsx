@@ -1289,12 +1289,18 @@ npm run build`;
                   <span className="spec-label">Customer Rating</span>
                   <span className="spec-val flex items-center gap-1">
                     <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-                    {template.rating_avg} ({template.rating_count} reviews)
+                    {reviewsList.length > 0 ? (
+                      <>
+                        {(reviewsList.reduce((acc, r) => acc + Number(r.rating || 5), 0) / reviewsList.length).toFixed(1)} ({reviewsList.length} {reviewsList.length === 1 ? "review" : "reviews"})
+                      </>
+                    ) : (
+                      "No reviews yet"
+                    )}
                   </span>
                 </div>
                 <div className="spec-info-card">
-                  <span className="spec-label">Downloads</span>
-                  <span className="spec-val">{formatNumber(template.downloads_count)} installs</span>
+                  <span className="spec-label">License</span>
+                  <span className="spec-val">Lifetime Commercial</span>
                 </div>
                 <div className="spec-info-card">
                   <span className="spec-label">Framework v{template.version}</span>
@@ -1837,9 +1843,11 @@ npm run build`;
                 <div>
                   <h3 className="section-title mb-0 flex items-center gap-2">
                     Ratings & Reviews
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                      {template.rating_count || 128} Ratings & {reviewsList.length > 0 ? reviewsList.length : 3} Reviews
-                    </span>
+                    {reviewsList.length > 0 && (
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                        {reviewsList.length} {reviewsList.length === 1 ? "Review" : "Reviews"}
+                      </span>
+                    )}
                   </h3>
                 </div>
                 <button
@@ -1859,44 +1867,70 @@ npm run build`;
               </div>
 
               {/* Flipkart Rating Summary Overview Card */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-5 p-4 sm:p-5 rounded-2xl border border-border/40 bg-card/60 my-4 items-center">
-                {/* Left: Overall Score + Star Count */}
-                <div className="md:col-span-4 flex flex-col items-center justify-center text-center p-2 sm:border-r border-border/30">
-                  <div className="flex items-center gap-2">
-                    <span className="text-4xl sm:text-5xl font-extrabold text-foreground tracking-tight">
-                      {Number(template.rating_avg || 4.9).toFixed(1)}
-                    </span>
-                    <Star className="w-7 h-7 sm:w-8 sm:h-8 fill-yellow-400 text-yellow-400" />
-                  </div>
-                  <p className="text-xs text-muted-foreground font-medium mt-1">
-                    {template.rating_count || 128} Ratings & {reviewsList.length > 0 ? reviewsList.length : 3} Reviews
-                  </p>
-                  <div className="mt-2.5 inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> 100% Certified Buyers
-                  </div>
-                </div>
-
-                {/* Right: Flipkart 5-Star Breakdown Bars */}
-                <div className="md:col-span-8 space-y-2">
-                  {[
-                    { star: 5, pct: 78, count: 98, color: "bg-emerald-500" },
-                    { star: 4, pct: 15, count: 22, color: "bg-emerald-500" },
-                    { star: 3, pct: 5, count: 6, color: "bg-emerald-400" },
-                    { star: 2, pct: 1, count: 1, color: "bg-amber-500" },
-                    { star: 1, pct: 1, count: 1, color: "bg-rose-500" },
-                  ].map((tier) => (
-                    <div key={tier.star} className="flex items-center gap-2.5 text-xs">
-                      <span className="w-7 font-bold text-foreground flex items-center justify-end gap-0.5 text-xs">
-                        {tier.star} <Star className="w-2.5 h-2.5 fill-current text-muted-foreground/60" />
+              {reviewsList.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-5 p-4 sm:p-5 rounded-2xl border border-border/40 bg-card/60 my-4 items-center">
+                  {/* Left: Overall Score + Star Count */}
+                  <div className="md:col-span-4 flex flex-col items-center justify-center text-center p-2 sm:border-r border-border/30">
+                    <div className="flex items-center gap-2">
+                      <span className="text-4xl sm:text-5xl font-extrabold text-foreground tracking-tight">
+                        {(reviewsList.reduce((sum, r) => sum + Number(r.rating || 5), 0) / reviewsList.length).toFixed(1)}
                       </span>
-                      <div className="flex-1 bg-muted/40 h-2 rounded-full overflow-hidden">
-                        <div className={cn("h-full rounded-full transition-all duration-500", tier.color)} style={{ width: `${tier.pct}%` }} />
-                      </div>
-                      <span className="w-10 text-[11px] font-mono text-muted-foreground text-right">{tier.count}</span>
+                      <Star className="w-7 h-7 sm:w-8 sm:h-8 fill-yellow-400 text-yellow-400" />
                     </div>
-                  ))}
+                    <p className="text-xs text-muted-foreground font-medium mt-1">
+                      {reviewsList.length} {reviewsList.length === 1 ? "Rating" : "Ratings"} & {reviewsList.length} {reviewsList.length === 1 ? "Review" : "Reviews"}
+                    </p>
+                    <div className="mt-2.5 inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> 100% Certified Buyers
+                    </div>
+                  </div>
+
+                  {/* Right: Flipkart 5-Star Breakdown Bars */}
+                  <div className="md:col-span-8 space-y-2">
+                    {[5, 4, 3, 2, 1].map((star) => {
+                      const count = reviewsList.filter((r) => Math.round(Number(r.rating)) === star).length;
+                      const pct = Math.round((count / reviewsList.length) * 100);
+                      const color = star >= 4 ? "bg-emerald-500" : star === 3 ? "bg-emerald-400" : star === 2 ? "bg-amber-500" : "bg-rose-500";
+                      return (
+                        <div key={star} className="flex items-center gap-2.5 text-xs">
+                          <span className="w-7 font-bold text-foreground flex items-center justify-end gap-0.5 text-xs">
+                            {star} <Star className="w-2.5 h-2.5 fill-current text-muted-foreground/60" />
+                          </span>
+                          <div className="flex-1 bg-muted/40 h-2 rounded-full overflow-hidden">
+                            <div className={cn("h-full rounded-full transition-all duration-500", color)} style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="w-10 text-[11px] font-mono text-muted-foreground text-right">{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="text-center py-8 px-4 border border-dashed border-border/40 rounded-2xl bg-muted/5 my-4 space-y-2.5">
+                  <div className="w-10 h-10 rounded-full bg-muted/40 flex items-center justify-center mx-auto text-muted-foreground/60">
+                    <Star className="w-5 h-5 text-yellow-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-foreground">No customer reviews yet</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5 max-w-sm mx-auto">
+                      Be the first to share your thoughts and rate this template.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isSignedIn) {
+                        alert("Please sign in to rate this template.");
+                        return;
+                      }
+                      setIsReviewFormOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-primary bg-primary/10 hover:bg-primary hover:text-white px-3.5 py-1.5 rounded-xl transition-all cursor-pointer border border-primary/20"
+                  >
+                    <Star className="w-3.5 h-3.5 fill-current" /> Write a Review
+                  </button>
+                </div>
+              )}
 
               {/* Flipkart Write a Review Form */}
               <AnimatePresence>
@@ -1994,41 +2028,9 @@ npm run build`;
                 <div className="text-center py-6 text-xs text-muted-foreground animate-pulse">
                   Loading buyer reviews...
                 </div>
-              ) : (
+              ) : reviewsList.length > 0 ? (
                 <div className="divide-y divide-border/30">
-                  {(reviewsList.length > 0 ? reviewsList : [
-                    {
-                      id: "demo-rev-1",
-                      rating: 5,
-                      title: "Mind-blowing template & super clean code!",
-                      body: "Downloaded this package and deployed in under 20 minutes. The responsive layouts, CSS variables, and clean component structures saved our team weeks of work. Absolutely worth it!",
-                      user: { name: "Marcus Vance" },
-                      created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-                      is_verified_purchase: true,
-                      helpful_count: 14,
-                      admin_reply: "Thank you Marcus! Glad you enjoyed the code architecture. Update v1.2 with extra sections is coming soon."
-                    },
-                    {
-                      id: "demo-rev-2",
-                      rating: 5,
-                      title: "Terrific purchase, highly recommended",
-                      body: "Google Lighthouse score was 98 out of the box on our custom domain. Assets and typography were linked properly without any missing files.",
-                      user: { name: "Priya Sharma" },
-                      created_at: new Date(Date.now() - 86400000 * 7).toISOString(),
-                      is_verified_purchase: true,
-                      helpful_count: 8,
-                    },
-                    {
-                      id: "demo-rev-3",
-                      rating: 4,
-                      title: "Great design aesthetics & documentation",
-                      body: "Great visual balance and dark mode styling. Documentation was concise and easy to follow.",
-                      user: { name: "David Kim" },
-                      created_at: new Date(Date.now() - 86400000 * 15).toISOString(),
-                      is_verified_purchase: true,
-                      helpful_count: 5,
-                    }
-                  ]).map((rev) => {
+                  {reviewsList.map((rev) => {
                     const isLiked = !!likedReviews[rev.id];
                     const isDisliked = !!dislikedReviews[rev.id];
                     const helpfulCount = (rev.helpful_count || 0) + (isLiked ? 1 : 0);
@@ -2099,7 +2101,7 @@ npm run build`;
                     );
                   })}
                 </div>
-              )}
+              ) : null}
             </div>
 
             {/* 13. Changelog */}
@@ -2303,11 +2305,7 @@ npm run build`;
                 <div className="seller-stats">
                   <div className="seller-stat">
                     <span className="seller-stat-label">Published</span>
-                    <span className="seller-stat-val">{template.seller_templates_count || 0} Templates</span>
-                  </div>
-                  <div className="seller-stat">
-                    <span className="seller-stat-label">Total Sales</span>
-                    <span className="seller-stat-val">{(template.seller_total_sales || 0).toLocaleString()} orders</span>
+                    <span className="seller-stat-val">{template.seller_templates_count || 1} Templates</span>
                   </div>
                 </div>
 
