@@ -713,6 +713,12 @@
   text-align: right;
 }
 
+@media (max-width: 1023px) {
+  .details-info-price {
+    display: none !important;
+  }
+}
+
 /* Spec Cards Grid */
 .details-specs-grid {
   display: grid;

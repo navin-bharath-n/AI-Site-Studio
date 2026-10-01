@@ -1155,7 +1155,7 @@ npm run build`;
                     {isGenerated && editableSubtitle ? editableSubtitle : template.short_description}
                   </p>
                 </div>
-                <div className="details-info-price">
+                <div className="details-info-price hidden lg:block">
                   <div className="text-2xl font-bold text-foreground">
                     {template.is_free ? "Free" : formatPrice(template.price, "USD")}
                   </div>
