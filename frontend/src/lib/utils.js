@@ -13,19 +13,11 @@ export function cn(...inputs) {
 import { useCurrencyStore } from "@/store/currencyStore";
 
 /**
- * Apply psychological charm pricing ending in 99 (e.g. 2327 -> 2399, 4678 -> 4699, 42 -> 49).
+ * Return exact seller pricing without psychological charm/9-ending rounding.
  */
 export function apply99CharmPricing(amount) {
   if (amount === 0 || !amount) return 0;
-  const val = Number(amount);
-  if (isNaN(val) || val <= 0) return amount;
-
-  if (val >= 100) {
-    return Math.floor(val / 100) * 100 + 99;
-  } else if (val >= 10) {
-    return Math.floor(val / 10) * 10 + 9;
-  }
-  return val;
+  return Number(amount) || 0;
 }
 
 export const CURRENCY_RATES_TO_USD = {

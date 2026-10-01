@@ -144,19 +144,12 @@ export default function TemplateDetailsPage({ slug: propSlug }) {
 
   useEffect(() => {
     if (template) {
-      const userPrefCurr = (user?.currency || (user?.country === "India" ? "INR" : "USD")).toUpperCase();
-      const inrRate = rates?.INR || 87.0;
-      
-      const initialPrice = userPrefCurr === "INR" 
-        ? Math.round(Number(template.price || 0) * inrRate) 
-        : Number(template.price || 0);
-
       setEditForm({
         title: template.title || "",
         short_description: template.short_description || "",
         description: template.description || "",
-        price: initialPrice,
-        price_currency: userPrefCurr,
+        price: Number(template.price || 0),
+        price_currency: "USD",
         license_type: mapBackendToLicense(template.license_type),
         tags: Array.isArray(template.tags) ? template.tags.join(", ") : (template.tags || ""),
         category_id: template.category_id || template.category?.id || "",
@@ -165,7 +158,7 @@ export default function TemplateDetailsPage({ slug: propSlug }) {
         thumbnail_url: template.thumbnail_url || "",
       });
     }
-  }, [template, user, rates]);
+  }, [template]);
 
   const handleEditCurrencySwitch = (newCurrency) => {
     const currentVal = Number(editForm.price) || 0;
@@ -313,8 +306,7 @@ export default function TemplateDetailsPage({ slug: propSlug }) {
     }
     setIsSavingEdit(true);
     try {
-      const isINR = (editForm.price_currency || "").toUpperCase() === "INR";
-      const finalPrice = isINR ? Number(editForm.price) : Number(convertToUSD(editForm.price, editForm.price_currency, rates));
+      const finalPrice = Number(editForm.price) || 0;
       const cleanTags = editForm.tags 
         ? Array.from(new Set(editForm.tags.split(",").map(t => t.trim().replace(/^#/, "")).filter(Boolean)))
         : [];
@@ -324,7 +316,7 @@ export default function TemplateDetailsPage({ slug: propSlug }) {
         short_description: editForm.short_description,
         description: editForm.description,
         price: finalPrice,
-        price_currency: isINR ? "INR" : "USD",
+        price_currency: "USD",
         license_type: mapLicenseToBackend(editForm.license_type),
         category_id: editForm.category_id || undefined,
         industry: editForm.industry || undefined,
@@ -1047,7 +1039,7 @@ npm run build`;
                 </div>
                 <div className="details-info-price">
                   <div className="text-2xl font-bold text-foreground">
-                    {template.is_free ? "Free" : formatPrice(template.price)}
+                    {template.is_free ? "Free" : formatPrice(template.price, "USD")}
                   </div>
                   <span className="text-xs text-muted-foreground">Lifetime Access • Complete Source Code</span>
                 </div>
@@ -1864,11 +1856,11 @@ npm run build`;
                 <div>
                   <div className="details-price-row flex items-baseline justify-between mb-1">
                     <span className="details-price-value text-3xl font-extrabold text-foreground">
-                      {template.is_free ? "Free" : formatConvertedPrice(template.price, template.price_currency || "USD", userCurrency, rates)}
+                      {template.is_free ? "Free" : formatPrice(template.price, "USD")}
                     </span>
                     {template.original_price && template.original_price > template.price && (
                       <span className="details-price-original text-sm line-through text-muted-foreground">
-                        {formatConvertedPrice(template.original_price, template.price_currency || "USD", userCurrency, rates)}
+                        {formatPrice(template.original_price, "USD")}
                       </span>
                     )}
                   </div>
@@ -2800,7 +2792,7 @@ npm run build`;
       <div className="details-mobile-bottom-bar">
         <div className="details-mobile-bottom-info">
           <span className="details-mobile-bottom-price">
-            {template.is_free ? "Free" : formatConvertedPrice(template.price, template.price_currency || "USD", userCurrency, rates)}
+            {template.is_free ? "Free" : formatPrice(template.price, "USD")}
           </span>
           <span className="details-mobile-bottom-license">Lifetime License</span>
         </div>

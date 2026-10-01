@@ -2742,12 +2742,18 @@
   flex-shrink: 0;
 }
 
-/* ── Mobile Floating Purchase Bar (Sticky Bottom on <= 768px) ── */
+/* ── Mobile & Tablet Floating Purchase Bar (Sticky Bottom on <= 1023px) ── */
 .details-mobile-bottom-bar {
   display: none;
 }
 
-@media (max-width: 768px) {
+/* Portrait aspect ratio when Mobile tab is active */
+.details-media-viewport.is-mobile-tab {
+  padding-bottom: min(130%, 540px) !important;
+  min-height: 460px !important;
+}
+
+@media (max-width: 1023px) {
   .details-mobile-bottom-bar {
     position: fixed;
     bottom: 0;
