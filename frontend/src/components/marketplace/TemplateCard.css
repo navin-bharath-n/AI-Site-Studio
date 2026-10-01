@@ -47,15 +47,26 @@
   background: linear-gradient(135deg, hsla(var(--brand) / 0.5) 0%, hsla(var(--secondary) / 0.5) 100%);
 }
 
-/* Overlay & interactive actions */
+/* Overlay & interactive actions (desktop hover only) */
 .card-hover-overlay {
   position: absolute;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
+  z-index: 5;
+}
+
+@media (max-width: 1023px), (hover: none) {
+  .card-hover-overlay {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+  }
 }
 
 .overlay-btn-preview {
@@ -243,6 +254,23 @@
   text-decoration: line-through;
 }
 
+.card-developer-name {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+  text-align: right;
+  flex-shrink: 1;
+}
+
+.card-cart-icon {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+}
+
 /* Extracted custom styling rules replacing Tailwind utility tags */
 .star-rating-wrapper {
   display: flex;
@@ -355,67 +383,112 @@
   gap: 0.5rem;
 }
 
-/* ── Mobile Touch Action Bar ────────────────────────────────── */
+/* ── Mobile & Tablet Action Bar & Uniform Layout ─────────────── */
 .card-mobile-action-bar {
   display: none;
 }
 
-@media (max-width: 768px) {
+/* Tablet & Mobile responsive card architecture (< 1024px) */
+@media (max-width: 1023px) {
+  .card-hover-overlay {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+  }
+
   .template-card {
     border-radius: 0.875rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
   }
 
   .card-thumbnail-container {
     border-radius: 0.875rem 0.875rem 0 0 !important;
+    aspect-ratio: 16/10 !important;
   }
 
   .card-badge-list {
-    top: 0.4rem !important;
-    left: 0.4rem !important;
-    gap: 0.2rem !important;
+    top: 0.45rem !important;
+    left: 0.45rem !important;
+    gap: 0.25rem !important;
+    z-index: 10 !important;
   }
 
   .card-badge-item {
-    font-size: 0.6rem !important;
-    padding: 0.1rem 0.35rem !important;
+    font-size: 0.625rem !important;
+    padding: 0.125rem 0.4rem !important;
     font-weight: 800 !important;
   }
 
   .card-action-list {
-    top: 0.4rem !important;
-    right: 0.4rem !important;
-    gap: 0.25rem !important;
+    top: 0.45rem !important;
+    right: 0.45rem !important;
+    gap: 0.3rem !important;
+    z-index: 10 !important;
   }
 
   .card-action-btn {
-    width: 1.65rem !important;
-    height: 1.65rem !important;
+    width: 1.8rem !important;
+    height: 1.8rem !important;
+    border: 1px solid hsla(var(--border) / 0.8) !important;
+    background-color: hsl(var(--card) / 0.85) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
   }
 
   .card-action-icon {
-    width: 0.85rem !important;
-    height: 0.85rem !important;
+    width: 0.9rem !important;
+    height: 0.9rem !important;
   }
 
   .card-body {
-    padding: 0.65rem 0.55rem !important;
+    padding: 0.75rem 0.65rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    justify-content: flex-start !important;
     gap: 0.3rem !important;
+  }
+
+  /* Fixed 2-line title height for 100% card height uniformity across all templates */
+  .card-title-row {
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 0.35rem !important;
+    width: 100% !important;
   }
 
   .card-title {
     font-size: 0.8125rem !important;
+    font-weight: 600 !important;
     line-height: 1.25 !important;
-    height: auto !important;
-    max-height: 2.1rem !important;
+    height: 2.05rem !important;
+    min-height: 2.05rem !important;
+    max-height: 2.05rem !important;
+    display: -webkit-box !important;
     -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    word-break: break-word !important;
+    margin: 0 !important;
   }
 
+  /* Hide description on mobile & tablet for clean uniform height */
   .card-desc {
-    display: none !important; /* Hide description in 2-column mobile layout for clean, aligned cards */
+    display: none !important;
   }
 
   .star-rating-wrapper {
-    gap: 0.15rem !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.2rem !important;
+    height: 1.15rem !important;
+    margin-top: 0.1rem !important;
+    flex-shrink: 0 !important;
   }
 
   .star-rating-star {
@@ -424,52 +497,142 @@
   }
 
   .star-rating-wrapper span {
-    font-size: 0.625rem !important;
+    font-size: 0.65rem !important;
   }
 
   .card-meta-row {
+    display: flex !important;
+    align-items: center !important;
     gap: 0.35rem !important;
+    height: 1.35rem !important;
     margin-top: 0.15rem !important;
-    margin-bottom: 0.15rem !important;
+    margin-bottom: 0.2rem !important;
     font-size: 0.6875rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    flex-shrink: 0 !important;
+  }
+
+  .card-meta-download-span {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.2rem !important;
+    flex-shrink: 0 !important;
   }
 
   .framework-tag {
     font-size: 9px !important;
     padding: 0.05rem 0.3rem !important;
+    border-radius: 0.25rem !important;
+    flex-shrink: 0 !important;
   }
 
   .card-price-row {
-    padding-top: 0.15rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 0.35rem !important;
+    margin-top: auto !important;
+    padding-top: 0.35rem !important;
+    border-top: 1px dashed hsl(var(--border) / 0.4) !important;
+    width: 100% !important;
   }
 
   .price-val {
     font-size: 0.9375rem !important;
     font-weight: 800 !important;
+    color: hsl(var(--foreground)) !important;
   }
 
   .original-price-val {
     font-size: 0.6875rem !important;
   }
 
+  .card-developer-name {
+    font-size: 0.6875rem !important;
+    color: hsl(var(--muted-foreground)) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 85px !important;
+    text-align: right !important;
+    flex-shrink: 1 !important;
+  }
+
+  /* Single consistent action bar for both mobile & tablet */
   .card-mobile-action-bar {
     display: flex !important;
     align-items: center !important;
-    gap: 0.35rem !important;
-    padding-top: 0.45rem !important;
+    width: 100% !important;
+    padding-top: 0.35rem !important;
     margin-top: 0.2rem !important;
-    border-top: 1px solid hsl(var(--border) / 0.4) !important;
-  }
-
-  .card-mobile-preview-pill {
-    display: none !important; /* Clicking the card anywhere already navigates to details */
   }
 
   .card-mobile-cart-btn {
     width: 100% !important;
-    min-height: 30px !important;
-    padding: 0.35rem 0.5rem !important;
-    font-size: 0.725rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.35rem !important;
+    min-height: 32px !important;
+    padding: 0.35rem 0.6rem !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
     border-radius: 0.5rem !important;
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(260 84% 60%) 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    cursor: pointer !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 2px 8px hsla(var(--primary) / 0.25) !important;
+  }
+
+  .card-mobile-cart-btn:hover {
+    filter: brightness(1.08) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px hsla(var(--primary) / 0.35) !important;
+  }
+
+  .card-mobile-cart-btn:active {
+    transform: translateY(0) !important;
+    filter: brightness(0.95) !important;
+  }
+
+  .card-mobile-cart-btn.in-cart {
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3) !important;
+  }
+
+  .card-cart-icon {
+    width: 0.85rem !important;
+    height: 0.85rem !important;
+    flex-shrink: 0 !important;
+  }
+}
+
+/* Extra small mobile (< 400px) */
+@media (max-width: 400px) {
+  .card-body {
+    padding: 0.55rem 0.45rem !important;
+  }
+
+  .card-meta-row {
+    font-size: 0.625rem !important;
+    gap: 0.25rem !important;
+  }
+
+  .card-developer-name {
+    max-width: 65px !important;
+  }
+
+  .card-action-btn {
+    width: 1.65rem !important;
+    height: 1.65rem !important;
+  }
+
+  .card-action-icon {
+    width: 0.8rem !important;
+    height: 0.8rem !important;
   }
 }

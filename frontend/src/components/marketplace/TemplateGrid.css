@@ -13,7 +13,16 @@
   }
 }
 
-@media (min-width: 768px) {
+/* Tablet view: 768px to 1023px */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .marketplace-grid:not(.list-view) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+/* Desktop view: 1024px+ */
+@media (min-width: 1024px) {
   .marketplace-grid:not(.list-view) {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1.25rem;
@@ -25,6 +34,12 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1.5rem;
   }
+}
+
+/* List view */
+.marketplace-grid.list-view {
+  grid-template-columns: 1fr !important;
+  gap: 1rem;
 }
 
 /* Skeleton items */

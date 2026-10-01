@@ -82,7 +82,11 @@ export default function TemplateCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.05, ease: "easeOut" }}
       className="group card-outer-wrapper"
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={() => {
+        if (typeof window !== "undefined" && window.matchMedia("(hover: hover) and (min-width: 1024px)").matches) {
+          setIsHovered(true);
+        }
+      }}
       onMouseLeave={() => setIsHovered(false)}
     >
       <Link href={`/marketplace/${templateSlug}`} className="card-main-link">
@@ -259,16 +263,13 @@ export default function TemplateCard({
                   </span>
                 )}
               </div>
-              <span className="text-xs text-muted-foreground">
+              <span className="card-developer-name" title={template.developer_name || "Site Studio"}>
                 {template.developer_name || "Site Studio"}
               </span>
             </div>
 
-            {/* Mobile Touch Action Bar (visible on <= 768px) */}
+            {/* Action Bar (Mobile & Tablet) */}
             <div className="card-mobile-action-bar">
-              <span className="card-mobile-preview-pill">
-                <Eye className="w-3.5 h-3.5" /> View Details
-              </span>
               {!isSeller && (
                 <button
                   type="button"
@@ -280,9 +281,9 @@ export default function TemplateCard({
                   aria-label={isInCart ? "Item added to cart" : "Add item to cart"}
                 >
                   {isInCart ? (
-                    <><Check className="w-3.5 h-3.5" /> Added</>
+                    <><Check className="card-cart-icon" /> Added</>
                   ) : (
-                    <><ShoppingCart className="w-3.5 h-3.5" /> Add to Cart</>
+                    <><ShoppingCart className="card-cart-icon" /> Add to Cart</>
                   )}
                 </button>
               )}
