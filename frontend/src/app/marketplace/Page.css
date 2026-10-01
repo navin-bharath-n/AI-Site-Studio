@@ -1578,6 +1578,63 @@
   font-weight: 700;
 }
 
+/* ── Mobile Action Bar (Filters + Studio Creator) ──────────── */
+.marketplace-mobile-actions-bar {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .marketplace-mobile-actions-bar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    gap: 0.625rem !important;
+    margin-bottom: 0.35rem !important;
+  }
+
+  .desktop-creator-btn {
+    display: none !important;
+  }
+
+  .mobile-creator-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.45rem !important;
+    height: 2.25rem !important;
+    padding: 0 0.95rem !important;
+    font-size: 0.775rem !important;
+    font-weight: 700 !important;
+    border-radius: 0.75rem !important;
+    background: linear-gradient(135deg, hsla(var(--primary) / 0.18) 0%, hsla(260, 84%, 60%, 0.14) 100%) !important;
+    border: 1.5px solid hsla(var(--primary) / 0.45) !important;
+    color: hsl(var(--primary)) !important;
+    box-shadow: 0 2px 8px hsla(var(--primary) / 0.15) !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    cursor: pointer !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  .mobile-creator-btn:active {
+    transform: scale(0.97) !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .marketplace-mobile-actions-bar {
+    display: none !important;
+  }
+
+  .mobile-creator-btn {
+    display: none !important;
+  }
+
+  .desktop-creator-btn {
+    display: inline-flex !important;
+  }
+}
+
 /* ── Mobile Filter Trigger Button ────────────────────────────── */
 .marketplace-mobile-filter-btn {
   display: inline-flex;

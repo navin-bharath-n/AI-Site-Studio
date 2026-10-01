@@ -237,9 +237,8 @@ function Marketplace() {
                   </div>
                 </div>
 
-                {/* Row 2 — Mobile Filter Trigger + Sort tabs + spacer + view toggle */}
-                <div className="toolbar-row toolbar-row-controls">
-                  {/* Mobile Filters Trigger Button */}
+                {/* Row 2 — Mobile & Tablet Action Row (Visible < 1024px: Filters Left, Studio Creator Right, 100% visible without scroll) */}
+                <div className="marketplace-mobile-actions-bar">
                   <button
                     type="button"
                     onClick={() => setMobileFilterOpen(true)}
@@ -253,6 +252,19 @@ function Marketplace() {
                     )}
                   </button>
 
+                  <button
+                    type="button"
+                    onClick={() => navigate("/marketplace/generate")}
+                    className="marketplace-ai-generate-btn mobile-creator-btn"
+                    title="Generate a custom template in the studio"
+                  >
+                    <Sparkles className="ai-generate-icon animate-pulse" />
+                    <span>Studio Creator</span>
+                  </button>
+                </div>
+
+                {/* Row 3 — Sort tabs + Desktop Studio Creator + view toggle */}
+                <div className="toolbar-row toolbar-row-controls">
                   <div className="marketplace-sort-bar">
                     {SORT_OPTIONS.slice(0, 4).map((o) => (
                       <button
@@ -267,9 +279,11 @@ function Marketplace() {
 
                   <div className="toolbar-spacer" />
 
+                  {/* Desktop Studio Creator (hidden on mobile, visible on desktop >= 1024px) */}
                   <button
+                    type="button"
                     onClick={() => navigate("/marketplace/generate")}
-                    className="marketplace-ai-generate-btn"
+                    className="marketplace-ai-generate-btn desktop-creator-btn"
                     title="Generate a custom template in the studio"
                   >
                     <Sparkles className="ai-generate-icon animate-pulse" />
