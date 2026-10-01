@@ -47,13 +47,12 @@ const FEATURES = [
 
 export default function FeaturesSection() {
   return (
-    <section id="features" className="section">
+    <section id="features" className="section features-section">
       <div className="container-xl">
         {/* Header */}
         <div className="section-header">
-          <p className="section-eyebrow">Platform Features</p>
           <h2 className="section-title">
-            What Site Studio gives you
+            Platform Features
           </h2>
           <p className="section-subtitle">
             A complete toolset for finding, customising, and deploying

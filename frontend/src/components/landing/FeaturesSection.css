@@ -73,22 +73,34 @@
   color: #f59e0b;
 }
 
-.section-title {
-  font-size: clamp(2.4rem, 5vw, 4rem);
+.section-title,
+.features-section .section-title {
+  font-size: 2.25rem;
   font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -1px;
-  margin-bottom: 1.3rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-bottom: 1rem;
   color: hsl(var(--foreground));
 }
 
-.section-subtitle {
-  max-width: 700px;
-  margin: auto;
-  font-size: 1.1rem;
-  line-height: 1.8;
-  color: hsl(var(--muted-foreground));
+@media (min-width: 768px) {
+  .section-title,
+  .features-section .section-title {
+    font-size: 3rem;
+  }
 }
+
+.section-subtitle,
+.features-section .section-subtitle {
+  max-width: 42rem;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 1.125rem;
+  line-height: 1.7;
+  color: #334155 !important;
+  font-weight: 500;
+}
+
 
 /* =========================
    Grid
@@ -245,16 +257,20 @@
   .section-header {
     margin-bottom: 2rem;
   }
-  .section-title {
-    font-size: 1.75rem;
-    line-height: 1.2;
-    margin-bottom: 0.75rem;
+  .section-title,
+  .features-section .section-title {
+    font-size: 1.75rem !important;
+    line-height: 1.22 !important;
+    margin-bottom: 0.65rem !important;
+    letter-spacing: -0.02em;
+    color: hsl(var(--foreground)) !important;
   }
-  .section-subtitle {
-    font-size: 0.925rem;
-    line-height: 1.55;
-    color: #334155;
-    font-weight: 500;
+  .section-subtitle,
+  .features-section .section-subtitle {
+    font-size: 0.925rem !important;
+    line-height: 1.55 !important;
+    color: #334155 !important;
+    font-weight: 500 !important;
   }
   .features-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

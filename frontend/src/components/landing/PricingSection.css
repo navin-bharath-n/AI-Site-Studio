@@ -47,9 +47,11 @@
   }
 }
 
+.pricing-section-wrap .section-subtitle,
 .section-subtitle {
   font-size: 1.25rem;
-  color: hsl(var(--muted-foreground));
+  color: #334155;
+  font-weight: 500;
   max-width: 42rem;
   margin-left: auto;
   margin-right: auto;

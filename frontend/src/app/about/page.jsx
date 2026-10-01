@@ -20,6 +20,13 @@ export default function AboutPage() {
         { name: "About", path: "/about" },
         { name: "Contact", path: "/contact" }
       ]
+    },
+    {
+      title: "Legal",
+      links: [
+        { name: "Privacy Policy", path: "/privacy" },
+        { name: "Terms & Conditions", path: "/terms" }
+      ]
     }
   ];
 
