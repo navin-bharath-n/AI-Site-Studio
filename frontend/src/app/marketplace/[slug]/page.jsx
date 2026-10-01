@@ -18,7 +18,7 @@ import {
   Terminal, Sliders, Cpu, Smartphone, Tablet, Laptop,
   Monitor, HelpCircle, UserCheck, ChevronDown, ChevronUp,
   Play, Flame, Award, Activity, Sparkles, Clock, Plus,
-  ExternalLink, Calendar, ShieldCheck, Info, Edit3, Upload,
+  ExternalLink, Calendar, ShieldCheck, Info, Edit3, Upload, Lock,
   DollarSign, Tag, Layers, Loader2, CheckCircle2, Trash2, Image as ImageIcon,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -30,6 +30,200 @@ import { useCartStore } from "@/store";
 import { useCurrencyStore } from "@/store/currencyStore";
 import { API_URL, api } from "@/lib/api";
 import "./Page.css";
+
+/**
+ * DeviceSandbox:
+ * Dynamically fits and renders the live template preview in Desktop (1280px),
+ * Tablet (768px), or Mobile (390px) viewports with zero cropping and 100% edge-to-edge fit.
+ */
+function DeviceSandbox({ mode, previewSrc, title, slug }) {
+  const containerRef = useRef(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const updateSize = () => {
+      if (containerRef.current) {
+        const { clientWidth, clientHeight } = containerRef.current;
+        setSize({ width: clientWidth, height: clientHeight });
+      }
+    };
+    updateSize();
+
+    const ro = new ResizeObserver(updateSize);
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, [mode]);
+
+  const containerW = size.width || 800;
+  const containerH = size.height || 500;
+
+  if (mode === "desktop") {
+    const chromeH = 36;
+    const bodyW = containerW;
+    const bodyH = Math.max(120, containerH - chromeH);
+    const scale = containerW > 0 ? containerW / 1280 : 0.625;
+    const iframeH = Math.max(720, Math.round(bodyH / Math.max(scale, 0.05)));
+
+    return (
+      <div ref={containerRef} className="device-sandbox-container desktop-mode">
+        <div className="device-browser-window">
+          {/* Browser Chrome Header */}
+          <div className="device-browser-header">
+            <div className="device-traffic-dots">
+              <span className="dot red" />
+              <span className="dot yellow" />
+              <span className="dot green" />
+            </div>
+            <div className="device-url-pill">
+              <Lock className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
+              <span className="device-url-text">{slug}.preview.dev</span>
+            </div>
+            <div className="device-resolution-tag">
+              <span className="live-dot" />
+              <span>1280px • Desktop</span>
+            </div>
+          </div>
+
+          {/* Browser Viewport Body */}
+          <div className="device-browser-body">
+            <iframe
+              src={previewSrc}
+              title={`Desktop Preview — ${title}`}
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+              scrolling="yes"
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "1280px",
+                height: `${iframeH}px`,
+                transform: `scale(${scale})`,
+                transformOrigin: "top left",
+                border: "none",
+                pointerEvents: "auto",
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === "tablet") {
+    const frameW = 788;
+    const frameH = 1016;
+    const scale = Math.min((containerW - 20) / frameW, (containerH - 20) / frameH, 1);
+
+    return (
+      <div ref={containerRef} className="device-sandbox-container tablet-mode">
+        <div
+          className="device-tablet-wrapper"
+          style={{
+            transform: `scale(${Math.max(scale, 0.15)})`,
+            transformOrigin: "center center",
+          }}
+        >
+          <div className="device-tablet-frame">
+            {/* Tablet Camera Header */}
+            <div className="tablet-header-notch">
+              <span className="tablet-camera" />
+              <span className="tablet-resolution">768 × 1024 • Tablet</span>
+              <span style={{ width: 8 }} />
+            </div>
+            {/* Screen */}
+            <div className="tablet-screen">
+              <iframe
+                src={previewSrc}
+                title={`Tablet Preview — ${title}`}
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                scrolling="yes"
+                style={{
+                  width: "768px",
+                  height: "964px",
+                  border: "none",
+                  pointerEvents: "auto",
+                }}
+              />
+            </div>
+            {/* Home indicator */}
+            <div className="tablet-home-bar">
+              <span className="tablet-home-pill" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === "mobile") {
+    const frameW = 410;
+    const frameH = 874;
+    const scale = Math.min((containerW - 16) / frameW, (containerH - 16) / frameH, 1);
+
+    return (
+      <div ref={containerRef} className="device-sandbox-container mobile-mode">
+        <div
+          className="device-phone-wrapper"
+          style={{
+            transform: `scale(${Math.max(scale, 0.15)})`,
+            transformOrigin: "center center",
+          }}
+        >
+          <div className="iphone-bezel">
+            {/* Top Status Bar */}
+            <div className="iphone-status-bar">
+              <span className="iphone-time">
+                {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+              <div className="iphone-dynamic-island" />
+              <div className="iphone-status-icons">
+                <span className="iphone-signal">📶</span>
+                <span className="iphone-wifi">📶</span>
+                <div className="iphone-battery">
+                  <div className="iphone-battery-level" />
+                </div>
+              </div>
+            </div>
+
+            {/* Screen Content */}
+            <div className="iphone-screen">
+              <iframe
+                src={previewSrc}
+                title={`Mobile Preview — ${title}`}
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                scrolling="yes"
+                style={{
+                  width: "390px",
+                  height: "100%",
+                  border: "none",
+                  pointerEvents: "auto",
+                }}
+              />
+            </div>
+
+            {/* Safari Address Bar */}
+            <div className="iphone-safari-bar">
+              <div className="iphone-safari-address-bar">
+                <span className="iphone-safari-text-format">aA</span>
+                <div className="iphone-safari-url">
+                  <span className="iphone-safari-lock">🔒</span>
+                  <span className="iphone-safari-host">{slug}.preview.dev</span>
+                </div>
+                <span className="iphone-safari-refresh">🔄</span>
+              </div>
+            </div>
+
+            {/* Home Indicator */}
+            <div className="iphone-home-indicator" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
 
 export default function TemplateDetailsPage({ slug: propSlug }) {
   const { slug: routeSlug } = useParams();
@@ -777,29 +971,47 @@ npm run build`;
               <div className="details-hero-tabs-row">
                 <div className="details-hero-tabs-left">
                   <button
-                    onClick={() => { setHeroTab("screenshot"); setActiveImage(0); }}
-                    className={cn("hero-tab-btn", heroTab === "screenshot" && "active")}
-                  >
-                    Hero Screenshot
-                  </button>
-                  <button
-                    onClick={() => setHeroTab("video")}
-                    className={cn("hero-tab-btn", heroTab === "video" && "active")}
-                  >
-                    <Play className="w-3.5 h-3.5 mr-1 inline" /> Video Preview
-                  </button>
-                  <button
                     onClick={() => setHeroTab("desktop")}
                     className={cn("hero-tab-btn", heroTab === "desktop" && "active")}
+                    title="Desktop View (1280px)"
                   >
-                    <Monitor className="w-3.5 h-3.5 mr-1 inline" /> Desktop
+                    <Monitor className="w-3.5 h-3.5" />
+                    <span>Desktop</span>
                   </button>
                   <button
                     onClick={() => setHeroTab("tablet")}
                     className={cn("hero-tab-btn", heroTab === "tablet" && "active")}
+                    title="Tablet View (768px)"
                   >
-                    <Tablet className="w-3.5 h-3.5 mr-1 inline" /> Tablet
+                    <Tablet className="w-3.5 h-3.5" />
+                    <span>Tablet</span>
                   </button>
+                  <button
+                    onClick={() => setHeroTab("mobile")}
+                    className={cn("hero-tab-btn", heroTab === "mobile" && "active")}
+                    title="Mobile View (390px)"
+                  >
+                    <Smartphone className="w-3.5 h-3.5" />
+                    <span>Mobile</span>
+                  </button>
+                  <button
+                    onClick={() => { setHeroTab("screenshot"); setActiveImage(0); }}
+                    className={cn("hero-tab-btn", heroTab === "screenshot" && "active")}
+                    title="Full Screenshot"
+                  >
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    <span>Screenshot</span>
+                  </button>
+                  {template?.video_url && (
+                    <button
+                      onClick={() => setHeroTab("video")}
+                      className={cn("hero-tab-btn", heroTab === "video" && "active")}
+                      title="Video Walkthrough"
+                    >
+                      <Play className="w-3.5 h-3.5" />
+                      <span>Video</span>
+                    </button>
+                  )}
                 </div>
 
                 <div className="details-hero-tabs-right">
@@ -808,8 +1020,10 @@ npm run build`;
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hero-action-btn live"
+                    title="Open live website in new tab"
                   >
-                    <Globe className="w-4 h-4" /> Live Demo
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Live Demo</span>
                   </a>
                   {/* Favorite Button */}
                   <button
@@ -851,15 +1065,16 @@ npm run build`;
                 {heroTab === "screenshot" || heroTab === "gallery" ? (
                   /* Screenshot / Gallery view */
                   <div
-                    style={{ position: "absolute", inset: 0, cursor: "zoom-in" }}
+                    style={{ position: "absolute", inset: 0, cursor: "zoom-in", display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0a14" }}
                     onClick={() => setLightboxImg(allImages[activeImage])}
                   >
                     <Image
                       src={allImages[activeImage]}
                       alt={template.title}
                       fill
-                      className="object-cover"
+                      className="object-contain"
                       style={{ transition: "transform 0.4s ease" }}
+                      priority
                     />
                   </div>
                 ) : heroTab === "video" ? (
@@ -878,7 +1093,7 @@ npm run build`;
                         <video
                           src={template.video_url}
                           controls
-                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          style={{ width: "100%", height: "100%", objectFit: "contain" }}
                           poster={allImages[0]}
                         />
                       )}
@@ -886,7 +1101,6 @@ npm run build`;
                   ) : (
                     /* Premium Live Auto-Scrolling Video Walkthrough Simulation */
                     <div className="video-walkthrough-player">
-                      {/* Top HUD: REC indicator */}
                       <div className="video-player-hud-top">
                         <div className="rec-indicator">
                           <span className="rec-dot" />
@@ -896,8 +1110,6 @@ npm run build`;
                           {template.title} — Live Walkthrough
                         </div>
                       </div>
-
-                      {/* Auto-scrolling screen content */}
                       <div className="video-player-screen">
                         <iframe
                           src={previewSrc}
@@ -906,8 +1118,6 @@ npm run build`;
                           className="autoscroll-iframe"
                         />
                       </div>
-
-                      {/* Bottom HUD: Player UI Controls */}
                       <div className="video-player-hud-bottom">
                         <div className="hud-play-btn">
                           <Play className="w-3.5 h-3.5 fill-current text-primary" />
@@ -921,109 +1131,14 @@ npm run build`;
                       </div>
                     </div>
                   )
-                ) : heroTab === "mobile" ? (
-                  /* Premium iPhone Simulator Mockup */
-                  <div className="iphone-mockup" style={{ position: "absolute", inset: 0 }}>
-                    <div className="iphone-bezel">
-                      {/* Top Status Bar */}
-                      <div className="iphone-status-bar">
-                        <span className="iphone-time">
-                          {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                        <div className="iphone-dynamic-island" />
-                        <div className="iphone-status-icons">
-                          <span className="iphone-signal">📶</span>
-                          <span className="iphone-wifi">📶</span>
-                          <div className="iphone-battery">
-                            <div className="iphone-battery-level" />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Screen Content */}
-                      <div className="iphone-screen">
-                        <iframe
-                          src={previewSrc}
-                          title={`Mobile Preview — ${template.title}`}
-                          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                        />
-                      </div>
-
-                      {/* Safari Bottom Navigation Bar */}
-                      <div className="iphone-safari-bar">
-                        <div className="iphone-safari-address-bar">
-                          <span className="iphone-safari-text-format">aA</span>
-                          <div className="iphone-safari-url">
-                            <span className="iphone-safari-lock">🔒</span>
-                            <span className="iphone-safari-host">{template.slug}.preview.dev</span>
-                          </div>
-                          <span className="iphone-safari-refresh">🔄</span>
-                        </div>
-                        <div className="iphone-safari-nav-icons">
-                          <span className="iphone-safari-icon">⟨</span>
-                          <span className="iphone-safari-icon">⟩</span>
-                          <span className="iphone-safari-icon">📤</span>
-                          <span className="iphone-safari-icon">📖</span>
-                          <span className="iphone-safari-icon">🔳</span>
-                        </div>
-                      </div>
-
-                      {/* Home Indicator Bar */}
-                      <div className="iphone-home-indicator" />
-                    </div>
-                  </div>
-                ) : (
-                  /* Desktop / Tablet device simulator */
-                  <div style={{
-                    position: "absolute", inset: 0,
-                    background: "linear-gradient(135deg, #0d0d1a 0%, #0a0a12 100%)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    padding: heroTab === "desktop" ? "0.5rem" : "1rem",
-                  }}>
-                    <div
-                      className={cn(
-                        "device-preview-inner",
-                        heroTab === "desktop" && "device-desktop",
-                        heroTab === "tablet" && "device-tablet"
-                      )}
-                    >
-                      {/* Browser chrome */}
-                      <div className="device-preview-header">
-                        <div style={{ display: "flex", gap: "0.35rem", alignItems: "center" }}>
-                          <span style={{ width: "0.55rem", height: "0.55rem", borderRadius: "9999px", background: "#ef4444", display: "block" }} />
-                          <span style={{ width: "0.55rem", height: "0.55rem", borderRadius: "9999px", background: "#f59e0b", display: "block" }} />
-                          <span style={{ width: "0.55rem", height: "0.55rem", borderRadius: "9999px", background: "#22c55e", display: "block" }} />
-                        </div>
-                        <span style={{
-                          fontSize: "0.575rem", fontFamily: "monospace",
-                          background: "rgba(0,0,0,0.2)", padding: "0.15rem 0.6rem",
-                          borderRadius: "0.3rem", border: "1px solid rgba(255,255,255,0.1)",
-                          color: "rgba(255,255,255,0.5)", maxWidth: "14rem",
-                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
-                        }}>
-                          {template.slug}.preview.dev
-                        </span>
-                        <span style={{ width: "1.25rem" }} />
-                      </div>
-                      {/* Full-cover body */}
-                      {/* Full-cover body */}
-                      <div className="device-preview-body">
-                        <Image
-                          src={allImages[0]}
-                          alt={`${heroTab} preview`}
-                          fill
-                          className="object-cover object-top"
-                        />
-                        <iframe
-                          src={previewSrc}
-                          title={`${heroTab} Preview — ${template.title}`}
-                          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none", zIndex: 1 }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
+                ) : heroTab === "desktop" || heroTab === "tablet" || heroTab === "mobile" ? (
+                  <DeviceSandbox
+                    mode={heroTab}
+                    previewSrc={previewSrc}
+                    title={template.title}
+                    slug={template.slug}
+                  />
+                ) : null}
               </div>
 
               {/* Compare Tray Removed */}
