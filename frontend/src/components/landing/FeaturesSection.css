@@ -42,15 +42,19 @@
 .section-header {
   position: relative;
   z-index: 2;
-  text-align: center;
+  text-align: left;
   max-width: 48rem;
-  margin: 0 auto 3.5rem;
+  margin: 0 0 3rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .features-section .section-badge,
 .section-badge {
   display: inline-flex;
   align-items: center;
+  align-self: flex-start;
   gap: 0.5rem;
   padding: 0.45rem 1rem;
   border-radius: 9999px;
@@ -88,18 +92,21 @@
   letter-spacing: -0.025em;
   margin-bottom: 0.85rem;
   color: hsl(var(--foreground));
-  text-align: center;
+  text-align: left;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .features-section .section-subtitle,
 .section-subtitle {
-  max-width: 40rem;
-  margin: 0 auto;
+  max-width: 42rem;
+  margin-left: 0;
+  margin-right: 0;
   font-size: 1.05rem;
   line-height: 1.68;
   color: #475569;
   font-weight: 500;
-  text-align: center;
+  text-align: left;
 }
 
 
@@ -255,8 +262,11 @@
   .section {
     padding: 3.5rem 0;
   }
-  .section-header {
+  .section-header,
+  .features-section .section-header {
     margin-bottom: 2rem;
+    text-align: left;
+    align-items: flex-start;
   }
   .section-title,
   .features-section .section-title {
@@ -265,6 +275,7 @@
     margin-bottom: 0.65rem !important;
     letter-spacing: -0.02em;
     color: hsl(var(--foreground)) !important;
+    text-align: left !important;
   }
   .section-subtitle,
   .features-section .section-subtitle {
@@ -272,6 +283,7 @@
     line-height: 1.55 !important;
     color: #334155 !important;
     font-weight: 500 !important;
+    text-align: left !important;
   }
   .features-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

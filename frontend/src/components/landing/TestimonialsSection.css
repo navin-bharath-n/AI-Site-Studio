@@ -1,16 +1,20 @@
 /* Testimonials / How It Works section styles — Upgraded Bespoke Design */
 
 .how-it-works-section .section-header {
-  text-align: center;
+  text-align: left;
   max-width: 48rem;
-  margin: 0 auto 3.5rem;
+  margin: 0 0 3rem 0;
   position: relative;
   z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .how-it-works-section .section-badge {
   display: inline-flex;
   align-items: center;
+  align-self: flex-start;
   gap: 0.5rem;
   padding: 0.45rem 1rem;
   border-radius: 9999px;
@@ -45,7 +49,9 @@
   letter-spacing: -0.025em;
   margin-bottom: 0.85rem;
   color: hsl(var(--foreground));
-  text-align: center;
+  text-align: left;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .how-it-works-section .section-subtitle {
@@ -53,9 +59,10 @@
   font-weight: 500;
   font-size: 1.05rem;
   line-height: 1.68;
-  max-width: 40rem;
-  margin-inline: auto;
-  text-align: center;
+  max-width: 42rem;
+  margin-left: 0;
+  margin-right: 0;
+  text-align: left;
 }
 
 .how-it-works-grid {
@@ -149,12 +156,15 @@
 
   .how-it-works-section .section-header {
     margin-bottom: 1.75rem;
+    text-align: left;
+    align-items: flex-start;
   }
 
   .how-it-works-section .section-title {
     font-size: 1.75rem;
     line-height: 1.2;
     margin-bottom: 0.6rem;
+    text-align: left !important;
   }
 
   .how-it-works-section .section-subtitle {
@@ -162,6 +172,7 @@
     color: #334155;
     font-weight: 500;
     line-height: 1.5;
+    text-align: left !important;
   }
 
   .how-it-works-grid {
