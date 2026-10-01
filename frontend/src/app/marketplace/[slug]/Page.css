@@ -900,6 +900,128 @@
   height: 100%;
 }
 
+.details-performance-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.25rem;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .details-performance-grid {
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .details-performance-grid {
+    gap: 1.5rem;
+  }
+}
+
+.details-performance-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.details-performance-label {
+  font-size: 0.5625rem;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  width: 100%;
+  padding-inline: 2px;
+  color: hsl(var(--foreground));
+}
+
+@media (min-width: 640px) {
+  .details-performance-label {
+    font-size: 0.75rem;
+    line-height: 1.25;
+  }
+}
+
+/* ── Mobile Inline Purchase Card (After Details, Before Category) ── */
+.mobile-inline-purchase {
+  padding: 1rem 1.15rem;
+  gap: 1rem;
+  background-color: hsl(var(--card) / 0.75);
+  border: 1px solid hsl(var(--border) / 0.6);
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Flipkart Ratings & Reviews Themed Styles ── */
+.flipkart-rating-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.175rem;
+  font-weight: 700;
+  font-size: 0.6875rem;
+  line-height: 1;
+  color: #ffffff;
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.25rem;
+  background-color: #16a34a;
+}
+
+.flipkart-rating-badge.rating-high {
+  background-color: #16a34a;
+}
+
+.flipkart-rating-badge.rating-mid {
+  background-color: #d97706;
+}
+
+.flipkart-rating-badge.rating-low {
+  background-color: #dc2626;
+}
+
+.flipkart-certified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+}
+
+.flipkart-feedback-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: hsl(var(--muted-foreground));
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.375rem;
+  transition: all 0.15s ease;
+}
+
+.flipkart-feedback-btn:hover {
+  color: hsl(var(--foreground));
+  background: hsl(var(--muted) / 0.5);
+}
+
+.flipkart-feedback-btn.active-like {
+  color: #16a34a;
+}
+
+.flipkart-feedback-btn.active-dislike {
+  color: #dc2626;
+}
+
 /* ── 14. Specs Table ── */
 .specs-table {
   border-collapse: collapse;
