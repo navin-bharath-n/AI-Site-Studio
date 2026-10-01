@@ -361,59 +361,115 @@
 }
 
 @media (max-width: 768px) {
-  .card-mobile-action-bar {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding-top: 0.625rem;
-    margin-top: 0.25rem;
-    border-top: 1px solid hsl(var(--border) / 0.4);
+  .template-card {
+    border-radius: 0.875rem !important;
   }
 
-  .card-mobile-preview-pill {
-    flex: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.35rem;
-    padding: 0.45rem 0.75rem;
-    border-radius: 0.625rem;
-    font-size: 0.75rem;
-    font-weight: 700;
-    background: hsl(var(--muted) / 0.6);
-    color: hsl(var(--foreground));
-    border: 1px solid hsl(var(--border) / 0.6);
+  .card-thumbnail-container {
+    border-radius: 0.875rem 0.875rem 0 0 !important;
   }
 
-  .card-mobile-cart-btn {
-    flex: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.35rem;
-    padding: 0.45rem 0.75rem;
-    border-radius: 0.625rem;
-    font-size: 0.75rem;
-    font-weight: 700;
-    background: hsl(var(--primary));
-    color: hsl(var(--primary-foreground));
-    border: none;
-    cursor: pointer;
-    min-height: 34px;
-    box-shadow: 0 2px 8px hsla(var(--primary) / 0.25);
-    transition: all 0.15s ease;
+  .card-badge-list {
+    top: 0.4rem !important;
+    left: 0.4rem !important;
+    gap: 0.2rem !important;
   }
 
-  .card-mobile-cart-btn.in-cart {
-    background: #10b981;
-    color: #ffffff;
+  .card-badge-item {
+    font-size: 0.6rem !important;
+    padding: 0.1rem 0.35rem !important;
+    font-weight: 800 !important;
+  }
+
+  .card-action-list {
+    top: 0.4rem !important;
+    right: 0.4rem !important;
+    gap: 0.25rem !important;
+  }
+
+  .card-action-btn {
+    width: 1.65rem !important;
+    height: 1.65rem !important;
+  }
+
+  .card-action-icon {
+    width: 0.85rem !important;
+    height: 0.85rem !important;
+  }
+
+  .card-body {
+    padding: 0.65rem 0.55rem !important;
+    gap: 0.3rem !important;
   }
 
   .card-title {
-    font-size: 0.9375rem;
+    font-size: 0.8125rem !important;
+    line-height: 1.25 !important;
+    height: auto !important;
+    max-height: 2.1rem !important;
+    -webkit-line-clamp: 2 !important;
+  }
+
+  .card-desc {
+    display: none !important; /* Hide description in 2-column mobile layout for clean, aligned cards */
+  }
+
+  .star-rating-wrapper {
+    gap: 0.15rem !important;
+  }
+
+  .star-rating-star {
+    width: 0.65rem !important;
+    height: 0.65rem !important;
+  }
+
+  .star-rating-wrapper span {
+    font-size: 0.625rem !important;
+  }
+
+  .card-meta-row {
+    gap: 0.35rem !important;
+    margin-top: 0.15rem !important;
+    margin-bottom: 0.15rem !important;
+    font-size: 0.6875rem !important;
+  }
+
+  .framework-tag {
+    font-size: 9px !important;
+    padding: 0.05rem 0.3rem !important;
+  }
+
+  .card-price-row {
+    padding-top: 0.15rem !important;
   }
 
   .price-val {
-    font-size: 1.05rem;
+    font-size: 0.9375rem !important;
+    font-weight: 800 !important;
+  }
+
+  .original-price-val {
+    font-size: 0.6875rem !important;
+  }
+
+  .card-mobile-action-bar {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.35rem !important;
+    padding-top: 0.45rem !important;
+    margin-top: 0.2rem !important;
+    border-top: 1px solid hsl(var(--border) / 0.4) !important;
+  }
+
+  .card-mobile-preview-pill {
+    display: none !important; /* Clicking the card anywhere already navigates to details */
+  }
+
+  .card-mobile-cart-btn {
+    width: 100% !important;
+    min-height: 30px !important;
+    padding: 0.35rem 0.5rem !important;
+    font-size: 0.725rem !important;
+    border-radius: 0.5rem !important;
   }
 }

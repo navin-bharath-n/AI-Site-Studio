@@ -2,26 +2,28 @@
 
 .marketplace-grid {
   display: grid;
-  gap: 1.25rem;
-  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: stretch;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 420px) {
   .marketplace-grid {
-    gap: 1rem !important;
+    gap: 0.5rem !important;
   }
 }
 
-@media (min-width: 640px) {
-  .marketplace-grid:not(.list-view) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1280px) {
+@media (min-width: 768px) {
   .marketplace-grid:not(.list-view) {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+}
+
+@media (min-width: 1400px) {
+  .marketplace-grid:not(.list-view) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.5rem;
   }
 }
 
