@@ -17,15 +17,6 @@ export default function HeroSection() {
 
       <div className="hero-container">
         <div className="hero-content-wrapper">
-          {/* Category label */}
-          <motion.p
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="hero-eyebrow"
-          >
-            Website Template Marketplace
-          </motion.p>
 
           {/* Headline */}
           <motion.h1

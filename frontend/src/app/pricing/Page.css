@@ -1,5 +1,16 @@
 /* Pricing Page custom styles */
 .pricing-page-main {
+  min-height: 100vh;
   padding-top: 6rem;
   padding-bottom: 4rem;
+  padding-inline: 1.5rem;
 }
+
+@media (max-width: 768px) {
+  .pricing-page-main {
+    padding-top: 4.75rem;
+    padding-bottom: 2.5rem;
+    padding-inline: 1rem;
+  }
+}
+

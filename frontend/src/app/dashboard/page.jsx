@@ -6111,47 +6111,49 @@ function Dashboard() {
 
                   <div className="border-t border-border/50 pt-4">
                     <h4 className="font-bold text-sm text-foreground mb-3">Withdrawal Requests History</h4>
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="border-b border-border/50 text-foreground font-bold">
-                          <th className="pb-2.5 text-foreground font-bold">Request ID</th>
-                          <th className="pb-2.5 text-foreground font-bold">Date</th>
-                          <th className="pb-2.5 text-foreground font-bold">Amount</th>
-                          <th className="pb-2.5 text-foreground font-bold">Method</th>
-                          <th className="pb-2.5 text-foreground font-bold">Status</th>
-                          <th className="pb-2.5 text-right text-foreground font-bold">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {withdrawalRequests && withdrawalRequests.length > 0 ? (
-                          withdrawalRequests.map((h, idx) => (
-                            <tr key={idx} className="border-b border-border/40 hover:bg-muted/10 text-foreground">
-                              <td className="py-2.5 font-mono font-bold text-foreground">{h.id.slice(0, 8).toUpperCase()}</td>
-                              <td className="py-2.5 text-foreground/80 font-medium">{new Date(h.created_at).toLocaleDateString()}</td>
-                              <td className="py-2.5 font-mono font-bold text-foreground">{formatPrice(h.amount)}</td>
-                              <td className="py-2.5 font-semibold text-foreground/90">{h.bank_name || "Bank Direct"}</td>
-                              <td className="py-2.5 font-bold text-primary capitalize">{h.status}</td>
-                              <td className="py-2.5 text-right">
-                                <a
-                                  href={`/dashboard/payout-receipt/${h.id}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center text-[11px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/80 px-2.5 py-1 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-all text-decoration-none shadow-sm"
-                                >
-                                  View Receipt
-                                </a>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-border/50 text-foreground font-bold">
+                            <th className="pb-2.5 text-foreground font-bold">Request ID</th>
+                            <th className="pb-2.5 text-foreground font-bold">Date</th>
+                            <th className="pb-2.5 text-foreground font-bold">Amount</th>
+                            <th className="pb-2.5 text-foreground font-bold">Method</th>
+                            <th className="pb-2.5 text-foreground font-bold">Status</th>
+                            <th className="pb-2.5 text-right text-foreground font-bold">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {withdrawalRequests && withdrawalRequests.length > 0 ? (
+                            withdrawalRequests.map((h, idx) => (
+                              <tr key={idx} className="border-b border-border/40 hover:bg-muted/10 text-foreground">
+                                <td className="py-2.5 font-mono font-bold text-foreground">{h.id.slice(0, 8).toUpperCase()}</td>
+                                <td className="py-2.5 text-foreground/80 font-medium">{new Date(h.created_at).toLocaleDateString()}</td>
+                                <td className="py-2.5 font-mono font-bold text-foreground">{formatPrice(h.amount)}</td>
+                                <td className="py-2.5 font-semibold text-foreground/90">{h.bank_name || "Bank Direct"}</td>
+                                <td className="py-2.5 font-bold text-primary capitalize">{h.status}</td>
+                                <td className="py-2.5 text-right">
+                                  <a
+                                    href={`/dashboard/payout-receipt/${h.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center text-[11px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/80 px-2.5 py-1 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-all text-decoration-none shadow-sm"
+                                  >
+                                    View Receipt
+                                  </a>
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan={6} className="py-4 text-center text-muted-foreground text-xs">
+                                No withdrawal requests found.
                               </td>
                             </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={6} className="py-4 text-center text-muted-foreground text-xs">
-                              No withdrawal requests found.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               )}

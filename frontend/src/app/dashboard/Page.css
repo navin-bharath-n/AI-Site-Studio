@@ -4044,3 +4044,282 @@
   text-transform: uppercase !important;
   line-height: 1 !important;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   Senior-Grade Mobile & Responsive Dashboard Architecture
+   ══════════════════════════════════════════════════════════════ */
+
+/* Tablet & Mobile Nav Bar (< 1024px) */
+@media (max-width: 1023px) {
+  .db-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1.25rem !important;
+  }
+
+  .db-sidebar {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    gap: 0.5rem !important;
+    padding: 0.5rem 0.25rem 0.65rem 0.25rem !important;
+    position: sticky !important;
+    top: 4.25rem !important;
+    z-index: 20 !important;
+    background: hsl(var(--background) / 0.94) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border-bottom: 1px solid hsl(var(--border) / 0.4) !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  .db-sidebar::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .db-tab-btn {
+    flex-shrink: 0 !important;
+    padding: 0.5rem 0.875rem !important;
+    border-radius: 9999px !important;
+    font-size: 0.8125rem !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+    background: hsl(var(--card)) !important;
+    border: 1px solid hsl(var(--border) / 0.6) !important;
+    color: hsl(var(--muted-foreground)) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+  }
+
+  .db-tab-btn:hover {
+    background-color: hsl(var(--muted) / 0.7) !important;
+    color: hsl(var(--foreground)) !important;
+  }
+
+  .db-tab-btn.active {
+    background: hsl(var(--primary)) !important;
+    color: hsl(var(--primary-foreground)) !important;
+    border-color: transparent !important;
+    box-shadow: 0 2px 10px hsla(var(--primary) / 0.3) !important;
+  }
+}
+
+/* Mobile Screens (<= 768px) */
+@media (max-width: 768px) {
+  .db-page-wrapper {
+    padding-top: 4.25rem !important;
+  }
+
+  .db-container {
+    padding-top: 1rem !important;
+    padding-bottom: 3.5rem !important;
+    padding-inline: 1rem !important;
+  }
+
+  .db-user-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1rem !important;
+    margin-bottom: 1.25rem !important;
+    padding-bottom: 1rem !important;
+  }
+
+  .db-user-avatar {
+    width: 3.25rem !important;
+    height: 3.25rem !important;
+  }
+
+  .db-user-name {
+    font-size: 1.25rem !important;
+  }
+
+  .db-user-email {
+    font-size: 0.8rem !important;
+  }
+
+  .db-header-actions {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+  }
+
+  .db-credits-box {
+    padding: 0.45rem 0.75rem !important;
+    border-radius: 0.75rem !important;
+  }
+
+  .db-credits-value {
+    font-size: 0.95rem !important;
+  }
+
+  .db-signout-btn,
+  .db-figma-btn {
+    padding: 0.45rem 0.85rem !important;
+    border-radius: 0.75rem !important;
+    font-size: 0.8rem !important;
+    min-height: 38px !important;
+    flex: 1 1 auto !important;
+  }
+
+  /* Greeting Banner */
+  .db-greeting-banner {
+    padding: 1.25rem 1rem !important;
+    border-radius: 1rem !important;
+  }
+
+  .db-greeting-title {
+    font-size: 1.25rem !important;
+    margin-top: 0.5rem !important;
+    margin-bottom: 0.35rem !important;
+    line-height: 1.3 !important;
+  }
+
+  .db-greeting-subtitle {
+    font-size: 0.8125rem !important;
+    margin-bottom: 1rem !important;
+    line-height: 1.5 !important;
+  }
+
+  .db-banner-btn-group {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+  }
+
+  .db-banner-btn {
+    width: 100% !important;
+    min-height: 44px !important;
+    justify-content: center !important;
+    font-size: 0.8125rem !important;
+  }
+
+  /* Metrics & Stats 2-Column Responsive Grid */
+  .db-metrics-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.625rem !important;
+  }
+
+  .db-card {
+    padding: 0.875rem 0.75rem !important;
+    border-radius: 0.875rem !important;
+  }
+
+  .db-metric-value {
+    font-size: 1.25rem !important;
+  }
+
+  .db-metric-header span {
+    font-size: 0.6875rem !important;
+    letter-spacing: 0.02em !important;
+  }
+
+  .sd-grid-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.625rem !important;
+  }
+
+  .sd-stat-card {
+    padding: 0.875rem 0.75rem !important;
+    border-radius: 0.875rem !important;
+  }
+
+  .sd-stat-value {
+    font-size: 1.25rem !important;
+  }
+
+  .sd-stat-icon {
+    width: 1.85rem !important;
+    height: 1.85rem !important;
+  }
+
+  /* Subtabs Horizontal Momentum Scrolling */
+  .db-templates-subtabs {
+    display: flex !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    white-space: nowrap !important;
+    padding: 0.2rem !important;
+  }
+
+  .db-templates-subtabs::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .db-templates-subtab-btn {
+    flex-shrink: 0 !important;
+    padding: 0.4rem 0.75rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* Tables Fluid Scroll */
+  .overflow-x-auto {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-width: 100% !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  .overflow-x-auto table {
+    min-width: 520px !important;
+  }
+
+  /* Modals on Mobile */
+  .modal-backdrop,
+  .modal-backdrop-solid {
+    padding: 0.75rem 0.5rem !important;
+  }
+
+  .modal-content,
+  .modal-content-opaque {
+    max-width: 100% !important;
+    border-radius: 1.25rem !important;
+    padding: 1.25rem 1rem !important;
+    max-height: 88dvh !important;
+    overflow-y: auto !important;
+  }
+
+  .modal-input-solid,
+  .modal-select-solid {
+    font-size: 16px !important;
+  }
+
+  .provider-select-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+}
+
+/* Extra Small Mobile (<= 420px) */
+@media (max-width: 420px) {
+  .db-container {
+    padding-inline: 0.75rem !important;
+  }
+
+  .db-metrics-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .sd-grid-stats {
+    grid-template-columns: 1fr !important;
+  }
+
+  .db-user-avatar {
+    width: 2.75rem !important;
+    height: 2.75rem !important;
+  }
+
+  .db-user-avatar-text {
+    font-size: 1.15rem !important;
+  }
+
+  .db-user-name {
+    font-size: 1.1rem !important;
+  }
+}

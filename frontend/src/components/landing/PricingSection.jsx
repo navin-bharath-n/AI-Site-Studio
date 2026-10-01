@@ -62,15 +62,14 @@ export default function PricingSection() {
         </div>
 
         {/* Plans */}
-        <div className="pricing-grid" style={{ gridTemplateColumns: "1fr", maxWidth: "600px", margin: "0 auto" }}>
+        <div className="pricing-grid-solo">
           {PLANS.map((plan) => (
             <motion.div
               key={plan.name}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="pricing-card popular"
-              style={{ padding: "3rem" }}
+              className="pricing-card popular pricing-card-solo"
             >
               <div className="pricing-header">
                 <h3>{plan.name}</h3>
@@ -84,9 +83,9 @@ export default function PricingSection() {
                 <span className="pricing-period">/ forever</span>
               </div>
 
-              <ul className="pricing-features" style={{ gridTemplateColumns: "1fr 1fr", display: "grid", gap: "0.75rem", margin: "2rem 0" }}>
+              <ul className="pricing-features-grid">
                 {plan.features.map((feature) => (
-                  <li key={feature} className="pricing-feature-item" style={{ margin: 0 }}>
+                  <li key={feature} className="pricing-feature-item">
                     <Check className="pricing-check-icon" />
                     <span className="text-sm">{feature}</span>
                   </li>

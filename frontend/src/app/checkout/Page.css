@@ -1021,4 +1021,186 @@
   }
 }
 
+/* ══════════════════════════════════════════════════════════════
+   Mobile-First Refinements for Cart & Checkout
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .checkout-page {
+    padding-top: 4.25rem !important;
+  }
+
+  .checkout-container {
+    padding-top: 0.5rem !important;
+    padding-bottom: 2rem !important;
+    padding-inline: 0.75rem !important;
+  }
+
+  .checkout-card {
+    padding: 1rem 0.85rem !important;
+    border-radius: 0.875rem !important;
+  }
+
+  .checkout-header {
+    font-size: 1.1rem !important;
+    padding-bottom: 0.75rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  .checkout-item-row {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+    gap: 0.65rem !important;
+  }
+
+  .checkout-thumbnail-box {
+    width: 3.25rem !important;
+    height: 2.25rem !important;
+    border-radius: 0.375rem !important;
+  }
+
+  .checkout-item-title {
+    max-width: 140px !important;
+    font-size: 0.8125rem !important;
+  }
+
+  .checkout-item-price {
+    font-size: 0.8125rem !important;
+  }
+
+  .checkout-item-delete {
+    padding: 0.35rem !important;
+    min-height: 36px !important;
+    min-width: 36px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .checkout-gateway-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.625rem !important;
+  }
+
+  .checkout-gateway-btn {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 0.75rem 0.875rem !important;
+    min-height: 52px !important;
+    text-align: left !important;
+  }
+
+  .checkout-gateway-title {
+    flex: 1 !important;
+    margin-left: 0.625rem !important;
+    font-size: 0.8125rem !important;
+  }
+
+  .checkout-gateway-icon {
+    width: 1.35rem !important;
+    height: 1.35rem !important;
+    flex-shrink: 0 !important;
+  }
+
+  .checkout-submit-btn {
+    min-height: 48px !important;
+    font-size: 0.9375rem !important;
+    font-weight: 700 !important;
+    border-radius: 0.75rem !important;
+  }
+
+  .checkout-paying-card {
+    padding: 1.15rem 0.875rem !important;
+    border-radius: 1rem !important;
+    gap: 1rem !important;
+  }
+
+  .checkout-paying-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.5rem !important;
+  }
+
+  .checkout-paying-timer-bar {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+
+  .checkout-amount-badge {
+    padding: 0.65rem 0.85rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  .checkout-qr-box {
+    max-width: 220px !important;
+    padding: 1rem !important;
+  }
+
+  .checkout-vpa-box {
+    padding: 0.65rem 0.75rem !important;
+    gap: 0.35rem !important;
+  }
+
+  .checkout-vpa-copy-btn {
+    min-height: 38px !important;
+    padding: 0.4rem 0.65rem !important;
+    font-size: 0.7rem !important;
+  }
+
+  .checkout-upi-apps-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+
+  .checkout-upi-app-btn {
+    min-height: 48px !important;
+    padding: 0.5rem 0.35rem !important;
+  }
+
+  .checkout-steps-banner {
+    font-size: 0.7rem !important;
+    padding: 0.65rem 0.75rem !important;
+  }
+
+  .checkout-utr-card {
+    padding: 1rem 0.85rem !important;
+    border-radius: 0.875rem !important;
+    gap: 0.75rem !important;
+  }
+
+  .checkout-utr-input {
+    font-size: 16px !important;
+    padding: 0.75rem 0.85rem !important;
+  }
+
+  .checkout-action-row {
+    flex-direction: column-reverse !important;
+    gap: 0.5rem !important;
+  }
+
+  .checkout-verify-btn,
+  .checkout-cancel-btn {
+    min-height: 48px !important;
+    width: 100% !important;
+  }
+
+  .checkout-success-card {
+    padding: 1.5rem 1rem !important;
+    margin: 1rem auto !important;
+    gap: 1rem !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .checkout-item-title {
+    max-width: 110px !important;
+  }
+
+  .checkout-thumbnail-box {
+    width: 2.75rem !important;
+    height: 2rem !important;
+  }
+}
+
+
 
