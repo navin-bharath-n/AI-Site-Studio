@@ -929,11 +929,11 @@ function Checkout() {
                 </div>
 
                 {items.length > 0 && (
-                  <div className="checkout-card" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-sm text-foreground">Select Payment Method</h3>
-                      <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                        <Check className="w-3 h-3 text-emerald-500" /> Instant UPI Active
+                  <div className="checkout-card checkout-payment-card">
+                    <div className="checkout-payment-header">
+                      <h3 className="checkout-section-title">Select Payment Method</h3>
+                      <span className="checkout-upi-active-badge">
+                        <Check className="w-2.5 h-2.5 text-emerald-500" /> Instant UPI Active
                       </span>
                     </div>
                     <div className="checkout-gateway-grid">
@@ -945,51 +945,56 @@ function Checkout() {
                           paymentGateway === "upi" && "active-upi"
                         )}
                       >
-                        <QrCode className="checkout-gateway-icon text-emerald-600" />
-                        <span className="checkout-gateway-title">UPI QR & Apps</span>
-                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
+                        <div className="checkout-gateway-left">
+                          <QrCode className="checkout-gateway-icon text-emerald-600" />
+                          <span className="checkout-gateway-title">UPI QR & Apps</span>
+                        </div>
+                        <span className="checkout-gateway-badge-upi">
                           0% Fee • Instant
                         </span>
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => ENABLE_EXTERNAL_GATEWAYS && setPaymentGateway("razorpay")}
-                        disabled={!ENABLE_EXTERNAL_GATEWAYS}
-                        className={cn(
-                          "checkout-gateway-btn",
-                          !ENABLE_EXTERNAL_GATEWAYS && "masked",
-                          ENABLE_EXTERNAL_GATEWAYS && paymentGateway === "razorpay" && "active"
-                        )}
-                        title={!ENABLE_EXTERNAL_GATEWAYS ? "Card gateway is temporarily masked pending account verification" : ""}
-                      >
-                        <CreditCard className="checkout-gateway-icon text-indigo-400" />
-                        <span className="checkout-gateway-title">Cards / Razorpay</span>
-                        <span className="checkout-gateway-badge-masked">
-                          <Lock className="w-2.5 h-2.5" /> In Setup
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => ENABLE_EXTERNAL_GATEWAYS && setPaymentGateway("stripe")}
-                        disabled={!ENABLE_EXTERNAL_GATEWAYS}
-                        className={cn(
-                          "checkout-gateway-btn",
-                          !ENABLE_EXTERNAL_GATEWAYS && "masked",
-                          ENABLE_EXTERNAL_GATEWAYS && paymentGateway === "stripe" && "active"
-                        )}
-                        title={!ENABLE_EXTERNAL_GATEWAYS ? "Stripe gateway is temporarily masked pending account verification" : ""}
-                      >
-                        <CreditCard className="checkout-gateway-icon text-blue-400" />
-                        <span className="checkout-gateway-title">Stripe Payment</span>
-                        <span className="checkout-gateway-badge-masked">
-                          <Lock className="w-2.5 h-2.5" /> In Setup
-                        </span>
-                      </button>
+
+                      <div className="checkout-masked-row">
+                        <button
+                          type="button"
+                          onClick={() => ENABLE_EXTERNAL_GATEWAYS && setPaymentGateway("razorpay")}
+                          disabled={!ENABLE_EXTERNAL_GATEWAYS}
+                          className={cn(
+                            "checkout-gateway-btn checkout-gateway-btn-sub",
+                            !ENABLE_EXTERNAL_GATEWAYS && "masked",
+                            ENABLE_EXTERNAL_GATEWAYS && paymentGateway === "razorpay" && "active"
+                          )}
+                          title={!ENABLE_EXTERNAL_GATEWAYS ? "Card gateway is temporarily masked pending account verification" : ""}
+                        >
+                          <CreditCard className="checkout-gateway-icon-sub text-indigo-400" />
+                          <span className="checkout-gateway-title-sub">Cards / Razorpay</span>
+                          <span className="checkout-gateway-badge-masked">
+                            <Lock className="w-2 h-2" /> In Setup
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => ENABLE_EXTERNAL_GATEWAYS && setPaymentGateway("stripe")}
+                          disabled={!ENABLE_EXTERNAL_GATEWAYS}
+                          className={cn(
+                            "checkout-gateway-btn checkout-gateway-btn-sub",
+                            !ENABLE_EXTERNAL_GATEWAYS && "masked",
+                            ENABLE_EXTERNAL_GATEWAYS && paymentGateway === "stripe" && "active"
+                          )}
+                          title={!ENABLE_EXTERNAL_GATEWAYS ? "Stripe gateway is temporarily masked pending account verification" : ""}
+                        >
+                          <CreditCard className="checkout-gateway-icon-sub text-blue-400" />
+                          <span className="checkout-gateway-title-sub">Stripe Payment</span>
+                          <span className="checkout-gateway-badge-masked">
+                            <Lock className="w-2 h-2" /> In Setup
+                          </span>
+                        </button>
+                      </div>
                     </div>
                     {!ENABLE_EXTERNAL_GATEWAYS && (
-                      <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 pt-0.5">
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                        Card gateways are temporarily masked pending merchant verification. Instant UPI payments (Google Pay, PhonePe, Paytm, BHIM, QR) are 100% active.
+                      <p className="checkout-gateway-notice">
+                        <ShieldCheck className="w-3 h-3 text-emerald-500 shrink-0" />
+                        <span>Instant UPI (GPay, PhonePe, Paytm, QR) 100% active • Cards in setup</span>
                       </p>
                     )}
                   </div>
@@ -998,20 +1003,20 @@ function Checkout() {
 
               {/* Right: Summary Box */}
               <div className="checkout-right-block">
-                <div className="checkout-card" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-                  <h3 className="font-bold text-base border-b border-border/50 pb-4">Order Summary</h3>
+                <div className="checkout-card checkout-summary-card">
+                  <h3 className="checkout-summary-title">Order Summary</h3>
                   <div className="summary-items-list">
                     <div className="summary-item-row">
                       <span>Subtotal</span>
-                      <span>{hasInrItems ? `₹${total().toFixed(2)}` : formatConvertedPrice(total(), "USD", userCurrency, rates)}</span>
+                      <span className="font-semibold">{hasInrItems ? `₹${total().toFixed(2)}` : formatConvertedPrice(total(), "USD", userCurrency, rates)}</span>
                     </div>
-                    <div className="summary-item-row">
+                    <div className="summary-item-row text-muted-foreground/75">
                       <span>Taxes</span>
                       <span>{hasInrItems ? `₹0.00` : formatConvertedPrice(0, "USD", userCurrency, rates)}</span>
                     </div>
                     <div className="summary-total-row">
                       <span>Total Amount</span>
-                      <span>{hasInrItems ? `₹${total().toFixed(2)}` : formatConvertedPrice(total(), "USD", userCurrency, rates)}</span>
+                      <span className="summary-total-amount">{hasInrItems ? `₹${total().toFixed(2)}` : formatConvertedPrice(total(), "USD", userCurrency, rates)}</span>
                     </div>
                   </div>
 
@@ -1021,7 +1026,7 @@ function Checkout() {
                     className="checkout-submit-btn"
                   >
                     {isProcessing ? (
-                      <><Loader2 className="checkout-btn-loader animate-spin" /> Starting Payment Session…</>
+                      <><Loader2 className="checkout-btn-loader animate-spin" /> Starting Session…</>
                     ) : (
                       <><CreditCard className="checkout-btn-icon" /> Checkout & Pay</>
                     )}
